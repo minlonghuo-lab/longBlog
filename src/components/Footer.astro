@@ -1,16 +1,23 @@
 ---
+import { AUTHOR, SOCIAL_LINKS } from '../consts';
+
 const year = new Date().getFullYear();
 ---
 
-<footer>
-	&copy; {year} My Blog. All rights reserved.
+<footer class="site-footer">
+  <div class="container">
+    <p>&copy; {year} {AUTHOR}. All rights reserved.</p>
+    <div style="margin-top: 0.5rem;">
+      {SOCIAL_LINKS.map((link, i) => (
+        <a 
+          href={link.url} 
+          style="margin: 0 0.5rem; color: inherit; opacity: 0.6;"
+          target={link.platform === 'email' ? undefined : '_blank'}
+          rel={link.platform === 'email' ? undefined : 'noopener noreferrer'}
+        >
+          {link.label}
+        </a>
+      ))}
+    </div>
+  </div>
 </footer>
-
-<style>
-	footer {
-		padding: 2em 1em;
-		text-align: center;
-		color: #999;
-		font-size: 0.9em;
-	}
-</style>

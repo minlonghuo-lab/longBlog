@@ -1,36 +1,206 @@
 ---
-import BaseHead from '../components/BaseHead.astro';
-import Footer from '../components/Footer.astro';
-import Header from '../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostItem from '../components/PostItem.astro';
+import { AUTHOR, AUTHOR_INTRO, SOCIAL_LINKS } from '../consts';
+import { getSortedPosts, getPinnedPosts } from '../data/posts';
+
+// 合并置顶和普通文章，置顶在前
+const pinnedPosts = getPinnedPosts();
+const allPosts = getSortedPosts();
+
+// 排除已置顶的文章
+const regularPosts = allPosts.filter(p => !p.pinned);
+
+// 首页只显示前 5 篇
+const displayPosts = [...pinnedPosts, ...regularPosts].slice(0, 5);
 ---
 
-<!doctype html>
-<html lang="en">
-	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-		<style>
-			main {
-				max-width: 720px;
-				margin: 0 auto;
-				padding: 2em 1em;
-			}
-			h1 {
-				font-size: 2.5em;
-				margin-bottom: 0.5em;
-			}
-			p {
-				line-height: 1.6;
-				color: #444;
-			}
-		</style>
-	</head>
-	<body>
-		<Header />
-		<main>
-			<h1>Welcome to {SITE_TITLE}</h1>
-			<p>Start building your blog here!</p>
-		</main>
-		<Footer />
-	</body>
-</html>
+<BaseLayout title="首页" description={AUTHOR_INTRO}>
+  <div class="home-page">
+    <!-- 简介区域 -->
+    <section class="intro-section">
+      <header class="intro-header">
+        <h1 class="intro-title">
+          你好 <span class="wave">👋</span>
+        </h1>
+        <div class="intro-text">
+          <p>
+            我是 <span class="highlight">{AUTHOR}</span>，
+            {AUTHOR_INTRO}。
+          </p>
+        </div>
+      </header>
+
+      <!-- 社交链接 -->
+      <div class="social-links">
+        {SOCIAL_LINKS.map(link => (
+          <a 
+            href={link.url} 
+            class="social-link"
+            target={link.platform === 'email' ? undefined : '_blank'}
+            rel={link.platform === 'email' ? undefined : 'noopener noreferrer'}
+            aria-label={link.label}
+          >
+            {link.platform === 'github' && '🐙'}
+            {link.platform === 'email' && '📧'}
+            {link.platform === 'twitter' && '🐦'}
+            {link.platform === 'rss' && '📡'}
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <!-- 最新文章 -->
+    <section class="posts-section">
+      <h2 class="section-title">最新文章</h2>
+      <div class="posts-list">
+        {displayPosts.map(post => (
+          <PostItem 
+            slug={post.slug}
+            title={post.title}
+            summary={post.summary}
+            publishedAt={post.publishedAt}
+            tags={post.tags}
+            pinned={post.pinned}
+          />
+        ))}
+      </div>
+
+      {displayPosts.length > 0 && (
+        <div class="view-more">
+          <a href="/blog" class="view-more-link">
+            <span>cd /blog</span>
+          </a>
+        </div>
+      )}
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .home-page {
+    width: 100%;
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+  }
+
+  /* 简介区域 */
+  .intro-section {
+    padding: 3rem 0 4rem;
+  }
+
+  .intro-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .intro-title {
+    font-family: var(--font-serif);
+    font-size: 2.5rem;
+    font-weight: 500;
+    color: var(--foreground);
+    margin: 0 0 1.5rem 0;
+    letter-spacing: -0.02em;
+  }
+
+  .wave {
+    display: inline-block;
+    animation: wave 1s ease-in-out infinite;
+    transform-origin: 70% 70%;
+  }
+
+  @keyframes wave {
+    0%, 100% { transform: rotate(0deg); }
+    10%, 30% { transform: rotate(-10deg); }
+    20%, 40% { transform: rotate(10deg); }
+    50% { transform: rotate(0deg); }
+  }
+
+  .intro-text {
+    max-width: 32rem;
+    font-size: 1.125rem;
+    font-weight: 300;
+    line-height: 1.7;
+    color: var(--muted-foreground);
+  }
+
+  .intro-text p {
+    margin: 0;
+  }
+
+  .highlight {
+    color: var(--foreground);
+    font-weight: 500;
+  }
+
+  /* 社交链接 */
+  .social-links {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .social-link {
+    font-size: 1.25rem;
+    opacity: 0.6;
+    transition: all 0.3s ease;
+    text-decoration: none;
+  }
+
+  .social-link:hover {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+
+  /* 最新文章 */
+  .posts-section {
+    margin-top: 1rem;
+  }
+
+  .section-title {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--foreground);
+    margin: 0 0 1.5rem 0;
+    letter-spacing: -0.01em;
+  }
+
+  .posts-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 查看更多 */
+  .view-more {
+    padding-top: 2rem;
+  }
+
+  .view-more-link {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .view-more-link:hover {
+    color: var(--foreground);
+  }
+
+  @media (max-width: 640px) {
+    .home-page {
+      padding: 2rem 1rem 4rem;
+    }
+
+    .intro-title {
+      font-size: 2rem;
+    }
+
+    .intro-text {
+      font-size: 1rem;
+    }
+  }
+</style>

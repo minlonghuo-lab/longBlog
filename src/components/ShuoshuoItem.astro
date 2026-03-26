@@ -1,0 +1,88 @@
+---
+interface Props {
+  content: string;
+  createdAt: Date;
+  images?: string[];
+}
+
+const { content, createdAt, images } = Astro.props;
+
+function formatDateTime(date: Date): string {
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+const formattedTime = formatDateTime(createdAt);
+---
+
+<article class="shuoshuo-item">
+  <div class="shuoshuo-content">
+    <p>{content}</p>
+    {images && images.length > 0 && (
+      <div class="shuoshuo-images">
+        {images.map(img => (
+          <img src={img} alt="说说图片" class="shuoshuo-image" />
+        ))}
+      </div>
+    )}
+  </div>
+  <time class="shuoshuo-time">{formattedTime}</time>
+</article>
+
+<style>
+  .shuoshuo-item {
+    padding: 1.5rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+  }
+
+  .shuoshuo-item:hover {
+    border-color: var(--foreground);
+  }
+
+  .shuoshuo-content {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--foreground);
+  }
+
+  .shuoshuo-content p {
+    margin: 0;
+  }
+
+  .shuoshuo-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .shuoshuo-image {
+    width: 6rem;
+    height: 6rem;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+  }
+
+  .shuoshuo-image:hover {
+    transform: scale(1.05);
+  }
+
+  .shuoshuo-time {
+    display: block;
+    margin-top: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    opacity: 0.6;
+  }
+</style>

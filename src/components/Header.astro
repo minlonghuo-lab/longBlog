@@ -1,47 +1,26 @@
 ---
-import { SITE_TITLE } from '../consts';
-import HeaderLink from './HeaderLink.astro';
+import { SITE_TITLE, NAV_ITEMS } from '../consts';
+
+const currentPath = Astro.url.pathname;
+
+function isActive(href: string) {
+  if (href === '/') return currentPath === '/';
+  return currentPath.startsWith(href);
+}
 ---
 
-<header>
-	<nav>
-		<h2><a href="/">{SITE_TITLE}</a></h2>
-		<div class="links">
-			<HeaderLink href="/">Home</HeaderLink>
-		</div>
-	</nav>
+<header class="site-header">
+  <nav class="site-nav">
+    <a href="/" class="site-logo">{SITE_TITLE}</a>
+    <div class="nav-links">
+      {NAV_ITEMS.map(item => (
+        <a 
+          href={item.href} 
+          class:list={['nav-link', { active: isActive(item.href) }]}
+        >
+          {item.name}
+        </a>
+      ))}
+    </div>
+  </nav>
 </header>
-
-<style>
-	header {
-		margin: 0;
-		padding: 0 1em;
-		background: white;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-	}
-	h2 {
-		margin: 0;
-		font-size: 1em;
-	}
-	h2 a {
-		text-decoration: none;
-		color: #333;
-	}
-	nav {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-	nav a {
-		padding: 1em 0.5em;
-		color: #666;
-		text-decoration: none;
-	}
-	nav a:hover {
-		color: #2337ff;
-	}
-	nav a.active {
-		color: #2337ff;
-		font-weight: 600;
-	}
-</style>
