@@ -1,3 +1,3 @@
 // Global constants
-export const SITE_TITLE = 'My Blog';
-export const SITE_DESCRIPTION = 'Welcome to my blog!';
+export const SITE_TITLE = 'longBlog';
+export const SITE_DESCRIPTION = '这是一个博客';
