@@ -1,53 +1,47 @@
 ---
+/**
+ * 说说页面
+ * 从 Memos API 获取数据
+ */
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import ShuoshuoItem from '../../components/ShuoshuoItem.astro';
-import { getSortedShuoshuo } from '../../data/shuoshuo';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import MemosItem from '../../components/MemosItem.astro';
+import { memosConfig } from '../../memos/config';
+import { getMemos } from '../../memos/api';
 
-const shuoshuoList = getSortedShuoshuo();
+// 获取说说数据
+const memos = await getMemos();
 ---
 
-<BaseLayout title="说说" description="碎碎念，记录生活点滴">
-  <!-- 页面标题 -->
-  <header class="page-header">
-    <h1>说说</h1>
-    <p>碎碎念，记录生活点滴</p>
-  </header>
-
-  <!-- 说说列表 -->
-  <div class="shuoshuo-list">
-    {shuoshuoList.length === 0 ? (
-      <div class="empty-state">
-        <p>暂无说说</p>
+<BaseLayout title={memosConfig.pageTitle} description={memosConfig.pageDescription}>
+  <Header />
+  
+  <main class="w-full max-w-3xl mx-auto px-6 md:px-0 py-12 md:py-20">
+    <!-- 页面标题 -->
+    <header class="mb-12">
+      <h1 class="text-4xl md:text-5xl font-serif font-medium tracking-tight">
+        {memosConfig.pageTitle}
+      </h1>
+      <p class="text-muted-foreground mt-2">
+        {memosConfig.pageDescription}
+      </p>
+    </header>
+    
+    {memos.length === 0 ? (
+      <!-- 空状态 -->
+      <div class="text-center py-20">
+        <p class="text-muted-foreground">暂无说说内容</p>
       </div>
     ) : (
-      shuoshuoList.map(item => (
-        <ShuoshuoItem 
-          content={item.content}
-          createdAt={item.createdAt}
-          images={item.images}
-        />
-      ))
+      <!-- 说说列表 -->
+      <div class="space-y-12">
+        {memos.map((memo) => (
+          <MemosItem memo={memo} />
+        ))}
+      </div>
     )}
-  </div>
+  </main>
+  
+  <Footer />
 </BaseLayout>
-
-<style>
-  .shuoshuo-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding-top: 2rem;
-  }
-
-  .empty-state {
-    padding: 5rem 0;
-    text-align: center;
-  }
-
-  .empty-state p {
-    font-family: var(--font-serif);
-    font-size: 1.125rem;
-    color: var(--muted-foreground);
-    opacity: 0.5;
-  }
-</style>
