@@ -14,30 +14,23 @@ const displayPosts = [...pinnedPosts, ...allPosts.filter(p => !p.pinned)];
 
 <BaseLayout title={SITE_TITLE} description={AUTHOR_INTRO}>
   <!-- 简介区 -->
-  <section class="intro-section">
-    <header class="intro-header">
-      <h1 class="intro-greeting">
-        你好 <span class="wave">👋</span>
-      </h1>
-      
-      <div class="intro-text">
-        <p>
-          我是 <span class="author-name">{AUTHOR}</span>
-          <span class="intro-sep">——</span>
-          {AUTHOR_INTRO}
-        </p>
-      </div>
-    </header>
+  <section class="py-12 border-b border-border/50">
+    <h1 class="text-4xl md:text-5xl font-serif font-medium tracking-tight mb-4">
+      你好 <span class="inline-block animate-[wave_2s_ease-in-out_infinite]">👋</span>
+    </h1>
+    
+    <p class="text-muted-foreground leading-relaxed">
+      我是 <span class="font-medium text-foreground">{AUTHOR}</span> —— {AUTHOR_INTRO}
+    </p>
 
     <!-- 社交链接 -->
-    <div class="social-links">
+    <div class="flex items-center gap-4 mt-6">
       {SOCIAL_LINKS.map(link => (
         <a 
           href={link.url}
-          class="social-link"
           target={link.platform === 'email' ? undefined : '_blank'}
           rel={link.platform === 'email' ? undefined : 'noopener noreferrer'}
-          aria-label={link.label}
+          class="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
         >
           {link.label}
         </a>
@@ -46,171 +39,32 @@ const displayPosts = [...pinnedPosts, ...allPosts.filter(p => !p.pinned)];
   </section>
 
   <!-- 最新文章区 -->
-  <section class="posts-section">
-    <h2 class="section-title">最新文章</h2>
+  <section class="py-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-medium">最新文章</h2>
+      <a href="/blog" class="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">
+        查看全部 →
+      </a>
+    </div>
     
-    <div class="posts-list">
+    <div class="divide-y divide-border/50">
       {displayPosts.map(post => (
         <PostItem
           slug={post.slug}
           title={post.title}
-          summary={post.summary}
-          publishedAt={post.publishedAt}
+          date={post.date}
           tags={post.tags}
           pinned={post.pinned}
         />
       ))}
     </div>
-
-    <!-- 查看更多 -->
-    <div class="view-more">
-      <a href="/blog" class="view-more-link">
-        <span class="terminal-icon">⌨️</span>
-        cd /blog
-      </a>
-    </div>
   </section>
 </BaseLayout>
 
 <style>
-  /* 简介区 */
-  .intro-section {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-
-  .intro-header {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .intro-greeting {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    font-family: var(--font-serif);
-    font-size: 2.25rem;
-    font-weight: 500;
-    letter-spacing: -0.025em;
-    color: var(--foreground);
-    margin: 0;
-  }
-
-  @media (min-width: 768px) {
-    .intro-greeting {
-      font-size: 3rem;
-    }
-  }
-
-  /* 挥手动画 */
-  .wave {
-    display: inline-block;
-    animation: wave 1s ease-in-out infinite;
-    transform-origin: 70% 70%;
-  }
-
   @keyframes wave {
     0%, 100% { transform: rotate(0deg); }
     25% { transform: rotate(20deg); }
-    50% { transform: rotate(0deg); }
-    75% { transform: rotate(-10deg); }
-  }
-
-  .intro-text {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    max-width: 42rem;
-    font-size: 1rem;
-    font-weight: 300;
-    color: var(--muted-foreground);
-    line-height: 1.6;
-  }
-
-  @media (min-width: 768px) {
-    .intro-text {
-      font-size: 1.125rem;
-    }
-  }
-
-  .intro-text p {
-    margin: 0;
-  }
-
-  .author-name {
-    font-weight: 500;
-    color: var(--foreground);
-  }
-
-  .intro-sep {
-    margin: 0 0.5rem;
-    opacity: 0.5;
-  }
-
-  /* 社交链接 */
-  .social-links {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    color: var(--muted-foreground);
-  }
-
-  .social-link {
-    font-size: 0.875rem;
-    color: var(--muted-foreground);
-    opacity: 0.6;
-    transition: all 0.3s ease;
-  }
-
-  .social-link:hover {
-    color: var(--foreground);
-    opacity: 1;
-  }
-
-  /* 最新文章区 */
-  .posts-section {
-    padding-top: 5rem;
-  }
-
-  .section-title {
-    font-family: var(--font-serif);
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: var(--foreground);
-    letter-spacing: -0.02em;
-    margin: 0 0 2.5rem 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .posts-list {
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* 查看更多 */
-  .view-more {
-    padding-top: 2rem;
-  }
-
-  .view-more-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    color: var(--muted-foreground);
-    transition: color 0.3s ease;
-  }
-
-  .view-more-link:hover {
-    color: var(--foreground);
-  }
-
-  .terminal-icon {
-    font-size: 0.875rem;
+    75% { transform: rotate(-20deg); }
   }
 </style>
