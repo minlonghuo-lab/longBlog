@@ -1,0 +1,259 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { posts } from '../../data/posts';
+
+// 获取路由参数
+const { slug } = Astro.params;
+
+// 查找对应文章
+const post = posts.find(p => p.slug === slug);
+
+if (!post) {
+  return Astro.redirect('/404');
+}
+
+// 格式化日期
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+// 简单的 Markdown 转 HTML（演示用）
+function renderMarkdown(content: string): string {
+  return content
+    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br />');
+}
+
+// 模拟文章内容（实际应从 Markdown 文件读取）
+const articleContent = `
+# ${post.title}
+
+${post.summary}
+
+## 前言
+
+这是一篇关于 ${post.tags.join('、')} 的技术文章。
+
+## 正文
+
+在这里编写完整的文章内容...
+
+## 总结
+
+感谢阅读！
+`.trim();
+---
+
+<BaseLayout title={post.title} description={post.summary}>
+  <article class="post-page">
+    <!-- 返回链接 -->
+    <a href="/blog" class="back-link">← 返回文章列表</a>
+
+    <!-- 文章头部 -->
+    <header class="post-header">
+      <!-- 元数据 -->
+      <div class="post-meta">
+        <time datetime={post.publishedAt.toISOString()}>
+          {formatDate(post.publishedAt)}
+        </time>
+        {post.tags.length > 0 && (
+          <>
+            <span class="meta-sep">/</span>
+            <div class="post-tags">
+              {post.tags.map(tag => (
+                <span class="post-tag">#{tag}</span>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <!-- 标题 -->
+      <h1 class="post-title">{post.title}</h1>
+
+      <!-- 摘要 -->
+      <p class="post-summary">{post.summary}</p>
+    </header>
+
+    <!-- 文章内容 -->
+    <div class="post-content" set:html={renderMarkdown(articleContent)} />
+
+    <!-- 文章底部 -->
+    <footer class="post-footer">
+      <a href="/blog" class="back-btn">← 返回文章列表</a>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-page {
+    width: 100%;
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 5rem;
+  }
+
+  /* 返回链接 */
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    margin-bottom: 2rem;
+  }
+
+  .back-link:hover {
+    color: var(--foreground);
+  }
+
+  /* 文章头部 */
+  .post-header {
+    margin-bottom: 3rem;
+  }
+
+  .post-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .meta-sep {
+    opacity: 0.3;
+  }
+
+  .post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .post-tag {
+    opacity: 0.6;
+  }
+
+  .post-title {
+    font-family: var(--font-serif);
+    font-size: 2.5rem;
+    font-weight: 500;
+    color: var(--foreground);
+    margin: 0 0 1.5rem 0;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .post-summary {
+    font-size: 1.125rem;
+    font-weight: 300;
+    color: var(--muted-foreground);
+    line-height: 1.7;
+    margin: 0;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* 文章内容 */
+  .post-content {
+    font-size: 1rem;
+    line-height: 1.8;
+    color: var(--foreground);
+  }
+
+  .post-content :global(h1) {
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    font-weight: 500;
+    margin: 2rem 0 1rem;
+    color: var(--foreground);
+  }
+
+  .post-content :global(h2) {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin: 2rem 0 1rem;
+    color: var(--foreground);
+  }
+
+  .post-content :global(h3) {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin: 1.5rem 0 0.75rem;
+    color: var(--foreground);
+  }
+
+  .post-content :global(p) {
+    margin: 1rem 0;
+  }
+
+  .post-content :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--muted);
+    padding: 0.2em 0.4em;
+    border-radius: 0.25rem;
+  }
+
+  .post-content :global(strong) {
+    font-weight: 600;
+  }
+
+  .post-content :global(em) {
+    font-style: italic;
+  }
+
+  /* 文章底部 */
+  .post-footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+
+  .back-btn:hover {
+    color: var(--foreground);
+  }
+
+  @media (max-width: 640px) {
+    .post-page {
+      padding: 1.5rem 1rem 4rem;
+    }
+
+    .post-title {
+      font-size: 1.75rem;
+    }
+
+    .post-summary {
+      font-size: 1rem;
+    }
+  }
+</style>
