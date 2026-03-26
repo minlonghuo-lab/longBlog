@@ -5,193 +5,91 @@ import { getSortedPosts, getAllTags } from '../../data/posts';
 
 const posts = getSortedPosts();
 const tags = getAllTags();
+const currentTag = Astro.url.searchParams.get('tag');
 ---
 
-<BaseLayout title="文章" description="所有文章列表">
-  <div class="blog-page">
-    <!-- 页面标题 -->
-    <header class="page-header">
-      <h1 class="page-title">文章</h1>
-      <p class="page-desc">记录技术与生活的点点滴滴</p>
-    </header>
+<BaseLayout title="文章" description="博客文章列表">
+  <!-- 页面标题 -->
+  <header class="page-header">
+    <h1>文章</h1>
+    <p>技术随笔与生活感悟</p>
+  </header>
 
-    <!-- 标签筛选 -->
+  <!-- 标签筛选 -->
+  {tags.length > 0 && (
     <div class="tags-filter">
-      <span class="tags-label">标签</span>
-      <div class="tags-list">
-        <button class="tag-btn active" data-tag="">全部</button>
-        {tags.map(tag => (
-          <button class="tag-btn" data-tag={tag.name}>
-            {tag.name}
-            <span class="tag-count">{tag.count}</span>
-          </button>
-        ))}
-      </div>
+      <a href="/blog" class:list={['tag', { active: !currentTag }]}>
+        全部
+      </a>
+      {tags.map(tag => (
+        <a 
+          href={`/blog?tag=${encodeURIComponent(tag.name)}`}
+          class:list={['tag', { active: currentTag === tag.name }]}
+        >
+          #{tag.name}
+        </a>
+      ))}
     </div>
+  )}
 
-    <!-- 文章列表 -->
-    <div class="posts-list">
-      {posts.length === 0 ? (
-        <div class="empty-state">
-          <p>暂无文章</p>
-        </div>
-      ) : (
-        posts.map(post => (
-          <div class="post-wrapper" data-tags={post.tags.join(',')}>
-            <PostItem 
-              slug={post.slug}
-              title={post.title}
-              summary={post.summary}
-              publishedAt={post.publishedAt}
-              tags={post.tags}
-              pinned={post.pinned}
-            />
-          </div>
-        ))
-      )}
-    </div>
+  <!-- 文章列表 -->
+  <div class="posts-list">
+    {posts.length === 0 ? (
+      <div class="empty-state">
+        <p>暂无文章</p>
+      </div>
+    ) : (
+      posts.map(post => (
+        <PostItem
+          slug={post.slug}
+          title={post.title}
+          summary={post.summary}
+          publishedAt={post.publishedAt}
+          tags={post.tags}
+          pinned={post.pinned}
+        />
+      ))
+    )}
   </div>
 </BaseLayout>
 
-<script>
-  // 标签筛选功能
-  const tagBtns = document.querySelectorAll('.tag-btn');
-  const postWrappers = document.querySelectorAll('.post-wrapper');
-
-  tagBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tag = btn.getAttribute('data-tag') || '';
-      
-      // 更新按钮状态
-      tagBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      
-      // 筛选文章
-      postWrappers.forEach(wrapper => {
-        const tags = wrapper.getAttribute('data-tags')?.split(',') || [];
-        if (!tag || tags.includes(tag)) {
-          wrapper.style.display = 'block';
-        } else {
-          wrapper.style.display = 'none';
-        }
-      });
-    });
-  });
-</script>
-
 <style>
-  .blog-page {
-    width: 100%;
-    max-width: 48rem;
-    margin: 0 auto;
-    padding: 3rem 1.5rem 5rem;
-  }
-
-  /* 页面标题 */
-  .page-header {
-    padding: 3rem 0;
-  }
-
-  .page-title {
-    font-family: var(--font-serif);
-    font-size: 2.5rem;
-    font-weight: 500;
-    color: var(--foreground);
-    margin: 0 0 1rem 0;
-    letter-spacing: -0.02em;
-  }
-
-  .page-desc {
-    max-width: 28rem;
-    font-size: 1rem;
-    font-weight: 300;
-    color: var(--muted-foreground);
-    margin: 0;
-    line-height: 1.6;
-  }
-
   /* 标签筛选 */
   .tags-filter {
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    padding-bottom: 2rem;
     border-bottom: 1px solid var(--border);
   }
 
-  .tags-label {
-    display: block;
+  .tag {
     font-family: var(--font-mono);
-    font-size: 0.65rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    background-color: var(--muted);
     color: var(--muted-foreground);
-    opacity: 0.5;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    margin-bottom: 0.75rem;
+    opacity: 0.6;
+    transition: all 0.3s ease;
   }
 
-  .tags-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-
-  .tag-btn {
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    color: var(--muted-foreground);
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    position: relative;
-    transition: color 0.3s ease;
-  }
-
-  .tag-btn::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 0;
-    height: 1px;
-    background: var(--foreground);
-    transition: width 0.3s ease;
-  }
-
-  .tag-btn:hover {
+  .tag:hover {
+    opacity: 0.8;
     color: var(--foreground);
   }
 
-  .tag-btn:hover::after {
-    width: 100%;
-  }
-
-  .tag-btn.active {
+  .tag.active {
+    opacity: 1;
     color: var(--foreground);
-    font-weight: 500;
+    background-color: var(--foreground);
+    color: var(--background);
   }
 
-  .tag-btn.active::after {
-    width: 100%;
-  }
-
-  .tag-count {
-    font-size: 0.65rem;
-    opacity: 0.4;
-    margin-left: 0.25rem;
-  }
-
-  /* 文章列表 */
-  .posts-list {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .post-wrapper {
-    transition: opacity 0.3s ease;
-  }
-
+  /* 空状态 */
   .empty-state {
-    padding: 4rem 0;
+    padding: 5rem 0;
     text-align: center;
   }
 
@@ -200,15 +98,5 @@ const tags = getAllTags();
     font-size: 1.125rem;
     color: var(--muted-foreground);
     opacity: 0.5;
-  }
-
-  @media (max-width: 640px) {
-    .blog-page {
-      padding: 2rem 1rem 4rem;
-    }
-
-    .page-title {
-      font-size: 2rem;
-    }
   }
 </style>

@@ -6,18 +6,28 @@ const year = new Date().getFullYear();
 
 <footer class="site-footer">
   <div class="container">
-    <p>&copy; {year} {AUTHOR}. All rights reserved.</p>
-    <div style="margin-top: 0.5rem;">
-      {SOCIAL_LINKS.map((link, i) => (
-        <a 
-          href={link.url} 
-          style="margin: 0 0.5rem; color: inherit; opacity: 0.6;"
-          target={link.platform === 'email' ? undefined : '_blank'}
-          rel={link.platform === 'email' ? undefined : 'noopener noreferrer'}
-        >
-          {link.label}
-        </a>
-      ))}
-    </div>
+    <p>&copy; {year} {AUTHOR}</p>
   </div>
 </footer>
+
+<style>
+  .site-footer {
+    padding: 3rem 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .site-footer .container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .site-footer p {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin: 0;
+    opacity: 0.6;
+  }
+</style>

@@ -5,96 +5,62 @@ import { friendLinks } from '../../data/friends';
 ---
 
 <BaseLayout title="友链" description="友情链接">
-  <div class="friends-page">
-    <!-- 页面标题 -->
-    <header class="page-header">
-      <h1 class="page-title">友链</h1>
-      <p class="page-desc">交换友链，互访交流</p>
-    </header>
+  <!-- 页面标题 -->
+  <header class="page-header">
+    <h1>友链</h1>
+    <p>交换友链，互访交流</p>
+  </header>
 
-    <!-- 友链列表 -->
-    <div class="friends-list">
-      {friendLinks.length === 0 ? (
-        <div class="empty-state">
-          <p>暂无友链</p>
-        </div>
-      ) : (
-        <div class="friends-grid">
-          {friendLinks.map(link => (
-            <FriendCard 
-              name={link.name}
-              url={link.url}
-              description={link.description}
-              avatar={link.avatar}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-
-    <!-- 申请友链 -->
-    <div class="apply-section">
-      <div class="apply-info">
-        <h3>申请友链</h3>
-        <p>欢迎交换友链，请在留言板留言或通过邮箱联系我</p>
+  <!-- 友链列表 -->
+  <div class="friends-list">
+    {friendLinks.length === 0 ? (
+      <div class="empty-state">
+        <p>暂无友链</p>
       </div>
-      <a href="mailto:hello@example.com" class="apply-btn">
-        <span>✉️ 联系我</span>
-      </a>
+    ) : (
+      <div class="friends-grid">
+        {friendLinks.map(link => (
+          <FriendCard 
+            name={link.name}
+            url={link.url}
+            description={link.description}
+            avatar={link.avatar}
+          />
+        ))}
+      </div>
+    )}
+  </div>
+
+  <!-- 申请友链 -->
+  <div class="apply-section">
+    <div class="apply-info">
+      <h3>申请友链</h3>
+      <p>欢迎交换友链，可以在留言板留言或通过邮箱联系</p>
     </div>
+    <a href="mailto:hello@example.com" class="apply-link">
+      <span>✉️ 联系我</span>
+    </a>
   </div>
 </BaseLayout>
 
 <style>
-  .friends-page {
-    width: 100%;
-    max-width: 48rem;
-    margin: 0 auto;
-    padding: 3rem 1.5rem 5rem;
-  }
-
-  /* 页面标题 */
-  .page-header {
-    padding: 3rem 0;
-  }
-
-  .page-title {
-    font-family: var(--font-serif);
-    font-size: 2.5rem;
-    font-weight: 500;
-    color: var(--foreground);
-    margin: 0 0 1rem 0;
-    letter-spacing: -0.02em;
-  }
-
-  .page-desc {
-    max-width: 28rem;
-    font-size: 1rem;
-    font-weight: 300;
-    color: var(--muted-foreground);
-    margin: 0;
-    line-height: 1.6;
-  }
-
-  /* 友链列表 */
-  .friends-list {
-    min-height: 12rem;
-  }
-
+  /* 友链网格 */
   .friends-grid {
     display: grid;
-    grid-template-columns: repeat(1, 1fr);
+    grid-template-columns: 1fr;
     gap: 1rem;
+    min-height: 10rem;
   }
 
-  @media (min-width: 640px) {
+  @media (min-width: 768px) {
     .friends-grid {
       grid-template-columns: repeat(2, 1fr);
     }
   }
 
+  /* 空状态 */
   .empty-state {
-    padding: 4rem 0;
+    padding: 5rem 0;
     text-align: center;
   }
 
@@ -105,10 +71,10 @@ import { friendLinks } from '../../data/friends';
     opacity: 0.5;
   }
 
-  /* 申请友链 */
+  /* 申请友链区 */
   .apply-section {
     margin-top: 5rem;
-    padding-top: 2rem;
+    padding-top: 2.5rem;
     border-top: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -124,43 +90,32 @@ import { friendLinks } from '../../data/friends';
   }
 
   .apply-info h3 {
-    font-family: var(--font-serif);
-    font-size: 0.9rem;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
     font-weight: 500;
     color: var(--foreground);
     margin: 0 0 0.25rem 0;
   }
 
   .apply-info p {
+    font-family: var(--font-sans);
     font-size: 0.875rem;
     font-weight: 300;
     color: var(--muted-foreground);
     margin: 0;
   }
 
-  .apply-btn {
+  .apply-link {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
     font-family: var(--font-mono);
     font-size: 0.875rem;
     color: var(--muted-foreground);
-    text-decoration: none;
-    transition: all 0.3s ease;
+    transition: color 0.3s ease;
   }
 
-  .apply-btn:hover {
+  .apply-link:hover {
     color: var(--foreground);
-  }
-
-  @media (max-width: 640px) {
-    .friends-page {
-      padding: 2rem 1rem 4rem;
-    }
-
-    .page-title {
-      font-size: 2rem;
-    }
   }
 </style>

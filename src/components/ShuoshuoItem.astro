@@ -7,11 +7,13 @@ interface Props {
 
 const { content, createdAt, images } = Astro.props;
 
+// 格式化日期时间
 function formatDateTime(date: Date): string {
-  return date.toLocaleString('zh-CN', {
+  return date.toLocaleDateString('en-US', {
     year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+    month: 'short',
+    day: 'numeric',
+  }) + ' ' + date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -21,39 +23,37 @@ const formattedTime = formatDateTime(createdAt);
 ---
 
 <article class="shuoshuo-item">
-  <div class="shuoshuo-content">
-    <p>{content}</p>
-    {images && images.length > 0 && (
-      <div class="shuoshuo-images">
-        {images.map(img => (
-          <img src={img} alt="说说图片" class="shuoshuo-image" />
-        ))}
-      </div>
-    )}
-  </div>
+  <p class="shuoshuo-content">{content}</p>
+  
+  {images && images.length > 0 && (
+    <div class="shuoshuo-images">
+      {images.map(img => (
+        <img src={img} alt="说说图片" class="shuoshuo-image" loading="lazy" />
+      ))}
+    </div>
+  )}
+  
   <time class="shuoshuo-time">{formattedTime}</time>
 </article>
 
 <style>
   .shuoshuo-item {
     padding: 1.5rem;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
     transition: all 0.3s ease;
   }
 
   .shuoshuo-item:hover {
-    border-color: var(--foreground);
+    background-color: var(--muted);
+    opacity: 0.4;
   }
 
   .shuoshuo-content {
+    font-family: var(--font-sans);
     font-size: 0.95rem;
+    font-weight: 400;
     line-height: 1.7;
     color: var(--foreground);
-  }
-
-  .shuoshuo-content p {
     margin: 0;
   }
 
@@ -65,16 +65,17 @@ const formattedTime = formatDateTime(createdAt);
   }
 
   .shuoshuo-image {
-    width: 6rem;
-    height: 6rem;
+    width: 5rem;
+    height: 5rem;
     object-fit: cover;
-    border-radius: 0.5rem;
+    border-radius: 0.375rem;
     cursor: pointer;
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
   }
 
   .shuoshuo-image:hover {
-    transform: scale(1.05);
+    opacity: 1;
+    transform: scale(1.02);
   }
 
   .shuoshuo-time {
@@ -83,6 +84,7 @@ const formattedTime = formatDateTime(createdAt);
     font-family: var(--font-mono);
     font-size: 0.75rem;
     color: var(--muted-foreground);
-    opacity: 0.6;
+    opacity: 0.5;
+    letter-spacing: 0.05em;
   }
 </style>
