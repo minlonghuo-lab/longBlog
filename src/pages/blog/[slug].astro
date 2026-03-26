@@ -2,15 +2,16 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { posts } from '../../data/posts';
 
-// 获取路由参数
-const { slug } = Astro.params;
-
-// 查找对应文章
-const post = posts.find(p => p.slug === slug);
-
-if (!post) {
-  return Astro.redirect('/404');
+// 预定义所有可能的 slug（静态站点必须）
+export function getStaticPaths() {
+  return posts.map(post => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
 }
+
+// 获取当前路由的文章
+const { post } = Astro.props;
 
 // 格式化日期
 function formatDate(date: Date): string {
@@ -33,7 +34,7 @@ function renderMarkdown(content: string): string {
     .replace(/\n/g, '<br />');
 }
 
-// 模拟文章内容（实际应从 Markdown 文件读取）
+// 模拟文章内容
 const articleContent = `
 # ${post.title}
 
@@ -55,12 +56,9 @@ ${post.summary}
 
 <BaseLayout title={post.title} description={post.summary}>
   <article class="post-page">
-    <!-- 返回链接 -->
     <a href="/blog" class="back-link">← 返回文章列表</a>
 
-    <!-- 文章头部 -->
     <header class="post-header">
-      <!-- 元数据 -->
       <div class="post-meta">
         <time datetime={post.publishedAt.toISOString()}>
           {formatDate(post.publishedAt)}
@@ -77,17 +75,12 @@ ${post.summary}
         )}
       </div>
 
-      <!-- 标题 -->
       <h1 class="post-title">{post.title}</h1>
-
-      <!-- 摘要 -->
       <p class="post-summary">{post.summary}</p>
     </header>
 
-    <!-- 文章内容 -->
     <div class="post-content" set:html={renderMarkdown(articleContent)} />
 
-    <!-- 文章底部 -->
     <footer class="post-footer">
       <a href="/blog" class="back-btn">← 返回文章列表</a>
     </footer>
@@ -102,7 +95,6 @@ ${post.summary}
     padding: 2rem 1.5rem 5rem;
   }
 
-  /* 返回链接 */
   .back-link {
     display: inline-flex;
     align-items: center;
@@ -119,7 +111,6 @@ ${post.summary}
     color: var(--foreground);
   }
 
-  /* 文章头部 */
   .post-header {
     margin-bottom: 3rem;
   }
@@ -171,7 +162,6 @@ ${post.summary}
     border-bottom: 1px solid var(--border);
   }
 
-  /* 文章内容 */
   .post-content {
     font-size: 1rem;
     line-height: 1.8;
@@ -222,7 +212,6 @@ ${post.summary}
     font-style: italic;
   }
 
-  /* 文章底部 */
   .post-footer {
     margin-top: 4rem;
     padding-top: 2rem;
@@ -247,11 +236,9 @@ ${post.summary}
     .post-page {
       padding: 1.5rem 1rem 4rem;
     }
-
     .post-title {
       font-size: 1.75rem;
     }
-
     .post-summary {
       font-size: 1rem;
     }
