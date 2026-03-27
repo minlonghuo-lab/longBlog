@@ -120,6 +120,17 @@ const memosApiBase = 'https://memos.ssaw.top';
     const article = document.createElement('article');
     article.className = 'memo-item';
 
+    const contentLen = content.length;
+    const lineExtra = Math.max(32, Math.min(92, Math.round(contentLen / 5)));
+    const dotTop = contentLen > 220 ? '0.58rem' : contentLen > 100 ? '0.52rem' : '0.48rem';
+    article.style.setProperty('--line-extra', `${lineExtra}px`);
+    article.style.setProperty('--dot-top', dotTop);
+    article.classList.add(contentLen > 180 ? 'memo-long' : contentLen < 45 ? 'memo-short' : 'memo-mid');
+
+    const prevLast = listEl.lastElementChild;
+    if (prevLast) prevLast.classList.remove('memo-last');
+    article.classList.add('memo-last');
+
     const imageGridHTML = images.length
       ? `<div class="memo-images">${images
           .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}"><img src="${escapeHTML(img)}" loading="lazy" alt="图片" /></button>`)
@@ -252,71 +263,87 @@ const memosApiBase = 'https://memos.ssaw.top';
   .memos-list {
     display: flex;
     flex-direction: column;
-    gap: 3rem;
-    margin-top: 0.5rem;
+    gap: 2.1rem;
+    margin-top: 0.2rem;
   }
 
   .memo-item {
     position: relative;
-    padding-left: 2.1rem;
+    padding-left: 1.85rem;
+    --line-extra: 56px;
+    --dot-top: 0.52rem;
   }
 
   .timeline-line {
     position: absolute;
-    left: 0.38rem;
+    left: 0.32rem;
     top: 0;
-    bottom: -3rem;
+    bottom: calc(var(--line-extra) * -1);
     width: 1px;
-    background: color-mix(in oklab, var(--border) 80%, transparent);
+    background: color-mix(in oklab, var(--muted-foreground) 28%, transparent);
+  }
+
+  .memo-item.memo-last .timeline-line {
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--muted-foreground) 28%, transparent) 0%,
+      color-mix(in oklab, var(--muted-foreground) 10%, transparent) 68%,
+      transparent 100%
+    );
   }
 
   .timeline-dot {
     position: absolute;
-    left: 0.16rem;
-    top: 0.52rem;
-    width: 0.52rem;
-    height: 0.52rem;
+    left: 0.13rem;
+    top: var(--dot-top);
+    width: 0.42rem;
+    height: 0.42rem;
     border-radius: 999px;
-    background: color-mix(in oklab, var(--foreground) 26%, transparent);
+    background: color-mix(in oklab, var(--foreground) 44%, transparent);
   }
 
   .memo-meta {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.58rem;
     font-family: var(--font-mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.01em;
-    color: color-mix(in oklab, var(--muted-foreground) 72%, transparent);
-    margin-bottom: 0.62rem;
+    font-size: 0.685rem;
+    font-weight: 500;
+    letter-spacing: 0.015em;
+    color: color-mix(in oklab, var(--muted-foreground) 86%, transparent);
+    margin-bottom: 0.52rem;
+    line-height: 1.2;
   }
 
   .memo-pinned {
-    color: var(--foreground);
+    color: color-mix(in oklab, var(--foreground) 78%, transparent);
     font-weight: 500;
-    font-size: 0.69rem;
+    font-size: 0.66rem;
+    border: 1px solid color-mix(in oklab, var(--border) 86%, transparent);
+    border-radius: 999px;
+    padding: 0.06rem 0.35rem;
   }
 
   .memo-content {
-    font-size: 0.94rem;
-    line-height: 1.82;
+    font-size: 0.93rem;
+    line-height: 1.76;
     color: var(--foreground);
     white-space: pre-wrap;
     word-break: break-word;
-    max-width: 42rem;
+    max-width: 40rem;
   }
 
   .memo-images {
-    margin-top: 0.9rem;
+    margin-top: 0.78rem;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
-    max-width: 30rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    max-width: 15.2rem;
   }
 
   @media (min-width: 768px) {
     .memo-images {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      max-width: 17.1rem;
     }
   }
 
@@ -327,20 +354,21 @@ const memosApiBase = 'https://memos.ssaw.top';
     border: none;
     padding: 0;
     overflow: hidden;
-    border-radius: 0.6rem;
+    border-radius: 0.48rem;
     cursor: zoom-in;
-    background: var(--muted);
+    background: color-mix(in oklab, var(--muted) 94%, transparent);
   }
 
   .memo-img-btn img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform var(--transition-base);
+    transition: transform var(--transition-base), opacity var(--transition-base);
   }
 
   .memo-img-btn:hover img {
-    transform: scale(1.03);
+    transform: scale(1.04);
+    opacity: 0.96;
   }
 
   .memo-tags {
@@ -376,19 +404,21 @@ const memosApiBase = 'https://memos.ssaw.top';
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(2px);
+    background: rgba(0, 0, 0, 0.86);
+    backdrop-filter: blur(3px);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 1rem;
+    animation: fadeIn 0.16s ease;
   }
 
   .image-preview img {
-    max-width: 92vw;
-    max-height: 90vh;
+    max-width: min(90vw, 960px);
+    max-height: 88vh;
     object-fit: contain;
     border-radius: 0.5rem;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.45);
   }
 
   .preview-close {
@@ -397,8 +427,19 @@ const memosApiBase = 'https://memos.ssaw.top';
     top: 1rem;
     border: none;
     background: transparent;
-    color: white;
-    font-size: 1.4rem;
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 1.35rem;
+    line-height: 1;
     cursor: pointer;
+    transition: color var(--transition-base);
+  }
+
+  .preview-close:hover {
+    color: #fff;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 </style>
