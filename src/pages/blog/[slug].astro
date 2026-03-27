@@ -27,7 +27,8 @@ function formatDate(date: Date): string {
 
   <div class="post-page-wrap">
     <div class="post-reading-stage">
-      <aside class="post-sidebar" aria-label="文章目录侧栏">
+      <aside id="post-sidebar" class="post-sidebar" aria-label="文章目录侧栏">
+        <button id="desktop-toc-toggle" class="desktop-toc-toggle" type="button" aria-expanded="true" aria-label="收起文章导航">⇥</button>
         <div class="toc-card toc-card-desktop">
           <div class="toc-title-row">
             <span class="toc-title">文章导航</span>
@@ -94,6 +95,8 @@ function formatDate(date: Date): string {
       const mobileTocTrigger = document.getElementById('mobile-toc-trigger');
       const mobileTocClose = document.getElementById('mobile-toc-close');
       const mobileTocBackdrop = document.getElementById('mobile-toc-backdrop');
+      const desktopTocToggle = document.getElementById('desktop-toc-toggle');
+      const postSidebar = document.getElementById('post-sidebar');
       const lightbox = document.getElementById('image-lightbox');
       const lightboxImg = document.getElementById('image-lightbox-img');
       const lightboxClose = document.getElementById('image-lightbox-close');
@@ -163,7 +166,14 @@ function formatDate(date: Date): string {
         });
       };
 
-      const openMobileToc = () => {
+      const setDesktopTocCollapsed = (collapsed) => {
+        if (!(postSidebar instanceof HTMLElement) || !(desktopTocToggle instanceof HTMLButtonElement)) return;
+        postSidebar.classList.toggle('collapsed', collapsed);
+        desktopTocToggle.setAttribute('aria-expanded', String(!collapsed));
+        desktopTocToggle.setAttribute('aria-label', collapsed ? '展开文章导航' : '收起文章导航');
+        desktopTocToggle.textContent = collapsed ? '⇤' : '⇥';
+      };
+
         if (!(mobileTocSheet instanceof HTMLElement)) return;
         mobileTocSheet.classList.add('open');
         mobileTocSheet.setAttribute('aria-hidden', 'false');
@@ -216,6 +226,11 @@ function formatDate(date: Date): string {
         }
       });
 
+      desktopTocToggle?.addEventListener('click', () => {
+        if (!(postSidebar instanceof HTMLElement)) return;
+        setDesktopTocCollapsed(!postSidebar.classList.contains('collapsed'));
+      });
+
       mobileTocTrigger?.addEventListener('click', openMobileToc);
       mobileTocClose?.addEventListener('click', closeMobileToc);
       mobileTocBackdrop?.addEventListener('click', closeMobileToc);
@@ -239,6 +254,7 @@ function formatDate(date: Date): string {
         updateActiveHeading();
       };
 
+      setDesktopTocCollapsed(false);
       onScroll();
       window.addEventListener('scroll', onScroll, { passive: true });
       window.addEventListener('resize', onScroll);
@@ -292,6 +308,11 @@ function formatDate(date: Date): string {
     right: max(1.5rem, calc((100vw - 1460px) / 2 + 1.5rem));
     width: clamp(14.5rem, 16vw, 16.5rem);
     z-index: 30;
+    transition: right var(--transition-base), width var(--transition-base), transform var(--transition-base);
+  }
+
+  .post-sidebar.collapsed {
+    width: 2.8rem;
   }
 
   .reading-progress {
@@ -379,6 +400,35 @@ function formatDate(date: Date): string {
     padding: 0.95rem 0.8rem;
     background: color-mix(in oklab, white 92%, var(--muted) 8%);
     box-shadow: 0 12px 32px color-mix(in oklab, black 5%, transparent);
+  }
+
+  .desktop-toc-toggle {
+    position: absolute;
+    top: 0.25rem;
+    left: -2.8rem;
+    width: 2.2rem;
+    height: 2.2rem;
+    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
+    border-radius: 999px;
+    background: color-mix(in oklab, white 94%, var(--muted) 6%);
+    color: var(--muted-foreground);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    transition: color var(--transition-base), background-color var(--transition-base), transform var(--transition-base), opacity var(--transition-base);
+  }
+
+  .desktop-toc-toggle:hover {
+    color: var(--foreground);
+    transform: translateX(-1px);
+  }
+
+  .post-sidebar.collapsed .toc-card {
+    opacity: 0;
+    transform: translateX(1rem);
+    pointer-events: none;
+  }
+
+  .post-sidebar .toc-card {
+    transition: opacity var(--transition-base), transform var(--transition-base);
   }
 
   .toc-title-row {
@@ -515,12 +565,21 @@ function formatDate(date: Date): string {
     padding: 0.75rem 0.95rem;
     border-left: 3px solid color-mix(in oklab, var(--foreground) 22%, transparent);
     background: color-mix(in oklab, var(--muted) 90%, white);
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .content blockquote * {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .content a {
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.16em;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .content figure {
@@ -572,6 +631,14 @@ function formatDate(date: Date): string {
     padding: 0.5rem 0.6rem;
     vertical-align: top;
     white-space: normal;
+  }
+
+  .content code,
+  .content pre,
+  .content td,
+  .content th {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .content code {
