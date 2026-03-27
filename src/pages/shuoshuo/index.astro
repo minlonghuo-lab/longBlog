@@ -32,6 +32,7 @@ const memosApiBase = 'https://memos.ssaw.top';
   const endEl = document.getElementById('memos-end');
   const emptyEl = document.getElementById('memos-empty');
 
+  document.documentElement.classList.add('memos-page');
   document.body.classList.add('memos-page');
   const sentinelEl = document.getElementById('memos-sentinel');
   const previewEl = document.getElementById('image-preview');
@@ -41,6 +42,7 @@ const memosApiBase = 'https://memos.ssaw.top';
   let pageToken = '';
   let hasMore = true;
   let loading = false;
+  let pinnedReady = false;
   const seen = new Set();
   const memoStore = new Map();
 
@@ -206,7 +208,29 @@ const memosApiBase = 'https://memos.ssaw.top';
         data = await resp.json();
       }
 
-      const memos = Array.isArray(data.memos) ? data.memos : [];
+      let memos = Array.isArray(data.memos) ? data.memos : [];
+
+      if (!pinnedReady) {
+        try {
+          const pinResp = await fetch(`${memosApiBase}/api/v1/memos?pageSize=100`);
+          if (pinResp.ok) {
+            const pinData = await pinResp.json();
+            const pinMemos = Array.isArray(pinData?.memos) ? pinData.memos.filter((m) => m?.pinned) : [];
+            if (pinMemos.length) {
+              const mergeMap = new Map();
+              for (const m of [...pinMemos, ...memos]) {
+                const key = String(m.name || `${m.createTime}-${m.updateTime}-${m.content?.slice(0, 16) || ''}`);
+                mergeMap.set(key, m);
+              }
+              memos = [...mergeMap.values()];
+            }
+          }
+        } catch (e) {
+          // ignore pinned prefetch failure
+        }
+        pinnedReady = true;
+      }
+
       const publicMemos = memos.filter((m) => m.visibility === 'PUBLIC');
 
       publicMemos.sort((a, b) => {
@@ -302,18 +326,35 @@ const memosApiBase = 'https://memos.ssaw.top';
     }
   });
 
+  window.addEventListener('beforeunload', () => {
+    document.documentElement.classList.remove('memos-page');
+    document.body.classList.remove('memos-page');
+  });
+
   loadMore();
 </script>
 
 <style is:global>
+  html.memos-page,
   body.memos-page {
-    scrollbar-width: none;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
 
+  html.memos-page::-webkit-scrollbar,
   body.memos-page::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none;
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+    background: transparent !important;
+  }
+
+  html.memos-page *::-webkit-scrollbar,
+  body.memos-page *::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+    background: transparent !important;
   }
 
   .memos-wrap {
