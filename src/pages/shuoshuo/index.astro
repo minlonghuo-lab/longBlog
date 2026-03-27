@@ -119,8 +119,8 @@ const memosApiBase = 'https://memos.ssaw.top';
     article.className = 'memo-item';
 
     const imageGridHTML = images.length
-      ? `<div class="memo-images memo-images-${Math.min(images.length, 9)}">${images
-          .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}" aria-label="查看大图"><img src="${escapeHTML(img)}" loading="lazy" alt="图片缩略图" /></button>`)
+      ? `<div class="memo-images memo-images-${Math.min(images.length, 9)}" style="--thumb-size:4.8rem;max-width:15.2rem;">${images
+          .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}" style="width:4.8rem;height:4.8rem;max-width:4.8rem;max-height:4.8rem;" aria-label="查看大图"><img src="${escapeHTML(img)}" loading="lazy" alt="图片缩略图" style="width:100%;height:100%;object-fit:cover;" /></button>`)
           .join('')}</div>`
       : '';
 
@@ -315,68 +315,87 @@ const memosApiBase = 'https://memos.ssaw.top';
     padding-right: 0.15rem;
   }
 
+  .memo-images,
+  .memo-images * {
+    box-sizing: border-box;
+  }
+
   .memo-images {
-    --thumb-size: 5.4rem;
-    margin-top: 0.68rem;
-    display: grid;
-    grid-template-columns: repeat(3, var(--thumb-size));
-    grid-auto-rows: var(--thumb-size);
-    gap: 0.34rem;
-    justify-content: flex-start;
-    max-width: calc(var(--thumb-size) * 3 + 0.68rem);
+    --thumb-size: 4.8rem !important;
+    margin-top: 0.62rem !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, var(--thumb-size)) !important;
+    grid-auto-rows: var(--thumb-size) !important;
+    gap: 0.3rem !important;
+    justify-content: flex-start !important;
+    max-width: 15.2rem !important;
+    width: fit-content !important;
   }
 
   .memo-images-1 {
-    grid-template-columns: var(--thumb-size);
-    max-width: var(--thumb-size);
+    grid-template-columns: var(--thumb-size) !important;
+    max-width: var(--thumb-size) !important;
   }
 
   .memo-images-2 {
-    grid-template-columns: repeat(2, var(--thumb-size));
-    max-width: calc(var(--thumb-size) * 2 + 0.34rem);
+    grid-template-columns: repeat(2, var(--thumb-size)) !important;
+    max-width: calc(var(--thumb-size) * 2 + 0.3rem) !important;
   }
 
-  @media (min-width: 768px) {
-    .memo-images {
-      --thumb-size: 5.8rem;
-      gap: 0.38rem;
-    }
+  .memo-images-3,
+  .memo-images-4,
+  .memo-images-5,
+  .memo-images-6,
+  .memo-images-7,
+  .memo-images-8,
+  .memo-images-9 {
+    grid-template-columns: repeat(3, var(--thumb-size)) !important;
+    max-width: 15.2rem !important;
   }
 
   .memo-img-btn {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border: 1px solid color-mix(in oklab, var(--border) 86%, transparent);
-    padding: 0;
-    overflow: hidden;
-    border-radius: 0.45rem;
-    cursor: zoom-in;
-    background: color-mix(in oklab, var(--muted) 96%, transparent);
+    display: block !important;
+    width: var(--thumb-size) !important;
+    height: var(--thumb-size) !important;
+    min-width: var(--thumb-size) !important;
+    min-height: var(--thumb-size) !important;
+    max-width: var(--thumb-size) !important;
+    max-height: var(--thumb-size) !important;
+    border: 1px solid color-mix(in oklab, var(--border) 86%, transparent) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border-radius: 0.42rem !important;
+    cursor: zoom-in !important;
+    background: color-mix(in oklab, var(--muted) 96%, transparent) !important;
   }
 
   .memo-img-btn img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform var(--transition-base), opacity var(--transition-base);
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+    transition: transform var(--transition-base), opacity var(--transition-base) !important;
   }
 
   .memo-img-btn:hover img {
-    transform: scale(1.04);
-    opacity: 0.96;
+    transform: scale(1.04) !important;
+    opacity: 0.96 !important;
   }
 
   /* 兜底：如果未来内容里直接渲染 img，也强制缩小显示 */
   .memo-content :global(img),
   .memo-content img {
-    max-width: min(12rem, 45vw);
-    max-height: 9rem;
-    width: auto;
-    height: auto;
-    border-radius: 0.4rem;
-    display: block;
-    margin-top: 0.5rem;
+    max-width: min(10rem, 38vw) !important;
+    max-height: 7.5rem !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 0.4rem !important;
+    display: block !important;
+    margin-top: 0.45rem !important;
   }
 
   .memo-tags {
