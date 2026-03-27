@@ -6,7 +6,6 @@ import { getSortedPosts, getAllTags } from '../../data/posts';
 const posts = getSortedPosts();
 const tags = getAllTags();
 const selectedTag = Astro.url.searchParams.get('tag') || '';
-const filteredPosts = selectedTag ? posts.filter(p => p.tags.includes(selectedTag)) : posts;
 const hasMoreTags = tags.length > 8;
 const visibleTags = tags.slice(0, 8);
 ---
@@ -20,12 +19,13 @@ const visibleTags = tags.slice(0, 8);
   <section class="tag-filter">
     <div class="tag-hint">TAG FILTER</div>
 
-    <div class="tag-row">
-      <a href="/blog" class:list={["tag-link", { active: !selectedTag }]}>全部</a>
+    <div class="tag-row" id="tag-row">
+      <a href="/blog" data-tag="" class:list={["tag-link", { active: !selectedTag }]}>全部</a>
 
       {visibleTags.map(tag => (
         <a
           href={`/blog?tag=${encodeURIComponent(tag.name)}`}
+          data-tag={tag.name}
           class:list={["tag-link", { active: selectedTag === tag.name }]}
         >
           <span>{tag.name}</span>
@@ -37,11 +37,9 @@ const visibleTags = tags.slice(0, 8);
     </div>
   </section>
 
-  <section class="posts-list">
-    {filteredPosts.length === 0 ? (
-      <div class="empty">暂无文章</div>
-    ) : (
-      filteredPosts.map(post => (
+  <section class="posts-list" id="posts-list">
+    {posts.map(post => (
+      <div class="post-row" data-tags={post.tags.join('|')}>
         <PostItem
           title={post.title}
           date={post.date}
@@ -49,10 +47,44 @@ const visibleTags = tags.slice(0, 8);
           slug={post.slug}
           pinned={post.pinned}
         />
-      ))
-    )}
+      </div>
+    ))}
+
+    <div class="empty" id="posts-empty" style="display:none;">暂无文章</div>
   </section>
 </BaseLayout>
+
+<script>
+  (() => {
+    const rows = Array.from(document.querySelectorAll('.post-row'));
+    const empty = document.getElementById('posts-empty');
+    const tagLinks = Array.from(document.querySelectorAll('#tag-row .tag-link'));
+
+    const selectedTag = new URLSearchParams(window.location.search).get('tag') || '';
+
+    let visibleCount = 0;
+    for (const row of rows) {
+      const tagStr = row.getAttribute('data-tags') || '';
+      const tags = tagStr ? tagStr.split('|') : [];
+      const visible = !selectedTag || tags.includes(selectedTag);
+      row.style.display = visible ? '' : 'none';
+      if (visible) visibleCount += 1;
+    }
+
+    if (empty) {
+      empty.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    for (const link of tagLinks) {
+      const tag = link.getAttribute('data-tag') || '';
+      if (tag === selectedTag) {
+        link.classList.add('active');
+      } else {
+        link.classList.remove('active');
+      }
+    }
+  })();
+</script>
 
 <style>
   .tag-filter { margin-bottom: 2.5rem; }
@@ -121,3 +153,4 @@ const visibleTags = tags.slice(0, 8);
     color: color-mix(in oklab, var(--muted-foreground) 65%, transparent);
   }
 </style>
+
