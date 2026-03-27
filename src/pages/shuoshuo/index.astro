@@ -1,68 +1,375 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { memos } from '../../data/memos';
 
-function formatDate(input: string) {
-  const d = new Date(input);
-  return d.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+const memosApiBase = 'https://memos.ssaw.top';
 ---
 
-<BaseLayout title="说说" description="日常碎片与短内容记录">
+<BaseLayout title="说说" description="日常碎碎念">
   <header class="page-header">
     <h1>说说</h1>
-    <p>记录当下，保持表达。</p>
+    <p>日常碎碎念</p>
   </header>
 
-  <section class="memos-list">
-    {memos.map((memo) => (
-      <article class="memo-item">
-        <p>{memo.content}</p>
-        <time>{formatDate(memo.createdTs)}</time>
-      </article>
-    ))}
+  <section class="memos-wrap">
+    <div id="memos-list" class="memos-list"></div>
+
+    <div id="memos-loading" class="memos-status">加载中...</div>
+    <div id="memos-end" class="memos-status" style="display:none;">- END -</div>
+    <div id="memos-empty" class="memos-status" style="display:none;">暂无内容</div>
+
+    <div id="memos-sentinel" class="memos-sentinel"></div>
   </section>
+
+  <div id="image-preview" class="image-preview" style="display:none;">
+    <button id="preview-close" class="preview-close" aria-label="关闭">✕</button>
+    <img id="preview-image" src="" alt="预览图" />
+  </div>
 </BaseLayout>
 
+<script define:vars={{ memosApiBase }}>
+  const listEl = document.getElementById('memos-list');
+  const loadingEl = document.getElementById('memos-loading');
+  const endEl = document.getElementById('memos-end');
+  const emptyEl = document.getElementById('memos-empty');
+  const sentinelEl = document.getElementById('memos-sentinel');
+  const previewEl = document.getElementById('image-preview');
+  const previewImgEl = document.getElementById('preview-image');
+  const closeBtn = document.getElementById('preview-close');
+
+  let pageToken = '';
+  let hasMore = true;
+  let loading = false;
+  const seen = new Set();
+
+  const PAGE_SIZE = 10;
+
+  function formatDate(input) {
+    const d = new Date(input);
+    return d.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  function processContent(content) {
+    return content
+      .split('\n')
+      .map((line) => line.replace(/^#\S+(\s|$)/, ''))
+      .join('\n')
+      .trim();
+  }
+
+  function escapeHTML(str) {
+    return (str || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function extractMarkdownImages(content) {
+    const images = [];
+    const regex = /!\[[^\]]*\]\(([^)]+)\)/g;
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      images.push(match[1]);
+    }
+    return images;
+  }
+
+  function mapImages(memo) {
+    const images = [];
+    const attachments = Array.isArray(memo.attachments) ? memo.attachments : [];
+
+    for (const att of attachments) {
+      const attachmentId = (att.name || '').replace('attachments/', '');
+      const filename = att.filename || '';
+      if (!attachmentId || !filename) continue;
+      const fileUrl = `${memosApiBase}/file/attachments/${attachmentId}/${encodeURIComponent(filename)}`;
+      if ((att.type || '').startsWith('image/')) {
+        images.push(fileUrl);
+      }
+    }
+
+    for (const mdImg of extractMarkdownImages(memo.content || '')) {
+      if (!images.includes(mdImg)) images.push(mdImg);
+    }
+
+    return images;
+  }
+
+  function renderMemo(memo) {
+    const id = Number((memo.name || '').split('/')[1] || Date.now());
+    if (seen.has(id)) return;
+    seen.add(id);
+
+    const content = processContent(memo.content || '');
+    const images = mapImages(memo);
+    const tags = (memo.tags || []).filter((t) => !String(t).startsWith('#'));
+
+    const article = document.createElement('article');
+    article.className = 'memo-item';
+
+    const imageGridHTML = images.length
+      ? `<div class="memo-images">${images
+          .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}"><img src="${escapeHTML(img)}" loading="lazy" alt="图片" /></button>`)
+          .join('')}</div>`
+      : '';
+
+    const tagsHTML = tags.length
+      ? `<div class="memo-tags">${tags
+          .map((tag) => `<span>#${escapeHTML(String(tag))}</span>`)
+          .join('')}</div>`
+      : '';
+
+    article.innerHTML = `
+      <div class="timeline-line"></div>
+      <div class="timeline-dot"></div>
+      <div class="memo-body">
+        <div class="memo-meta">
+          <time>${escapeHTML(formatDate(memo.createTime))}</time>
+          ${memo.pinned ? '<span class="memo-pinned">置顶</span>' : ''}
+        </div>
+        <div class="memo-content">${escapeHTML(content).replaceAll('\n', '<br>')}</div>
+        ${imageGridHTML}
+        ${tagsHTML}
+      </div>
+    `;
+
+    listEl.appendChild(article);
+  }
+
+  async function loadMore() {
+    if (!hasMore || loading) return;
+
+    loading = true;
+    loadingEl.style.display = 'block';
+
+    try {
+      const qs = new URLSearchParams({ pageSize: String(PAGE_SIZE) });
+      if (pageToken) qs.set('pageToken', pageToken);
+
+      const resp = await fetch(`${memosApiBase}/api/v1/memos?${qs.toString()}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      const data = await resp.json();
+      const memos = Array.isArray(data.memos) ? data.memos : [];
+      const publicMemos = memos.filter((m) => m.visibility === 'PUBLIC');
+
+      publicMemos.sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        return new Date(b.createTime).getTime() - new Date(a.createTime).getTime();
+      });
+
+      publicMemos.forEach(renderMemo);
+
+      pageToken = data.nextPageToken || '';
+      hasMore = !!pageToken;
+
+      if (!hasMore) {
+        endEl.style.display = listEl.children.length ? 'block' : 'none';
+      }
+
+      if (!listEl.children.length) {
+        emptyEl.style.display = 'block';
+      }
+    } catch (err) {
+      loadingEl.textContent = '加载失败，请稍后刷新重试';
+      console.error('[memos] load error:', err);
+      return;
+    } finally {
+      loading = false;
+      if (hasMore) loadingEl.style.display = 'none';
+    }
+  }
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0];
+      if (entry && entry.isIntersecting) loadMore();
+    },
+    { rootMargin: '220px 0px' },
+  );
+
+  io.observe(sentinelEl);
+
+  listEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.memo-img-btn');
+    if (!btn) return;
+    const src = btn.getAttribute('data-img');
+    if (!src) return;
+    previewImgEl.setAttribute('src', src);
+    previewEl.style.display = 'flex';
+  });
+
+  closeBtn.addEventListener('click', () => {
+    previewEl.style.display = 'none';
+    previewImgEl.setAttribute('src', '');
+  });
+
+  previewEl.addEventListener('click', (e) => {
+    if (e.target === previewEl) {
+      previewEl.style.display = 'none';
+      previewImgEl.setAttribute('src', '');
+    }
+  });
+
+  loadMore();
+</script>
+
 <style>
+  .memos-wrap {
+    padding-bottom: 4rem;
+  }
+
   .memos-list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    padding-bottom: 2rem;
+    gap: 2.4rem;
   }
 
   .memo-item {
-    border: 1px solid var(--border);
-    border-radius: 0.75rem;
-    padding: 1rem 1rem 0.85rem;
-    transition: border-color var(--transition-base), transform var(--transition-base);
+    position: relative;
+    padding-left: 2rem;
   }
 
-  .memo-item:hover {
-    border-color: color-mix(in oklab, var(--foreground) 20%, var(--border));
-    transform: translateY(-1px);
+  .timeline-line {
+    position: absolute;
+    left: 0.35rem;
+    top: 0;
+    bottom: -2.4rem;
+    width: 1px;
+    background: var(--border);
   }
 
-  .memo-item p {
-    margin: 0;
-    color: var(--foreground);
-    line-height: 1.7;
-    white-space: pre-wrap;
+  .timeline-dot {
+    position: absolute;
+    left: 0.17rem;
+    top: 0.45rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--foreground) 35%, transparent);
   }
 
-  .memo-item time {
-    margin-top: 0.75rem;
-    display: block;
+  .memo-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
     font-family: var(--font-mono);
     font-size: 0.7rem;
+    color: color-mix(in oklab, var(--muted-foreground) 75%, transparent);
+    margin-bottom: 0.55rem;
+  }
+
+  .memo-pinned {
+    color: var(--foreground);
+    font-weight: 600;
+  }
+
+  .memo-content {
+    font-size: 0.93rem;
+    line-height: 1.78;
+    color: var(--foreground);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .memo-images {
+    margin-top: 0.8rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  @media (min-width: 768px) {
+    .memo-images {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .memo-img-btn {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1/1;
+    border: none;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    cursor: zoom-in;
+    background: var(--muted);
+  }
+
+  .memo-img-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-base);
+  }
+
+  .memo-img-btn:hover img {
+    transform: scale(1.03);
+  }
+
+  .memo-tags {
+    margin-top: 0.65rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .memo-tags span {
+    font-size: 0.72rem;
     color: var(--muted-foreground);
-    letter-spacing: 0.04em;
+    background: var(--muted);
+    border-radius: 999px;
+    padding: 0.12rem 0.5rem;
+  }
+
+  .memos-status {
+    text-align: center;
+    margin-top: 2rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+
+  .memos-sentinel {
+    height: 1px;
+  }
+
+  .image-preview {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .image-preview img {
+    max-width: 92vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 0.5rem;
+  }
+
+  .preview-close {
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    border: none;
+    background: transparent;
+    color: white;
+    font-size: 1.4rem;
+    cursor: pointer;
   }
 </style>
