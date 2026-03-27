@@ -8,18 +8,28 @@ export interface FriendLink {
 
 export const friendLinks: FriendLink[] = [
   {
-    name: 'flare-stack-blog',
-    url: 'https://ssaw.top',
-    description: '一个现代化的博客系统，基于 flare-stack 构建',
+    name: 'Minis助手',
+    url: 'https://apps.apple.com/cn/app/open-minis/id6759188481',
+    description: '我的AI助手',
   },
   {
-    name: 'Trilium Notes',
-    url: 'https://github.com/zadam/trilium',
-    description: '分层笔记应用，专注隐私，可离线使用',
+    name: 'Web Teleporter',
+    url: 'https://webteleporter.top',
+    description: '这是一个传送门',
   },
   {
-    name: 'Astro',
-    url: 'https://astro.build',
-    description: '内容驱动的网站框架，构建更快、更轻的网站',
+    name: '青萍叙事',
+    url: 'https://blog.lusyoe.com',
+    description: '一个懂技术的产品汪🐶',
+  },
+  {
+    name: 'NatsuKaze',
+    url: 'https://nkblog.top',
+    description: '不忘初心，方得始终',
+  },
+  {
+    name: '流月的博客',
+    url: 'https://blog.sitrmoo.com',
+    description: '且行且记，不负光阴',
   },
 ];

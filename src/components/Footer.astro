@@ -6,7 +6,17 @@ const year = new Date().getFullYear();
 
 <footer class="site-footer">
   <div class="container footer-inner">
-    <p>© {year} {AUTHOR}</p>
+    <p>
+      © {year} {AUTHOR}
+      <a
+        href="https://icp.gov.moe/?keyword=20260550"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="icp-link"
+      >
+        萌ICP备20260550号
+      </a>
+    </p>
   </div>
 </footer>
 
@@ -27,6 +37,19 @@ const year = new Date().getFullYear();
     font-family: var(--font-mono);
     font-size: 0.75rem;
     color: var(--muted-foreground);
-    opacity: 0.6;
+    opacity: 0.72;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .icp-link {
+    transition: color var(--transition-base);
+  }
+
+  .icp-link:hover {
+    color: var(--foreground);
   }
 </style>

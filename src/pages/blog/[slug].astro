@@ -321,25 +321,29 @@ function formatDate(date: Date): string {
 
   .post-header {
     margin-bottom: 2.75rem;
-    text-align: center;
+    text-align: left;
   }
 
   .post-header h1 {
     max-width: 34rem;
-    margin: 0 auto 1.15rem;
+    margin: 0 0 1.15rem;
     font-size: clamp(2.5rem, 5.4vw, 4.25rem);
     line-height: 1.04;
     letter-spacing: -0.045em;
+    text-align: justify;
+    text-justify: inter-ideograph;
   }
 
   .post-header .summary {
     max-width: 34rem;
-    margin: 0 auto 1.2rem;
+    margin: 0 0 1.2rem;
     color: color-mix(in oklab, var(--muted-foreground) 88%, transparent);
     line-height: 1.95;
     font-size: 1rem;
     font-weight: 300;
-    text-align: center;
+    text-align: justify;
+    text-justify: inter-ideograph;
+    text-indent: 2em;
   }
 
   .meta {

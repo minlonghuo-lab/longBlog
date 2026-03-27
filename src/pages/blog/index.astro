@@ -7,8 +7,8 @@ const posts = getSortedPosts();
 const tags = getAllTags();
 const selectedTag = Astro.url.searchParams.get('tag') || '';
 const hasMoreTags = tags.length > 8;
-const visibleTags = tags.slice(0, 8);
-const hiddenTags = tags.slice(8);
+const visibleTags = tags.slice(0, 7);
+const hiddenTags = tags.slice(7);
 ---
 
 <BaseLayout title="文章" description="文章列表与标签筛选">
