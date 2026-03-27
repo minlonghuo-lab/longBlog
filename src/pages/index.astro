@@ -1,12 +1,10 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostItem from '../components/PostItem.astro';
-import { getSortedPosts, getPinnedPosts } from '../data/posts';
+import { getSortedPosts } from '../data/posts';
 import { AUTHOR, AUTHOR_INTRO, SOCIAL_LINKS, SITE_TITLE } from '../consts';
 
-const allPosts = getSortedPosts();
-const pinnedPosts = getPinnedPosts();
-const displayPosts = [...pinnedPosts, ...allPosts.filter(p => !p.pinned)];
+const displayPosts = getSortedPosts();
 
 const socialIcons = {
   github: '/social-icons/github.svg',

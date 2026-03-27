@@ -33,7 +33,7 @@ export const posts: Post[] = triliumPosts.map((p) => ({
 }));
 
 export function getSortedPosts(): Post[] {
-  return [...posts].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  return [...posts].sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
 export function getPinnedPosts(): Post[] {
