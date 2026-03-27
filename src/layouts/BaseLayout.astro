@@ -38,6 +38,7 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
   </main>
   <Footer />
 
+  <div id="route-progress" class="route-progress" aria-hidden="true"></div>
   <script>
     (() => {
       const main = document.getElementById('page-main');
@@ -76,11 +77,16 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
 
         event.preventDefault();
         document.body.classList.remove('page-ready');
-        document.body.classList.add('page-leave');
+        document.body.classList.add('page-leave', 'page-navigating');
+
+        const progress = document.getElementById('route-progress');
+        if (progress) {
+          progress.classList.add('active');
+        }
 
         window.setTimeout(() => {
           window.location.href = url.href;
-        }, 120);
+        }, 80);
       });
     })();
   </script>

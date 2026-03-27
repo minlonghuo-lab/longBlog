@@ -56,18 +56,32 @@ body {
 
 #page-main {
   opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 0.14s ease-out, transform 0.14s ease-out;
+  transition: opacity 0.12s ease-out;
 }
 
 body.page-ready #page-main {
   opacity: 1;
-  transform: translateY(0);
 }
 
 body.page-leave #page-main {
   opacity: 0;
-  transform: translateY(4px);
+}
+
+.route-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(28, 28, 32, 0.75), rgba(28, 28, 32, 0.35));
+  z-index: 120;
+  opacity: 0;
+  transition: width 0.16s ease-out, opacity 0.16s ease-out;
+}
+
+.route-progress.active {
+  width: 62vw;
+  opacity: 1;
 }
 
 ::selection {

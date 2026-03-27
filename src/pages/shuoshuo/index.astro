@@ -41,7 +41,7 @@ const memosApiBase = 'https://memos.ssaw.top';
   let loading = false;
   const seen = new Set();
 
-  const PAGE_SIZE = 3;
+  const PAGE_SIZE = 10;
   const MAX_SAME_TOKEN_HITS = 2;
   let lastNextPageToken = '';
   let sameTokenHits = 0;
@@ -428,18 +428,22 @@ const memosApiBase = 'https://memos.ssaw.top';
   .image-preview {
     position: fixed;
     inset: 0;
-    z-index: 100;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(2px);
+    z-index: 999;
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 1rem;
+    width: 100vw;
+    height: 100dvh;
+    min-height: 100vh;
   }
 
   .image-preview img {
-    max-width: 92vw;
-    max-height: 90vh;
+    max-width: min(90vw, 960px);
+    max-height: 88dvh;
     object-fit: contain;
     border-radius: 0.5rem;
   }
@@ -453,5 +457,6 @@ const memosApiBase = 'https://memos.ssaw.top';
     color: white;
     font-size: 1.4rem;
     cursor: pointer;
+    z-index: 1000;
   }
 </style>
