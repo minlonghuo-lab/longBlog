@@ -2,7 +2,6 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 
 const memosApiBase = 'https://memos.ssaw.top';
-const memosBuildStamp = '2026-03-27-1145';
 ---
 
 <BaseLayout title="说说" description="日常碎碎念">
@@ -14,7 +13,7 @@ const memosBuildStamp = '2026-03-27-1145';
   <section class="memos-wrap">
     <div id="memos-list" class="memos-list"></div>
 
-    <div id="memos-loading" class="memos-status" style="display:none;">加载中...</div>
+    <div id="memos-loading" class="memos-status">加载中...</div>
     <div id="memos-end" class="memos-status" style="display:none;">- END -</div>
     <div id="memos-empty" class="memos-status" style="display:none;">暂无内容</div>
 
@@ -27,7 +26,7 @@ const memosBuildStamp = '2026-03-27-1145';
   </div>
 </BaseLayout>
 
-<script define:vars={{ memosApiBase, memosBuildStamp }}>
+<script define:vars={{ memosApiBase }}>
   const listEl = document.getElementById('memos-list');
   const loadingEl = document.getElementById('memos-loading');
   const endEl = document.getElementById('memos-end');
@@ -37,26 +36,12 @@ const memosBuildStamp = '2026-03-27-1145';
   const previewImgEl = document.getElementById('preview-image');
   const closeBtn = document.getElementById('preview-close');
 
-  window.__MEMOS_BUILD__ = memosBuildStamp;
-
   let pageToken = '';
   let hasMore = true;
   let loading = false;
-  let currentApiBase = memosApiBase;
-  const apiBaseCandidates = Array.from(new Set([
-    window.location.origin,
-    memosApiBase,
-    'https://ssaw.top',
-  ]));
   const seen = new Set();
 
   const PAGE_SIZE = 10;
-  const MAX_EMPTY_PAGES = 2;
-  const MAX_SAME_TOKEN_HITS = 2;
-  let emptyPageHits = 0;
-  let sameTokenHits = 0;
-  let lastNextPageToken = '';
-  let io = null;
 
   function formatDate(input) {
     const d = new Date(input);
@@ -118,9 +103,9 @@ const memosBuildStamp = '2026-03-27-1145';
   }
 
   function renderMemo(memo) {
-    const memoKey = String(memo.name || `${memo.createTime}-${memo.updateTime}-${memo.content?.slice(0, 16) || ''}`);
-    if (seen.has(memoKey)) return;
-    seen.add(memoKey);
+    const id = Number((memo.name || '').split('/')[1] || Date.now());
+    if (seen.has(id)) return;
+    seen.add(id);
 
     const content = processContent(memo.content || '');
     const images = mapImages(memo);
@@ -129,20 +114,9 @@ const memosBuildStamp = '2026-03-27-1145';
     const article = document.createElement('article');
     article.className = 'memo-item';
 
-    const contentLen = content.length;
-    const lineExtra = Math.max(32, Math.min(92, Math.round(contentLen / 5)));
-    const dotTop = contentLen > 220 ? '0.58rem' : contentLen > 100 ? '0.52rem' : '0.48rem';
-    article.style.setProperty('--line-extra', `${lineExtra}px`);
-    article.style.setProperty('--dot-top', dotTop);
-    article.classList.add(contentLen > 180 ? 'memo-long' : contentLen < 45 ? 'memo-short' : 'memo-mid');
-
-    const prevLast = listEl.lastElementChild;
-    if (prevLast) prevLast.classList.remove('memo-last');
-    article.classList.add('memo-last');
-
     const imageGridHTML = images.length
-      ? `<div class="memo-images memo-images-${Math.min(images.length, 9)}">${images
-          .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}" aria-label="查看大图"><img src="${escapeHTML(img)}" loading="lazy" alt="图片缩略图" /></button>`)
+      ? `<div class="memo-images">${images
+          .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}"><img src="${escapeHTML(img)}" loading="lazy" alt="图片" /></button>`)
           .join('')}</div>`
       : '';
 
@@ -169,25 +143,6 @@ const memosBuildStamp = '2026-03-27-1145';
     listEl.appendChild(article);
   }
 
-  async function fetchMemosWithFallback(qs) {
-    let lastError = null;
-
-    for (const base of apiBaseCandidates) {
-      try {
-        const resp = await fetch(`${base}/api/v1/memos?${qs.toString()}`, { credentials: 'omit' });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        if (!Array.isArray(data?.memos)) throw new Error('Invalid memos payload');
-        currentApiBase = base;
-        return data;
-      } catch (err) {
-        lastError = err;
-      }
-    }
-
-    throw lastError || new Error('No available memos API');
-  }
-
   async function loadMore() {
     if (!hasMore || loading) return;
 
@@ -198,7 +153,10 @@ const memosBuildStamp = '2026-03-27-1145';
       const qs = new URLSearchParams({ pageSize: String(PAGE_SIZE) });
       if (pageToken) qs.set('pageToken', pageToken);
 
-      const data = await fetchMemosWithFallback(qs);
+      const resp = await fetch(`${memosApiBase}/api/v1/memos?${qs.toString()}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      const data = await resp.json();
       const memos = Array.isArray(data.memos) ? data.memos : [];
       const publicMemos = memos.filter((m) => m.visibility === 'PUBLIC');
 
@@ -210,33 +168,11 @@ const memosBuildStamp = '2026-03-27-1145';
 
       publicMemos.forEach(renderMemo);
 
-      if (publicMemos.length === 0) {
-        emptyPageHits += 1;
-      } else {
-        emptyPageHits = 0;
-      }
-
-      const nextToken = data.nextPageToken || '';
-      if (nextToken && nextToken === lastNextPageToken) {
-        sameTokenHits += 1;
-      } else {
-        sameTokenHits = 0;
-      }
-      lastNextPageToken = nextToken;
-
-      pageToken = nextToken;
+      pageToken = data.nextPageToken || '';
       hasMore = !!pageToken;
 
-      if (emptyPageHits >= MAX_EMPTY_PAGES || sameTokenHits >= MAX_SAME_TOKEN_HITS) {
-        hasMore = false;
-      }
-
       if (!hasMore) {
-        loadingEl.style.display = 'none';
         endEl.style.display = listEl.children.length ? 'block' : 'none';
-        if (io && sentinelEl) io.unobserve(sentinelEl);
-      } else {
-        endEl.style.display = 'none';
       }
 
       if (!listEl.children.length) {
@@ -252,7 +188,7 @@ const memosBuildStamp = '2026-03-27-1145';
     }
   }
 
-  io = new IntersectionObserver(
+  const io = new IntersectionObserver(
     (entries) => {
       const entry = entries[0];
       if (entry && entry.isIntersecting) loadMore();
@@ -288,116 +224,72 @@ const memosBuildStamp = '2026-03-27-1145';
 
 <style>
   .memos-wrap {
-    padding-bottom: 5rem;
+    padding-bottom: 4rem;
   }
 
   .memos-list {
     display: flex;
     flex-direction: column;
-    gap: 2.1rem;
-    margin-top: 0.2rem;
+    gap: 2.4rem;
   }
 
   .memo-item {
     position: relative;
-    padding-left: 1.85rem;
-    --line-extra: 56px;
-    --dot-top: 0.52rem;
+    padding-left: 2rem;
   }
 
   .timeline-line {
     position: absolute;
-    left: 0.32rem;
+    left: 0.35rem;
     top: 0;
-    bottom: calc(var(--line-extra) * -1);
+    bottom: -2.4rem;
     width: 1px;
-    background: color-mix(in oklab, var(--muted-foreground) 28%, transparent);
-  }
-
-  .memo-item.memo-last .timeline-line {
-    background: linear-gradient(
-      to bottom,
-      color-mix(in oklab, var(--muted-foreground) 28%, transparent) 0%,
-      color-mix(in oklab, var(--muted-foreground) 10%, transparent) 68%,
-      transparent 100%
-    );
+    background: var(--border);
   }
 
   .timeline-dot {
     position: absolute;
-    left: 0.13rem;
-    top: var(--dot-top);
-    width: 0.42rem;
-    height: 0.42rem;
+    left: 0.17rem;
+    top: 0.45rem;
+    width: 0.5rem;
+    height: 0.5rem;
     border-radius: 999px;
-    background: color-mix(in oklab, var(--foreground) 44%, transparent);
+    background: color-mix(in oklab, var(--foreground) 35%, transparent);
   }
 
   .memo-meta {
     display: flex;
     align-items: center;
-    gap: 0.58rem;
+    gap: 0.7rem;
     font-family: var(--font-mono);
-    font-size: 0.685rem;
-    font-weight: 500;
-    letter-spacing: 0.015em;
-    color: color-mix(in oklab, var(--muted-foreground) 86%, transparent);
-    margin-bottom: 0.52rem;
-    line-height: 1.2;
+    font-size: 0.7rem;
+    color: color-mix(in oklab, var(--muted-foreground) 75%, transparent);
+    margin-bottom: 0.55rem;
   }
 
   .memo-pinned {
-    color: color-mix(in oklab, var(--foreground) 78%, transparent);
-    font-weight: 500;
-    font-size: 0.66rem;
-    border: 1px solid color-mix(in oklab, var(--border) 86%, transparent);
-    border-radius: 999px;
-    padding: 0.06rem 0.35rem;
+    color: var(--foreground);
+    font-weight: 600;
   }
 
   .memo-content {
-    font-size: 0.92rem;
-    line-height: 1.74;
+    font-size: 0.93rem;
+    line-height: 1.78;
     color: var(--foreground);
     white-space: pre-wrap;
     word-break: break-word;
-    max-width: 40rem;
-  }
-
-  .memo-body {
-    padding-right: 0.2rem;
   }
 
   .memo-images {
-    margin-top: 0.72rem;
+    margin-top: 0.8rem;
     display: grid;
-    grid-template-columns: repeat(3, 3.1rem);
-    gap: 0.32rem;
-    justify-content: flex-start;
-  }
-
-  .memo-images-1,
-  .memo-images-2,
-  .memo-images-3 {
-    grid-template-columns: repeat(3, 3.1rem);
-  }
-
-  .memo-images-4,
-  .memo-images-5,
-  .memo-images-6 {
-    grid-template-columns: repeat(3, 3.1rem);
-  }
-
-  .memo-images-7,
-  .memo-images-8,
-  .memo-images-9 {
-    grid-template-columns: repeat(3, 3.1rem);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
   }
 
   @media (min-width: 768px) {
     .memo-images {
-      grid-template-columns: repeat(3, 3.35rem);
-      gap: 0.36rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 
@@ -405,51 +297,46 @@ const memosBuildStamp = '2026-03-27-1145';
     display: block;
     width: 100%;
     aspect-ratio: 1/1;
-    border: 1px solid color-mix(in oklab, var(--border) 86%, transparent);
+    border: none;
     padding: 0;
     overflow: hidden;
-    border-radius: 0.42rem;
+    border-radius: 0.5rem;
     cursor: zoom-in;
-    background: color-mix(in oklab, var(--muted) 96%, transparent);
+    background: var(--muted);
   }
 
   .memo-img-btn img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform var(--transition-base), opacity var(--transition-base), filter var(--transition-base);
-    filter: saturate(0.96);
+    transition: transform var(--transition-base);
   }
 
   .memo-img-btn:hover img {
-    transform: scale(1.05);
-    opacity: 0.97;
-    filter: saturate(1);
+    transform: scale(1.03);
   }
 
   .memo-tags {
-    margin-top: 0.7rem;
+    margin-top: 0.65rem;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem;
+    gap: 0.4rem;
   }
 
   .memo-tags span {
     font-size: 0.72rem;
-    color: color-mix(in oklab, var(--muted-foreground) 95%, transparent);
-    background: color-mix(in oklab, var(--muted) 88%, white);
+    color: var(--muted-foreground);
+    background: var(--muted);
     border-radius: 999px;
     padding: 0.12rem 0.5rem;
   }
 
   .memos-status {
     text-align: center;
-    margin-top: 2.2rem;
+    margin-top: 2rem;
     font-family: var(--font-mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
+    font-size: 0.75rem;
     color: var(--muted-foreground);
-    opacity: 0.7;
   }
 
   .memos-sentinel {
@@ -460,21 +347,19 @@ const memosBuildStamp = '2026-03-27-1145';
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: rgba(0, 0, 0, 0.86);
-    backdrop-filter: blur(3px);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(2px);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 1rem;
-    animation: fadeIn 0.16s ease;
   }
 
   .image-preview img {
-    max-width: min(90vw, 960px);
-    max-height: 88vh;
+    max-width: 92vw;
+    max-height: 90vh;
     object-fit: contain;
     border-radius: 0.5rem;
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.45);
   }
 
   .preview-close {
@@ -483,19 +368,8 @@ const memosBuildStamp = '2026-03-27-1145';
     top: 1rem;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.86);
-    font-size: 1.35rem;
-    line-height: 1;
+    color: white;
+    font-size: 1.4rem;
     cursor: pointer;
-    transition: color var(--transition-base);
-  }
-
-  .preview-close:hover {
-    color: #fff;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
   }
 </style>
