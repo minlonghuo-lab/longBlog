@@ -53,22 +53,33 @@ function formatDate(date: Date): string {
           </div>
         </header>
 
-        <details class="toc-mobile" id="toc-mobile-wrap">
-          <summary>
-            <span>文章导航</span>
-            <span id="reading-progress-text-mobile" class="reading-progress-text">0%</span>
-          </summary>
-          <nav id="post-toc-mobile" class="toc-nav toc-nav-mobile" aria-label="移动端文章目录"></nav>
-        </details>
-
         <section id="post-content" class="content" set:html={post.contentHtml}></section>
       </article>
     </div>
   </div>
 
-  <button id="back-to-top" class="back-to-top" type="button" aria-label="回到顶部" title="回到顶部">
-    ↑
+  <button id="back-to-top" class="back-to-top" type="button" aria-label="回到顶部" title="回到顶部">↑</button>
+
+  <button id="mobile-toc-trigger" class="mobile-toc-trigger" type="button" aria-label="打开文章导航">
+    <span>目录</span>
+    <span id="reading-progress-text-mobile" class="mobile-toc-progress">0%</span>
   </button>
+
+  <div id="mobile-toc-sheet" class="mobile-toc-sheet" aria-hidden="true">
+    <div id="mobile-toc-backdrop" class="mobile-toc-backdrop"></div>
+    <div class="mobile-toc-panel" role="dialog" aria-modal="true" aria-label="文章导航">
+      <div class="mobile-toc-header">
+        <span>文章导航</span>
+        <button id="mobile-toc-close" type="button" aria-label="关闭目录">✕</button>
+      </div>
+      <nav id="post-toc-mobile" class="toc-nav toc-nav-mobile" aria-label="移动端文章目录"></nav>
+    </div>
+  </div>
+
+  <div id="image-lightbox" class="image-lightbox" aria-hidden="true">
+    <button id="image-lightbox-close" class="image-lightbox-close" type="button" aria-label="关闭预览">✕</button>
+    <img id="image-lightbox-img" src="" alt="文章图片预览" />
+  </div>
 
   <script>
     (() => {
@@ -79,7 +90,13 @@ function formatDate(date: Date): string {
       const progressText = document.getElementById('reading-progress-text');
       const progressTextMobile = document.getElementById('reading-progress-text-mobile');
       const backToTop = document.getElementById('back-to-top');
-      const mobileTocWrap = document.getElementById('toc-mobile-wrap');
+      const mobileTocSheet = document.getElementById('mobile-toc-sheet');
+      const mobileTocTrigger = document.getElementById('mobile-toc-trigger');
+      const mobileTocClose = document.getElementById('mobile-toc-close');
+      const mobileTocBackdrop = document.getElementById('mobile-toc-backdrop');
+      const lightbox = document.getElementById('image-lightbox');
+      const lightboxImg = document.getElementById('image-lightbox-img');
+      const lightboxClose = document.getElementById('image-lightbox-close');
       if (!(content instanceof HTMLElement) || !(desktopToc instanceof HTMLElement) || !(mobileToc instanceof HTMLElement)) return;
 
       const slugifyHeading = (text, index) => {
@@ -109,7 +126,7 @@ function formatDate(date: Date): string {
       const tocHTML = tocItems.length
         ? tocItems
             .map(
-              (item) => `<a href="#${item.id}" class="toc-link toc-level-${item.level}" data-target="${item.id}">${item.text}</a>`
+              (item) => `<a href="#${item.id}" class="toc-link toc-level-${item.level}" data-target="${item.id}"><span class="toc-link-text">${item.text}</span></a>`
             )
             .join('')
         : '<span class="toc-empty">本文暂无可导航标题</span>';
@@ -117,7 +134,8 @@ function formatDate(date: Date): string {
       desktopToc.innerHTML = tocHTML;
       mobileToc.innerHTML = tocHTML;
 
-      const getAllTocLinks = () => Array.from(document.querySelectorAll('.toc-link'));
+      const desktopTocLinks = Array.from(desktopToc.querySelectorAll('.toc-link'));
+      const allTocLinks = () => Array.from(document.querySelectorAll('.toc-link'));
 
       const updateReadingProgress = () => {
         const articleHeight = content.scrollHeight;
@@ -132,36 +150,100 @@ function formatDate(date: Date): string {
         if (backToTop) backToTop.classList.toggle('visible', window.scrollY > start + 260);
       };
 
+      const ensureDesktopTocVisible = (activeLink) => {
+        if (!(activeLink instanceof HTMLElement) || !desktopTocLinks.length) return;
+        const navRect = desktopToc.getBoundingClientRect();
+        const linkRect = activeLink.getBoundingClientRect();
+        if (linkRect.top < navRect.top + 20 || linkRect.bottom > navRect.bottom - 20) {
+          activeLink.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      };
+
       const updateActiveHeading = () => {
-        const tocLinks = getAllTocLinks();
+        const tocLinks = allTocLinks();
         if (!tocLinks.length) return;
         let currentId = tocItems[0]?.id;
         for (const item of tocItems) {
-          if (item.el.getBoundingClientRect().top <= 140) currentId = item.id;
+          if (item.el.getBoundingClientRect().top <= 150) currentId = item.id;
         }
+        let activeDesktopLink = null;
         tocLinks.forEach((link) => {
-          link.classList.toggle('active', link.dataset.target === currentId);
+          const matched = link.dataset.target === currentId;
+          link.classList.toggle('active', matched);
+          if (matched && desktopToc.contains(link)) activeDesktopLink = link;
         });
+        if (activeDesktopLink) ensureDesktopTocVisible(activeDesktopLink);
+      };
+
+      const openMobileToc = () => {
+        if (!(mobileTocSheet instanceof HTMLElement)) return;
+        mobileTocSheet.classList.add('open');
+        mobileTocSheet.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+      };
+
+      const closeMobileToc = () => {
+        if (!(mobileTocSheet instanceof HTMLElement)) return;
+        mobileTocSheet.classList.remove('open');
+        mobileTocSheet.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      };
+
+      const openLightbox = (src, alt = '') => {
+        if (!(lightbox instanceof HTMLElement) || !(lightboxImg instanceof HTMLImageElement)) return;
+        lightboxImg.src = src;
+        lightboxImg.alt = alt || '文章图片预览';
+        lightbox.classList.add('open');
+        lightbox.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+      };
+
+      const closeLightbox = () => {
+        if (!(lightbox instanceof HTMLElement) || !(lightboxImg instanceof HTMLImageElement)) return;
+        lightbox.classList.remove('open');
+        lightbox.setAttribute('aria-hidden', 'true');
+        lightboxImg.src = '';
+        document.body.style.overflow = mobileTocSheet?.classList.contains('open') ? 'hidden' : '';
       };
 
       document.addEventListener('click', (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) return;
+
         const link = target.closest('.toc-link');
-        if (!(link instanceof HTMLAnchorElement)) return;
-        event.preventDefault();
-        const id = link.dataset.target;
-        const heading = id ? document.getElementById(id) : null;
-        if (!heading) return;
-        const top = heading.getBoundingClientRect().top + window.scrollY - 96;
-        window.scrollTo({ top, behavior: 'smooth' });
-        if (window.innerWidth < 1080 && mobileTocWrap instanceof HTMLDetailsElement) {
-          mobileTocWrap.open = false;
+        if (link instanceof HTMLAnchorElement) {
+          event.preventDefault();
+          const id = link.dataset.target;
+          const heading = id ? document.getElementById(id) : null;
+          if (!heading) return;
+          const top = heading.getBoundingClientRect().top + window.scrollY - 96;
+          window.scrollTo({ top, behavior: 'smooth' });
+          if (window.innerWidth < 1080) closeMobileToc();
+          return;
+        }
+
+        const image = target.closest('#post-content img');
+        if (image instanceof HTMLImageElement) {
+          openLightbox(image.currentSrc || image.src, image.alt || '文章图片预览');
         }
       });
 
+      mobileTocTrigger?.addEventListener('click', openMobileToc);
+      mobileTocClose?.addEventListener('click', closeMobileToc);
+      mobileTocBackdrop?.addEventListener('click', closeMobileToc);
       backToTop?.addEventListener('click', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      lightboxClose?.addEventListener('click', closeLightbox);
+      lightbox?.addEventListener('click', (event) => {
+        if (event.target === lightbox) closeLightbox();
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          closeMobileToc();
+          closeLightbox();
+        }
       });
 
       const onScroll = () => {
@@ -192,14 +274,33 @@ function formatDate(date: Date): string {
     position: relative;
     width: 100%;
     margin: 0 auto;
-    padding: 0;
+    padding: 2rem 2.5rem 3rem;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,250,249,0.96)),
+      repeating-linear-gradient(180deg, rgba(17,17,17,0.02) 0, rgba(17,17,17,0.02) 1px, transparent 1px, transparent 28px);
+    border: 1px solid color-mix(in oklab, var(--border) 88%, white);
+    border-radius: 1.4rem;
+    box-shadow:
+      0 30px 80px rgba(15, 23, 42, 0.06),
+      0 8px 24px rgba(15, 23, 42, 0.04),
+      inset 0 1px 0 rgba(255,255,255,0.92);
+  }
+
+  .post-paper::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.65);
   }
 
   .post-sidebar {
     position: absolute;
-    top: 10.5rem;
-    left: calc(100% + 2.5rem);
+    top: 1rem;
+    left: calc(100% + 2.2rem);
     width: 14rem;
+    height: calc(100% - 1rem);
   }
 
   .reading-progress {
@@ -273,7 +374,7 @@ function formatDate(date: Date): string {
     border: 1px solid color-mix(in oklab, var(--border) 86%, transparent);
     border-radius: 1rem;
     padding: 0.95rem 0.8rem;
-    background: color-mix(in oklab, white 90%, var(--muted) 10%);
+    background: color-mix(in oklab, white 92%, var(--muted) 8%);
     box-shadow: 0 12px 32px color-mix(in oklab, black 5%, transparent);
   }
 
@@ -286,7 +387,8 @@ function formatDate(date: Date): string {
   }
 
   .toc-title,
-  .reading-progress-text {
+  .reading-progress-text,
+  .mobile-toc-progress {
     font-family: var(--font-mono);
     font-size: 0.68rem;
     color: var(--muted-foreground);
@@ -296,21 +398,39 @@ function formatDate(date: Date): string {
   .toc-nav {
     display: flex;
     flex-direction: column;
-    gap: 0.18rem;
+    gap: 0.08rem;
     max-height: calc(100vh - 10rem);
     overflow: auto;
     padding-right: 0.1rem;
   }
 
   .toc-link {
+    position: relative;
     display: block;
     padding: 0.38rem 0.55rem;
     border-radius: 0.7rem;
     color: var(--muted-foreground);
     line-height: 1.45;
     font-size: 0.84rem;
-    transition: background-color var(--transition-base), color var(--transition-base), transform var(--transition-base);
+    transition: background-color var(--transition-base), color var(--transition-base);
   }
+
+  .toc-link::before {
+    content: '';
+    position: absolute;
+    left: 0.7rem;
+    top: 0.2rem;
+    bottom: 0.2rem;
+    width: 1px;
+    background: color-mix(in oklab, var(--border) 90%, transparent);
+    opacity: 0;
+    transition: opacity var(--transition-base), background-color var(--transition-base);
+  }
+
+  .toc-level-1::before { opacity: 0; }
+  .toc-level-2::before,
+  .toc-level-3::before,
+  .toc-level-4::before { opacity: 1; }
 
   .toc-link:hover {
     color: var(--foreground);
@@ -322,39 +442,15 @@ function formatDate(date: Date): string {
     background: color-mix(in oklab, var(--foreground) 8%, white);
   }
 
+  .toc-link.active::before {
+    background: color-mix(in oklab, var(--foreground) 22%, transparent);
+  }
+
   .toc-level-1 { padding-left: 0.55rem; }
-  .toc-level-2 { padding-left: 0.9rem; }
-  .toc-level-3 { padding-left: 1.2rem; font-size: 0.8rem; }
-  .toc-level-4 { padding-left: 1.45rem; font-size: 0.77rem; }
+  .toc-level-2 { padding-left: 1.1rem; }
+  .toc-level-3 { padding-left: 1.45rem; font-size: 0.8rem; }
+  .toc-level-4 { padding-left: 1.75rem; font-size: 0.77rem; }
   .toc-empty { color: var(--muted-foreground); font-size: 0.88rem; }
-
-  .toc-mobile {
-    display: none;
-    margin: 0 0 1.5rem;
-    border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
-    border-radius: 0.9rem;
-    background: color-mix(in oklab, white 92%, var(--muted) 8%);
-    overflow: hidden;
-  }
-
-  .toc-mobile summary {
-    list-style: none;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.9rem 1rem;
-    cursor: pointer;
-    font-family: var(--font-mono);
-    font-size: 0.74rem;
-    color: var(--muted-foreground);
-  }
-
-  .toc-mobile summary::-webkit-details-marker { display: none; }
-  .toc-nav-mobile {
-    max-height: 16rem;
-    padding: 0 0.7rem 0.8rem;
-  }
 
   .content {
     max-width: 100%;
@@ -410,8 +506,16 @@ function formatDate(date: Date): string {
     display: block;
     max-width: min(100%, 760px);
     height: auto;
-    border-radius: 0.45rem;
+    border-radius: 0.55rem;
     margin: 0.9rem auto;
+    cursor: zoom-in;
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .content img:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.1);
   }
 
   .content p > img,
@@ -488,8 +592,69 @@ function formatDate(date: Date): string {
     pointer-events: auto;
   }
 
-  .back-to-top:hover {
-    background: color-mix(in oklab, var(--muted) 82%, white);
+  .mobile-toc-trigger {
+    display: none;
+    position: fixed;
+    left: 50%;
+    bottom: 1rem;
+    transform: translateX(-50%);
+    z-index: 65;
+    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
+    border-radius: 999px;
+    padding: 0.8rem 1rem;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(14px);
+    color: var(--foreground);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    display: none;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .mobile-toc-sheet {
+    display: none;
+  }
+
+  .image-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.78);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-base);
+  }
+
+  .image-lightbox.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .image-lightbox img {
+    max-width: min(92vw, 1200px);
+    max-height: 88vh;
+    border-radius: 0.8rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    background: white;
+  }
+
+  .image-lightbox-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 2.6rem;
+    height: 2.6rem;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.16);
+    color: white;
+    backdrop-filter: blur(8px);
   }
 
   @media (max-width: 1400px) {
@@ -511,12 +676,80 @@ function formatDate(date: Date): string {
       padding-right: 0;
     }
 
+    .post-paper {
+      padding: 1.5rem 1.1rem 5.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+    }
+
     .post-sidebar {
       display: none;
     }
 
-    .toc-mobile {
+    .mobile-toc-trigger {
+      display: inline-flex;
+    }
+
+    .mobile-toc-sheet {
       display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-base);
+    }
+
+    .mobile-toc-sheet.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mobile-toc-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.22);
+    }
+
+    .mobile-toc-panel {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      max-height: 72vh;
+      background: rgba(255,255,255,0.98);
+      backdrop-filter: blur(16px);
+      border-radius: 1.25rem 1.25rem 0 0;
+      padding: 0.8rem 0.9rem 1.4rem;
+      box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.12);
+      transform: translateY(100%);
+      transition: transform var(--transition-base);
+    }
+
+    .mobile-toc-sheet.open .mobile-toc-panel {
+      transform: translateY(0);
+    }
+
+    .mobile-toc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.35rem 0.2rem 0.85rem;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: var(--muted-foreground);
+    }
+
+    .mobile-toc-header button {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font-size: 1rem;
+    }
+
+    .toc-nav-mobile {
+      max-height: calc(72vh - 3rem);
+      padding-right: 0.2rem;
     }
 
     .post-header h1 {
@@ -537,17 +770,12 @@ function formatDate(date: Date): string {
       line-height: 1.95;
     }
 
-    .content h2 {
-      font-size: 1.35rem;
-    }
-
-    .content h3 {
-      font-size: 1.12rem;
-    }
+    .content h2 { font-size: 1.35rem; }
+    .content h3 { font-size: 1.12rem; }
 
     .back-to-top {
       right: 1rem;
-      bottom: 1.2rem;
+      bottom: 4.9rem;
     }
   }
 
