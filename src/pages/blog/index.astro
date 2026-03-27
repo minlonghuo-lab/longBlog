@@ -116,7 +116,16 @@ const hiddenTags = tags.slice(7);
         const expanded = tagToggle.getAttribute('aria-expanded') === 'true';
         tagToggle.setAttribute('aria-expanded', String(!expanded));
         tagToggle.textContent = expanded ? '+' : '-';
-        tagExtra.hidden = expanded;
+
+        if (expanded) {
+          tagExtra.classList.remove('is-visible');
+          window.setTimeout(() => {
+            tagExtra.hidden = true;
+          }, 180);
+        } else {
+          tagExtra.hidden = false;
+          requestAnimationFrame(() => tagExtra.classList.add('is-visible'));
+        }
       });
     }
 
@@ -168,6 +177,14 @@ const hiddenTags = tags.slice(7);
     flex-wrap: wrap;
     align-items: center;
     gap: 0.8rem 1.2rem;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+
+  .tag-extra.is-visible {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .tag-extra[hidden] {

@@ -255,13 +255,14 @@ function formatDate(date: Date): string {
 
   .post-reading-stage {
     position: relative;
-    width: min(100%, 72rem);
-    padding-right: clamp(16rem, 23vw, 19rem);
+    width: 100%;
+    max-width: 100%;
   }
 
   .post-paper {
     position: relative;
-    width: min(100%, clamp(42rem, 100%, 53rem));
+    width: clamp(40rem, calc(100vw - 29rem), 56rem);
+    max-width: calc(100vw - 24rem);
     margin: 0 auto;
     padding: clamp(1.6rem, 3vw, 2.4rem) clamp(1.25rem, 3.2vw, 2.75rem) clamp(2.2rem, 4vw, 3.2rem);
     background:
@@ -285,11 +286,11 @@ function formatDate(date: Date): string {
   }
 
   .post-sidebar {
-    position: absolute;
-    top: 1rem;
-    left: calc(100% + 2.9rem);
-    width: 15.5rem;
-    height: calc(100% - 1rem);
+    position: fixed;
+    top: 10.5rem;
+    right: max(1.5rem, calc((100vw - 1460px) / 2 + 1.5rem));
+    width: clamp(14.5rem, 16vw, 16.5rem);
+    z-index: 30;
   }
 
   .reading-progress {
@@ -682,39 +683,37 @@ function formatDate(date: Date): string {
   }
 
   @media (max-width: 1400px) {
-    .post-reading-stage {
-      width: min(100%, 66rem);
-      padding-right: clamp(14rem, 24vw, 16rem);
+    .post-paper {
+      width: clamp(38rem, calc(100vw - 27rem), 50rem);
+      max-width: calc(100vw - 21rem);
     }
 
     .post-sidebar {
-      left: auto;
-      right: 0;
-      width: clamp(13rem, 22vw, 14.5rem);
+      right: max(1rem, calc((100vw - 1320px) / 2 + 1rem));
+      width: clamp(13rem, 18vw, 14.5rem);
     }
   }
 
   @media (max-width: 1200px) {
-    .post-reading-stage {
-      width: 100%;
-      padding-right: 15rem;
+    .post-paper {
+      width: clamp(35rem, calc(100vw - 23rem), 45rem);
+      max-width: calc(100vw - 18rem);
     }
 
     .post-sidebar {
-      left: auto;
-      right: 0;
-      width: 13.5rem;
+      right: 0.9rem;
+      width: 12.8rem;
     }
   }
 
   @media (max-width: 1080px) {
     .post-reading-stage {
       width: 100%;
-      padding-right: 0;
     }
 
     .post-paper {
       width: 100%;
+      max-width: 100%;
       padding: 1.5rem 1.1rem 5.5rem;
       border-radius: 1rem;
       box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
