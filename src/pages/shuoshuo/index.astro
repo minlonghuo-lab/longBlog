@@ -66,7 +66,7 @@ const memosApiBase = 'https://memos.ssaw.top';
   function processContent(content) {
     return content
       .split('\n')
-      .map((line) => line.replace(/^#\S+(\s|$)/, ''))
+      .map((line) => line.replace(/^(\s*#\S+\s*)+/, '').trimStart())
       .join('\n')
       .trim();
   }
