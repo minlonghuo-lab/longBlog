@@ -8,6 +8,7 @@ const tags = getAllTags();
 const selectedTag = Astro.url.searchParams.get('tag') || '';
 const hasMoreTags = tags.length > 8;
 const visibleTags = tags.slice(0, 8);
+const hiddenTags = tags.slice(8);
 ---
 
 <BaseLayout title="文章" description="文章列表与标签筛选">
@@ -33,7 +34,23 @@ const visibleTags = tags.slice(0, 8);
         </a>
       ))}
 
-      {hasMoreTags && <span class="tag-more">+{tags.length - 8}</span>}
+      {hasMoreTags && (
+        <>
+          <div class="tag-extra" id="tag-extra" hidden>
+            {hiddenTags.map(tag => (
+              <a
+                href={`/blog?tag=${encodeURIComponent(tag.name)}`}
+                data-tag={tag.name}
+                class:list={["tag-link", { active: selectedTag === tag.name }]}
+              >
+                <span>{tag.name}</span>
+                <small>{tag.count}</small>
+              </a>
+            ))}
+          </div>
+          <button class="tag-toggle" id="tag-toggle" type="button" aria-expanded="false" aria-controls="tag-extra">+</button>
+        </>
+      )}
     </div>
   </section>
 
@@ -59,6 +76,8 @@ const visibleTags = tags.slice(0, 8);
     const rows = Array.from(document.querySelectorAll('.post-row'));
     const empty = document.getElementById('posts-empty');
     const tagLinks = Array.from(document.querySelectorAll('#tag-row .tag-link'));
+    const tagToggle = document.getElementById('tag-toggle');
+    const tagExtra = document.getElementById('tag-extra');
 
     const applyFilter = (selectedTag) => {
       let visibleCount = 0;
@@ -91,6 +110,15 @@ const visibleTags = tags.slice(0, 8);
         link.classList.toggle('active', tag === selectedTag);
       }
     };
+
+    if (tagToggle && tagExtra) {
+      tagToggle.addEventListener('click', () => {
+        const expanded = tagToggle.getAttribute('aria-expanded') === 'true';
+        tagToggle.setAttribute('aria-expanded', String(!expanded));
+        tagToggle.textContent = expanded ? '+' : '-';
+        tagExtra.hidden = expanded;
+      });
+    }
 
     const currentTag = new URLSearchParams(window.location.search).get('tag') || '';
     applyFilter(currentTag);
@@ -135,6 +163,13 @@ const visibleTags = tags.slice(0, 8);
     gap: 0.8rem 1.2rem;
   }
 
+  .tag-extra {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.8rem 1.2rem;
+  }
+
   .tag-link {
     position: relative;
     font-family: var(--font-mono);
@@ -168,10 +203,26 @@ const visibleTags = tags.slice(0, 8);
     opacity: 0.5;
   }
 
-  .tag-more {
+  .tag-toggle {
+    width: 1.65rem;
+    height: 1.65rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    border-radius: 999px;
+    background: transparent;
+    color: color-mix(in oklab, var(--muted-foreground) 78%, transparent);
     font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+    font-size: 0.85rem;
+    line-height: 1;
+    transition: color var(--transition-base), border-color var(--transition-base), background-color var(--transition-base);
+  }
+
+  .tag-toggle:hover {
+    color: var(--foreground);
+    border-color: color-mix(in oklab, var(--foreground) 18%, transparent);
+    background: color-mix(in oklab, var(--muted) 84%, white);
   }
 
   .posts-list {

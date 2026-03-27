@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import FriendCard from '../../components/FriendCard.astro';
 import { friendLinks } from '../../data/friends';
+import { CONTACT_EMAIL } from '../../consts';
 ---
 
 <BaseLayout title="友链" description="友情链接与站点推荐">
@@ -34,7 +35,7 @@ import { friendLinks } from '../../data/friends';
       <h3>申请友链</h3>
       <p>欢迎交换友链，可通过邮箱联系我。</p>
     </div>
-    <a href="mailto:hello@example.com" class="apply-link">✉️ 联系我</a>
+    <a href={`mailto:${CONTACT_EMAIL}`} class="apply-link">✉️ 联系我</a>
   </section>
 </BaseLayout>
 
