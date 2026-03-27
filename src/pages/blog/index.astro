@@ -124,7 +124,11 @@ const hiddenTags = tags.slice(7);
           }, 180);
         } else {
           tagExtra.hidden = false;
-          requestAnimationFrame(() => tagExtra.classList.add('is-visible'));
+          tagExtra.classList.remove('is-visible');
+          void tagExtra.offsetWidth;
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => tagExtra.classList.add('is-visible'));
+          });
         }
       });
     }
