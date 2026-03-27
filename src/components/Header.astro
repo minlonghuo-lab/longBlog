@@ -11,7 +11,7 @@ function isActive(href: string) {
 
 <header class="site-header">
   <nav class="site-nav container">
-    <a href="/" class="site-logo">{SITE_TITLE}</a>
+    <a href="/" class="site-logo">[ {SITE_TITLE} ]</a>
     <div class="nav-links">
       {NAV_ITEMS.map(item => (
         <a 
@@ -24,93 +24,130 @@ function isActive(href: string) {
     </div>
   </nav>
 </header>
+<div class="site-header-spacer" aria-hidden="true"></div>
 
 <style>
   .site-header {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 50;
-    border-bottom: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
-    background: color-mix(in oklab, var(--background) 82%, white 18%);
-    backdrop-filter: saturate(145%) blur(10px);
-    -webkit-backdrop-filter: saturate(145%) blur(10px);
-    box-shadow: 0 3px 14px rgba(15, 15, 20, 0.02);
-    transition: background-color 0.26s ease, border-color 0.26s ease, box-shadow 0.26s ease, transform 0.26s ease;
-    overflow: hidden;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid transparent;
+    background: transparent;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    box-shadow: none;
     transform: translateY(0);
+    transition:
+      background-color 0.24s ease,
+      border-color 0.24s ease,
+      box-shadow 0.24s ease,
+      backdrop-filter 0.24s ease,
+      -webkit-backdrop-filter 0.24s ease,
+      transform 0.24s ease,
+      padding 0.24s ease;
+    padding: 0.9rem 0;
   }
 
   body.scrolled .site-header {
-    transform: translateY(-2px);
-    border-bottom-color: color-mix(in oklab, var(--border) 58%, transparent);
-    background: color-mix(in oklab, var(--background) 88%, white 12%);
-    box-shadow: 0 2px 10px rgba(15, 15, 20, 0.015);
+    padding: 0.45rem 0;
+    transform: translateY(-1px);
+    border-bottom-color: color-mix(in oklab, var(--border) 50%, transparent);
+    background: color-mix(in oklab, var(--background) 84%, white 16%);
+    backdrop-filter: saturate(145%) blur(10px);
+    -webkit-backdrop-filter: saturate(145%) blur(10px);
+    box-shadow: 0 4px 14px rgba(15, 15, 20, 0.03);
   }
 
   .site-header::before {
     content: '';
     position: absolute;
-    left: 10%;
-    right: 10%;
+    left: 12%;
+    right: 12%;
     top: 0;
     height: 1px;
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.44) 22%,
-      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.42) 22%,
+      rgba(255, 255, 255, 0.16) 50%,
       transparent 100%
     );
     pointer-events: none;
-    transition: opacity 0.26s ease, left 0.26s ease, right 0.26s ease;
-    opacity: 0.82;
+    opacity: 0;
+    transition: opacity 0.24s ease, left 0.24s ease, right 0.24s ease;
   }
 
   body.scrolled .site-header::before {
+    opacity: 0.68;
     left: 16%;
     right: 16%;
-    opacity: 0.58;
+  }
+
+  .site-header-spacer {
+    height: 5.6rem;
   }
 
   .site-nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 4rem;
+    height: 3rem;
   }
 
   .site-logo {
     font-family: var(--font-serif);
-    font-size: 1rem;
-    font-weight: 500;
-    letter-spacing: -0.025em;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     color: var(--foreground);
-    transition: opacity var(--transition-base);
+    transition: color var(--transition-base), opacity var(--transition-base);
   }
 
   .site-logo:hover {
-    opacity: 0.7;
+    color: var(--muted-foreground);
   }
 
   .nav-links {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1.35rem;
   }
 
   .nav-link {
     font-family: var(--font-sans);
-    font-size: 0.875rem;
-    font-weight: 400;
-    color: var(--muted-foreground);
+    font-size: 0.69rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: color-mix(in oklab, var(--muted-foreground) 75%, transparent);
     transition: color var(--transition-base);
   }
 
-  .nav-link:hover {
+  .nav-link:hover,
+  .nav-link.active {
     color: var(--foreground);
   }
 
-  .nav-link.active {
-    color: var(--foreground);
+  @media (max-width: 640px) {
+    .site-header-spacer {
+      height: 5rem;
+    }
+
+    .site-logo {
+      font-size: 1rem;
+    }
+
+    .nav-links {
+      gap: 0.9rem;
+    }
+
+    .nav-link {
+      font-size: 0.64rem;
+      letter-spacing: 0.12em;
+    }
   }
 </style>
