@@ -2,19 +2,20 @@
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
+import { SITE_TITLE, SITE_DESCRIPTION, MEMOS_URL } from '../consts';
 
 interface Props {
   title?: string;
   description?: string;
 }
 
-const { 
-  title = SITE_TITLE, 
-  description = SITE_DESCRIPTION 
+const {
+  title = SITE_TITLE,
+  description = SITE_DESCRIPTION,
 } = Astro.props;
 
 const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
+const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
 ---
 
 <!DOCTYPE html>
@@ -24,11 +25,12 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content={description} />
   <meta name="generator" content={Astro.generator} />
-  
-  <!-- Favicon -->
+  <meta name="theme-color" content="#ffffff" />
+
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" href="/favicon.ico" />
-  
+  <link rel="preconnect" href={MEMOS_URL} crossorigin />
+
   <title>{pageTitle}</title>
 </head>
 <body>
@@ -39,7 +41,7 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
   <Footer />
 
   <div id="route-progress" class="route-progress" aria-hidden="true"></div>
-  <script>
+  <script define:vars={{ memosApiPreloadUrl }}>
     (() => {
       const main = document.getElementById('page-main');
       if (!main) return;
@@ -80,12 +82,10 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
         document.body.classList.add('page-leave', 'page-navigating');
 
         const progress = document.getElementById('route-progress');
-        if (progress) {
-          progress.classList.add('active');
-        }
+        if (progress) progress.classList.add('active');
 
         if (url.pathname === '/shuoshuo') {
-          const memosFetch = fetch('https://memos.ssaw.top/api/v1/memos?pageSize=10', { credentials: 'omit' })
+          const memosFetch = fetch(memosApiPreloadUrl, { credentials: 'omit' })
             .then((r) => (r.ok ? r.json() : null))
             .then((data) => {
               if (data && Array.isArray(data.memos)) {
@@ -99,10 +99,10 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
 
           await Promise.race([
             memosFetch,
-            new Promise((resolve) => window.setTimeout(resolve, 650)),
+            new Promise((resolve) => window.setTimeout(resolve, 450)),
           ]);
         } else {
-          await new Promise((resolve) => window.setTimeout(resolve, 80));
+          await new Promise((resolve) => window.setTimeout(resolve, 50));
         }
 
         window.location.href = url.href;

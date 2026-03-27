@@ -159,6 +159,12 @@ function isActive(href: string) {
   }
 
   @media (max-width: 640px) {
+    body.scrolled .site-header {
+      backdrop-filter: saturate(145%) blur(8px);
+      -webkit-backdrop-filter: saturate(145%) blur(8px);
+      box-shadow: 0 4px 12px rgba(15, 15, 20, 0.03);
+    }
+
     .site-header-spacer {
       height: 5rem;
     }
