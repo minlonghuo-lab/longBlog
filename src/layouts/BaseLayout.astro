@@ -59,7 +59,7 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
 
       window.addEventListener('scroll', updateHeaderState, { passive: true });
 
-      document.addEventListener('click', (event) => {
+      document.addEventListener('click', async (event) => {
         const target = event.target;
         if (!(target instanceof Element)) return;
 
@@ -84,9 +84,28 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
           progress.classList.add('active');
         }
 
-        window.setTimeout(() => {
-          window.location.href = url.href;
-        }, 80);
+        if (url.pathname === '/shuoshuo') {
+          const memosFetch = fetch('https://memos.ssaw.top/api/v1/memos?pageSize=10', { credentials: 'omit' })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((data) => {
+              if (data && Array.isArray(data.memos)) {
+                sessionStorage.setItem('LONG_BLOG_MEMOS_CACHE', JSON.stringify({
+                  ts: Date.now(),
+                  data,
+                }));
+              }
+            })
+            .catch(() => null);
+
+          await Promise.race([
+            memosFetch,
+            new Promise((resolve) => window.setTimeout(resolve, 650)),
+          ]);
+        } else {
+          await new Promise((resolve) => window.setTimeout(resolve, 80));
+        }
+
+        window.location.href = url.href;
       });
     })();
   </script>
