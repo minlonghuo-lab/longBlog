@@ -52,7 +52,10 @@ const memosBuildStamp = '2026-03-27-1145';
 
   const PAGE_SIZE = 10;
   const MAX_EMPTY_PAGES = 2;
+  const MAX_SAME_TOKEN_HITS = 2;
   let emptyPageHits = 0;
+  let sameTokenHits = 0;
+  let lastNextPageToken = '';
   let io = null;
 
   function formatDate(input) {
@@ -213,10 +216,18 @@ const memosBuildStamp = '2026-03-27-1145';
         emptyPageHits = 0;
       }
 
-      pageToken = data.nextPageToken || '';
+      const nextToken = data.nextPageToken || '';
+      if (nextToken && nextToken === lastNextPageToken) {
+        sameTokenHits += 1;
+      } else {
+        sameTokenHits = 0;
+      }
+      lastNextPageToken = nextToken;
+
+      pageToken = nextToken;
       hasMore = !!pageToken;
 
-      if (emptyPageHits >= MAX_EMPTY_PAGES) {
+      if (emptyPageHits >= MAX_EMPTY_PAGES || sameTokenHits >= MAX_SAME_TOKEN_HITS) {
         hasMore = false;
       }
 
