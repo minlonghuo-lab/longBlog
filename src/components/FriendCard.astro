@@ -8,12 +8,19 @@ interface Props {
 
 const { name, url, description, avatar } = Astro.props;
 const displayUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+let faviconUrl = '';
+try {
+  const u = new URL(url);
+  faviconUrl = avatar || `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=128`;
+} catch {
+  faviconUrl = avatar || '';
+}
 ---
 
 <a href={url} target="_blank" rel="noopener noreferrer" class="friend-card">
   <div class="friend-logo">
-    {avatar ? (
-      <img src={avatar} alt={name} class="logo-img" loading="lazy" />
+    {faviconUrl ? (
+      <img src={faviconUrl} alt={name} class="logo-img" loading="lazy" />
     ) : (
       <span class="logo-placeholder">{name.charAt(0)}</span>
     )}
