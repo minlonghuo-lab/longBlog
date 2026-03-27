@@ -141,8 +141,8 @@ const memosBuildStamp = '2026-03-27-1145';
     article.classList.add('memo-last');
 
     const imageGridHTML = images.length
-      ? `<div class="memo-images">${images
-          .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}"><img src="${escapeHTML(img)}" loading="lazy" alt="图片" /></button>`)
+      ? `<div class="memo-images memo-images-${Math.min(images.length, 9)}">${images
+          .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}" aria-label="查看大图"><img src="${escapeHTML(img)}" loading="lazy" alt="图片缩略图" /></button>`)
           .join('')}</div>`
       : '';
 
@@ -356,25 +356,48 @@ const memosBuildStamp = '2026-03-27-1145';
   }
 
   .memo-content {
-    font-size: 0.93rem;
-    line-height: 1.76;
+    font-size: 0.92rem;
+    line-height: 1.74;
     color: var(--foreground);
     white-space: pre-wrap;
     word-break: break-word;
     max-width: 40rem;
   }
 
+  .memo-body {
+    padding-right: 0.2rem;
+  }
+
   .memo-images {
-    margin-top: 0.78rem;
+    margin-top: 0.72rem;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.4rem;
-    max-width: 15.2rem;
+    grid-template-columns: repeat(3, 3.1rem);
+    gap: 0.32rem;
+    justify-content: flex-start;
+  }
+
+  .memo-images-1,
+  .memo-images-2,
+  .memo-images-3 {
+    grid-template-columns: repeat(3, 3.1rem);
+  }
+
+  .memo-images-4,
+  .memo-images-5,
+  .memo-images-6 {
+    grid-template-columns: repeat(3, 3.1rem);
+  }
+
+  .memo-images-7,
+  .memo-images-8,
+  .memo-images-9 {
+    grid-template-columns: repeat(3, 3.1rem);
   }
 
   @media (min-width: 768px) {
     .memo-images {
-      max-width: 17.1rem;
+      grid-template-columns: repeat(3, 3.35rem);
+      gap: 0.36rem;
     }
   }
 
@@ -382,24 +405,26 @@ const memosBuildStamp = '2026-03-27-1145';
     display: block;
     width: 100%;
     aspect-ratio: 1/1;
-    border: none;
+    border: 1px solid color-mix(in oklab, var(--border) 86%, transparent);
     padding: 0;
     overflow: hidden;
-    border-radius: 0.48rem;
+    border-radius: 0.42rem;
     cursor: zoom-in;
-    background: color-mix(in oklab, var(--muted) 94%, transparent);
+    background: color-mix(in oklab, var(--muted) 96%, transparent);
   }
 
   .memo-img-btn img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform var(--transition-base), opacity var(--transition-base);
+    transition: transform var(--transition-base), opacity var(--transition-base), filter var(--transition-base);
+    filter: saturate(0.96);
   }
 
   .memo-img-btn:hover img {
-    transform: scale(1.04);
-    opacity: 0.96;
+    transform: scale(1.05);
+    opacity: 0.97;
+    filter: saturate(1);
   }
 
   .memo-tags {
