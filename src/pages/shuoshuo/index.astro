@@ -48,6 +48,7 @@ const memosApiBase = 'https://memos.ssaw.top';
   const seen = new Set();
 
   const PAGE_SIZE = 10;
+  let io = null;
 
   function formatDate(input) {
     const d = new Date(input);
@@ -205,7 +206,11 @@ const memosApiBase = 'https://memos.ssaw.top';
       hasMore = !!pageToken;
 
       if (!hasMore) {
+        loadingEl.style.display = 'none';
         endEl.style.display = listEl.children.length ? 'block' : 'none';
+        if (io && sentinelEl) io.unobserve(sentinelEl);
+      } else {
+        endEl.style.display = 'none';
       }
 
       if (!listEl.children.length) {
@@ -221,7 +226,7 @@ const memosApiBase = 'https://memos.ssaw.top';
     }
   }
 
-  const io = new IntersectionObserver(
+  io = new IntersectionObserver(
     (entries) => {
       const entry = entries[0];
       if (entry && entry.isIntersecting) loadMore();
