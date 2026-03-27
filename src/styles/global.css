@@ -54,6 +54,22 @@ body {
   transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
 }
 
+#page-main {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+body.page-ready #page-main {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+body.page-leave #page-main {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
 ::selection {
   background-color: var(--selection);
   color: var(--selection-foreground);

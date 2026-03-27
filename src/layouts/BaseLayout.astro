@@ -33,9 +33,45 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
 </head>
 <body>
   <Header />
-  <main class="page-main">
+  <main class="page-main" id="page-main">
     <slot />
   </main>
   <Footer />
+
+  <script>
+    (() => {
+      const main = document.getElementById('page-main');
+      if (!main) return;
+
+      requestAnimationFrame(() => {
+        document.body.classList.add('page-ready');
+      });
+
+      document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+
+        const anchor = target.closest('a');
+        if (!anchor) return;
+
+        const href = anchor.getAttribute('href');
+        if (!href) return;
+        if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+        if (anchor.target === '_blank' || anchor.hasAttribute('download')) return;
+
+        const url = new URL(href, window.location.href);
+        if (url.origin !== window.location.origin) return;
+        if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+
+        event.preventDefault();
+        document.body.classList.remove('page-ready');
+        document.body.classList.add('page-leave');
+
+        window.setTimeout(() => {
+          window.location.href = url.href;
+        }, 180);
+      });
+    })();
+  </script>
 </body>
 </html>

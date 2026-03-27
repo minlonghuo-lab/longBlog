@@ -30,9 +30,30 @@ function isActive(href: string) {
     position: sticky;
     top: 0;
     z-index: 50;
-    background-color: var(--background);
-    border-bottom: 1px solid transparent;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
+    background: color-mix(in oklab, var(--background) 76%, white 24%);
+    backdrop-filter: saturate(170%) blur(12px);
+    -webkit-backdrop-filter: saturate(170%) blur(12px);
+    box-shadow: 0 6px 24px rgba(15, 15, 20, 0.03);
     transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out;
+    overflow: hidden;
+  }
+
+  .site-header::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.68) 16%,
+      rgba(255, 255, 255, 0.34) 48%,
+      transparent 100%
+    );
+    pointer-events: none;
   }
 
   .site-nav {
