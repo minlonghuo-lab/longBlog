@@ -45,6 +45,7 @@ const memosApiBase = 'https://memos.ssaw.top';
   const MAX_SAME_TOKEN_HITS = 2;
   let lastNextPageToken = '';
   let sameTokenHits = 0;
+  let requestPageSize = PAGE_SIZE;
 
   function formatDate(input) {
     const d = new Date(input);
@@ -153,7 +154,7 @@ const memosApiBase = 'https://memos.ssaw.top';
     loadingEl.style.display = 'block';
 
     try {
-      const qs = new URLSearchParams({ pageSize: String(PAGE_SIZE) });
+      const qs = new URLSearchParams({ pageSize: String(requestPageSize) });
       if (pageToken) qs.set('pageToken', pageToken);
 
       const resp = await fetch(`${memosApiBase}/api/v1/memos?${qs.toString()}`);
@@ -169,21 +170,28 @@ const memosApiBase = 'https://memos.ssaw.top';
         return new Date(b.createTime).getTime() - new Date(a.createTime).getTime();
       });
 
+      const beforeCount = seen.size;
       publicMemos.forEach(renderMemo);
+      const addedCount = seen.size - beforeCount;
 
       const nextToken = data.nextPageToken || '';
-      if (nextToken && nextToken === lastNextPageToken) {
-        sameTokenHits += 1;
+      if (nextToken) {
+        if (nextToken === lastNextPageToken) {
+          sameTokenHits += 1;
+        } else {
+          sameTokenHits = 0;
+        }
+        lastNextPageToken = nextToken;
+        pageToken = nextToken;
+        hasMore = sameTokenHits < MAX_SAME_TOKEN_HITS;
       } else {
-        sameTokenHits = 0;
-      }
-      lastNextPageToken = nextToken;
-
-      pageToken = nextToken;
-      hasMore = !!pageToken;
-
-      if (sameTokenHits >= MAX_SAME_TOKEN_HITS) {
-        hasMore = false;
+        pageToken = '';
+        if (addedCount > 0 && memos.length >= requestPageSize) {
+          requestPageSize += PAGE_SIZE;
+          hasMore = true;
+        } else {
+          hasMore = false;
+        }
       }
 
       if (!hasMore) {
@@ -209,10 +217,16 @@ const memosApiBase = 'https://memos.ssaw.top';
       const entry = entries[0];
       if (entry && entry.isIntersecting) loadMore();
     },
-    { rootMargin: '220px 0px' },
+    { rootMargin: '360px 0px' },
   );
 
   io.observe(sentinelEl);
+
+  window.addEventListener('scroll', () => {
+    if (!hasMore || loading) return;
+    const remain = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
+    if (remain < 420) loadMore();
+  }, { passive: true });
 
   listEl.addEventListener('click', (e) => {
     const btn = e.target.closest('.memo-img-btn');
