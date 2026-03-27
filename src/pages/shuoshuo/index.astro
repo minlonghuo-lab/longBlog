@@ -13,7 +13,7 @@ const memosApiBase = 'https://memos.ssaw.top';
   <section class="memos-wrap">
     <div id="memos-list" class="memos-list"></div>
 
-    <div id="memos-loading" class="memos-status">加载中...</div>
+    <div id="memos-loading" class="memos-status" style="display:none;">加载中...</div>
     <div id="memos-end" class="memos-status" style="display:none;">- END -</div>
     <div id="memos-empty" class="memos-status" style="display:none;">暂无内容</div>
 
@@ -48,6 +48,8 @@ const memosApiBase = 'https://memos.ssaw.top';
   const seen = new Set();
 
   const PAGE_SIZE = 10;
+  const MAX_EMPTY_PAGES = 2;
+  let emptyPageHits = 0;
   let io = null;
 
   function formatDate(input) {
@@ -202,8 +204,18 @@ const memosApiBase = 'https://memos.ssaw.top';
 
       publicMemos.forEach(renderMemo);
 
+      if (publicMemos.length === 0) {
+        emptyPageHits += 1;
+      } else {
+        emptyPageHits = 0;
+      }
+
       pageToken = data.nextPageToken || '';
       hasMore = !!pageToken;
+
+      if (emptyPageHits >= MAX_EMPTY_PAGES) {
+        hasMore = false;
+      }
 
       if (!hasMore) {
         loadingEl.style.display = 'none';
