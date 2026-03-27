@@ -43,9 +43,20 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
       const main = document.getElementById('page-main');
       if (!main) return;
 
+      const updateHeaderState = () => {
+        if (window.scrollY > 12) {
+          document.body.classList.add('scrolled');
+        } else {
+          document.body.classList.remove('scrolled');
+        }
+      };
+
       requestAnimationFrame(() => {
         document.body.classList.add('page-ready');
+        updateHeaderState();
       });
+
+      window.addEventListener('scroll', updateHeaderState, { passive: true });
 
       document.addEventListener('click', (event) => {
         const target = event.target;
@@ -69,7 +80,7 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
 
         window.setTimeout(() => {
           window.location.href = url.href;
-        }, 180);
+        }, 120);
       });
     })();
   </script>

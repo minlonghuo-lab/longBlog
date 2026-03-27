@@ -56,8 +56,8 @@ body {
 
 #page-main {
   opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.22s ease, transform 0.22s ease;
+  transform: translateY(6px);
+  transition: opacity 0.14s ease-out, transform 0.14s ease-out;
 }
 
 body.page-ready #page-main {
@@ -67,7 +67,7 @@ body.page-ready #page-main {
 
 body.page-leave #page-main {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(4px);
 }
 
 ::selection {
