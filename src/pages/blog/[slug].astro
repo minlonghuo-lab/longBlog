@@ -150,15 +150,6 @@ function formatDate(date: Date): string {
         if (backToTop) backToTop.classList.toggle('visible', window.scrollY > start + 260);
       };
 
-      const ensureDesktopTocVisible = (activeLink) => {
-        if (!(activeLink instanceof HTMLElement) || !desktopTocLinks.length) return;
-        const navRect = desktopToc.getBoundingClientRect();
-        const linkRect = activeLink.getBoundingClientRect();
-        if (linkRect.top < navRect.top + 20 || linkRect.bottom > navRect.bottom - 20) {
-          activeLink.scrollIntoView({ block: 'center', behavior: 'smooth' });
-        }
-      };
-
       const updateActiveHeading = () => {
         const tocLinks = allTocLinks();
         if (!tocLinks.length) return;
@@ -166,13 +157,10 @@ function formatDate(date: Date): string {
         for (const item of tocItems) {
           if (item.el.getBoundingClientRect().top <= 150) currentId = item.id;
         }
-        let activeDesktopLink = null;
         tocLinks.forEach((link) => {
           const matched = link.dataset.target === currentId;
           link.classList.toggle('active', matched);
-          if (matched && desktopToc.contains(link)) activeDesktopLink = link;
         });
-        if (activeDesktopLink) ensureDesktopTocVisible(activeDesktopLink);
       };
 
       const openMobileToc = () => {
@@ -298,8 +286,8 @@ function formatDate(date: Date): string {
   .post-sidebar {
     position: absolute;
     top: 1rem;
-    left: calc(100% + 2.2rem);
-    width: 14rem;
+    left: calc(100% + 2.9rem);
+    width: 15.5rem;
     height: calc(100% - 1rem);
   }
 
@@ -396,6 +384,7 @@ function formatDate(date: Date): string {
   }
 
   .toc-nav {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 0.08rem;
@@ -418,19 +407,31 @@ function formatDate(date: Date): string {
   .toc-link::before {
     content: '';
     position: absolute;
-    left: 0.7rem;
-    top: 0.2rem;
-    bottom: 0.2rem;
+    top: 0.25rem;
+    bottom: 0.25rem;
     width: 1px;
-    background: color-mix(in oklab, var(--border) 90%, transparent);
-    opacity: 0;
-    transition: opacity var(--transition-base), background-color var(--transition-base);
+    background: color-mix(in oklab, var(--border) 88%, transparent);
+    transition: background-color var(--transition-base), opacity var(--transition-base);
   }
 
-  .toc-level-1::before { opacity: 0; }
-  .toc-level-2::before,
-  .toc-level-3::before,
-  .toc-level-4::before { opacity: 1; }
+  .toc-level-1::before {
+    opacity: 0;
+  }
+
+  .toc-level-2::before {
+    left: 0.78rem;
+    opacity: 1;
+  }
+
+  .toc-level-3::before {
+    left: 1.08rem;
+    opacity: 1;
+  }
+
+  .toc-level-4::before {
+    left: 1.36rem;
+    opacity: 1;
+  }
 
   .toc-link:hover {
     color: var(--foreground);
@@ -443,13 +444,13 @@ function formatDate(date: Date): string {
   }
 
   .toc-link.active::before {
-    background: color-mix(in oklab, var(--foreground) 22%, transparent);
+    background: color-mix(in oklab, var(--foreground) 24%, transparent);
   }
 
   .toc-level-1 { padding-left: 0.55rem; }
-  .toc-level-2 { padding-left: 1.1rem; }
-  .toc-level-3 { padding-left: 1.45rem; font-size: 0.8rem; }
-  .toc-level-4 { padding-left: 1.75rem; font-size: 0.77rem; }
+  .toc-level-2 { padding-left: 1.2rem; }
+  .toc-level-3 { padding-left: 1.52rem; font-size: 0.8rem; }
+  .toc-level-4 { padding-left: 1.82rem; font-size: 0.77rem; }
   .toc-empty { color: var(--muted-foreground); font-size: 0.88rem; }
 
   .content {
@@ -464,7 +465,11 @@ function formatDate(date: Date): string {
     font-size: 1rem;
   }
 
-  .content p { margin: 0 0 1rem; }
+  .content p {
+    margin: 0 0 1rem;
+    text-align: justify;
+    text-justify: inter-ideograph;
+  }
 
   .content h1,
   .content h2,
@@ -659,14 +664,14 @@ function formatDate(date: Date): string {
 
   @media (max-width: 1400px) {
     .post-reading-stage {
-      width: min(100%, 58rem);
-      padding-right: 16rem;
+      width: min(100%, 60rem);
+      padding-right: 18rem;
     }
 
     .post-sidebar {
       left: auto;
       right: 0;
-      width: 13rem;
+      width: 14.5rem;
     }
   }
 
