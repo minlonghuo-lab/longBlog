@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="100mm"
+   height="100mm"
+   viewBox="0 0 100 100"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   sodipodi:docname="logo.svg"
+   inkscape:export-filename="头像2.png"
+   inkscape:export-xdpi="304.79999"
+   inkscape:export-ydpi="304.79999"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showguides="true"
+     inkscape:zoom="1.4142136"
+     inkscape:cx="198.34345"
+     inkscape:cy="211.77848"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1"
+     inkscape:export-bgcolor="#ffffffff" />
+  <defs
+     id="defs1">
+    <linearGradient
+       id="linearGradient17"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#ff1493;stop-opacity:0.98823529;"
+         offset="0"
+         id="stop17" />
+      <stop
+         style="stop-color:#ff1493;stop-opacity:0;"
+         offset="1"
+         id="stop18" />
+    </linearGradient>
+    <linearGradient
+       id="swatch6"
+       inkscape:swatch="solid">
+      <stop
+         style="stop-color:#000000;stop-opacity:1;"
+         offset="0"
+         id="stop6" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient17"
+       id="linearGradient18"
+       x1="-7.1093693"
+       y1="87.183319"
+       x2="103.64713"
+       y2="30.495453"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.2499981,0,0,1.2503628,-15.624906,-15.629339)" />
+  </defs>
+  <g
+     inkscape:label="图层 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       id="path6-8"
+       style="fill:url(#linearGradient18);fill-opacity:1;stroke:#d77a8b;stroke-width:1.00002;stroke-opacity:1"
+       d="m 30.199973,65.003259 a 9.8999879,9.8644225 0 0 1 -9.899989,9.864425 9.8999879,9.8644225 0 0 1 -9.899986,-9.864425 9.8999879,9.8644225 0 0 1 9.899986,-9.864422 9.8999879,9.8644225 0 0 1 9.899989,9.864422 z M 89.599888,40.342202 a 9.8999879,9.8644225 0 0 1 -9.899979,9.864424 9.8999879,9.8644225 0 0 1 -9.899986,-9.864424 9.8999879,9.8644225 0 0 1 9.899986,-9.864422 9.8999879,9.8644225 0 0 1 9.899979,9.864422 z M 79.699682,20.613173 A 19.799975,19.728847 0 0 0 59.899891,40.342345 v 9.864328 h -9.899894 v 9.864331 h 9.899894 v 39.457837 h 9.899896 V 60.071004 h 9.899895 A 19.799975,19.728847 0 0 0 99.499988,40.342345 19.799975,19.728847 0 0 0 79.699682,20.613173 Z M 20.299799,0.88451263 V 5.8169336 h 9.900407 V 47.923976 A 19.799975,19.728847 0 0 0 20.299799,45.274257 19.799975,19.728847 0 0 0 0.50001002,65.003425 19.799975,19.728847 0 0 0 20.299799,84.732085 19.799975,19.728847 0 0 0 40.100102,65.003425 V 5.8169336 h 9.899895 V 0.88451263 Z" />
+  </g>
+</svg>
