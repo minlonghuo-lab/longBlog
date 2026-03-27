@@ -31,6 +31,8 @@ const memosApiBase = 'https://memos.ssaw.top';
   const loadingEl = document.getElementById('memos-loading');
   const endEl = document.getElementById('memos-end');
   const emptyEl = document.getElementById('memos-empty');
+
+  document.body.classList.add('memos-page');
   const sentinelEl = document.getElementById('memos-sentinel');
   const previewEl = document.getElementById('image-preview');
   const previewImgEl = document.getElementById('preview-image');
@@ -40,6 +42,7 @@ const memosApiBase = 'https://memos.ssaw.top';
   let hasMore = true;
   let loading = false;
   const seen = new Set();
+  const memoStore = new Map();
 
   const PAGE_SIZE = 10;
   const MAX_SAME_TOKEN_HITS = 2;
@@ -85,8 +88,9 @@ const memosApiBase = 'https://memos.ssaw.top';
     return images;
   }
 
-  function mapImages(memo) {
+  function mapAttachments(memo) {
     const images = [];
+    const files = [];
     const attachments = Array.isArray(memo.attachments) ? memo.attachments : [];
 
     for (const att of attachments) {
@@ -96,6 +100,12 @@ const memosApiBase = 'https://memos.ssaw.top';
       const fileUrl = `${memosApiBase}/file/attachments/${attachmentId}/${encodeURIComponent(filename)}`;
       if ((att.type || '').startsWith('image/')) {
         images.push(fileUrl);
+      } else {
+        files.push({
+          name: filename,
+          url: fileUrl,
+          type: att.type || 'file',
+        });
       }
     }
 
@@ -103,24 +113,27 @@ const memosApiBase = 'https://memos.ssaw.top';
       if (!images.includes(mdImg)) images.push(mdImg);
     }
 
-    return images;
+    return { images, files };
   }
 
   function renderMemo(memo) {
     const memoKey = String(memo.name || `${memo.createTime}-${memo.updateTime}-${memo.content?.slice(0, 16) || ''}`);
-    if (seen.has(memoKey)) return;
-    seen.add(memoKey);
 
     const content = processContent(memo.content || '');
-    const images = mapImages(memo);
+    const { images, files } = mapAttachments(memo);
     const tags = (memo.tags || []).filter((t) => !String(t).startsWith('#'));
-
     const article = document.createElement('article');
     article.className = 'memo-item';
 
     const imageGridHTML = images.length
       ? `<div class="memo-images memo-images-${Math.min(images.length, 9)}" style="--thumb-size:4.8rem;max-width:15.2rem;">${images
           .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}" style="width:4.8rem;height:4.8rem;max-width:4.8rem;max-height:4.8rem;" aria-label="查看大图"><img src="${escapeHTML(img)}" loading="lazy" alt="图片缩略图" style="width:100%;height:100%;object-fit:cover;" /></button>`)
+          .join('')}</div>`
+      : '';
+
+    const filesHTML = files.length
+      ? `<div class="memo-files">${files
+          .map((file) => `<a href="${escapeHTML(file.url)}" target="_blank" rel="noopener noreferrer" class="memo-file"><span class="memo-file-name">📎 ${escapeHTML(file.name)}</span><span class="memo-file-type">${escapeHTML(file.type)}</span></a>`)
           .join('')}</div>`
       : '';
 
@@ -140,11 +153,26 @@ const memosApiBase = 'https://memos.ssaw.top';
         </div>
         <div class="memo-content">${escapeHTML(content).replaceAll('\n', '<br>')}</div>
         ${imageGridHTML}
+        ${filesHTML}
         ${tagsHTML}
       </div>
     `;
 
-    listEl.appendChild(article);
+    return article;
+  }
+
+  function renderAllMemos() {
+    const items = [...memoStore.values()].sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return new Date(b.createTime).getTime() - new Date(a.createTime).getTime();
+    });
+
+    listEl.innerHTML = '';
+    for (const memo of items) {
+      const node = renderMemo(memo);
+      if (node) listEl.appendChild(node);
+    }
   }
 
   async function loadMore() {
@@ -188,9 +216,17 @@ const memosApiBase = 'https://memos.ssaw.top';
       });
 
       const beforeCount = seen.size;
-      publicMemos.forEach(renderMemo);
+      for (const memo of publicMemos) {
+        const memoKey = String(memo.name || `${memo.createTime}-${memo.updateTime}-${memo.content?.slice(0, 16) || ''}`);
+        if (!seen.has(memoKey)) {
+          seen.add(memoKey);
+          memoStore.set(memoKey, memo);
+        } else {
+          memoStore.set(memoKey, memo);
+        }
+      }
       const addedCount = seen.size - beforeCount;
-
+      renderAllMemos();
       const nextToken = data.nextPageToken || '';
       if (nextToken) {
         if (nextToken === lastNextPageToken) {
@@ -270,6 +306,16 @@ const memosApiBase = 'https://memos.ssaw.top';
 </script>
 
 <style is:global>
+  body.memos-page {
+    scrollbar-width: none;
+  }
+
+  body.memos-page::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+
   .memos-wrap {
     padding-bottom: 4.5rem;
   }
@@ -415,6 +461,49 @@ const memosApiBase = 'https://memos.ssaw.top';
     border-radius: 0.45rem;
     display: block;
     margin-top: 0.5rem;
+  }
+
+  .memo-files {
+    margin-top: 0.68rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.34rem;
+    max-width: 26rem;
+  }
+
+  .memo-file {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    border: 1px solid color-mix(in oklab, var(--border) 84%, transparent);
+    border-radius: 0.44rem;
+    padding: 0.34rem 0.52rem;
+    background: color-mix(in oklab, var(--muted) 94%, white);
+    transition: border-color var(--transition-base), background-color var(--transition-base);
+  }
+
+  .memo-file:hover {
+    border-color: color-mix(in oklab, var(--muted-foreground) 28%, var(--border));
+    background: color-mix(in oklab, var(--muted) 88%, white);
+  }
+
+  .memo-file-name {
+    font-size: 0.78rem;
+    color: color-mix(in oklab, var(--foreground) 88%, transparent);
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .memo-file-type {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    color: color-mix(in oklab, var(--muted-foreground) 74%, transparent);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
   .memo-tags {
