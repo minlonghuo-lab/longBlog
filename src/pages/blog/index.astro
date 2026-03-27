@@ -1,57 +1,123 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import Header from '../../components/Header.astro';
-import Footer from '../../components/Footer.astro';
 import PostItem from '../../components/PostItem.astro';
 import { getSortedPosts, getAllTags } from '../../data/posts';
 
 const posts = getSortedPosts();
 const tags = getAllTags();
+const selectedTag = Astro.url.searchParams.get('tag') || '';
+const filteredPosts = selectedTag ? posts.filter(p => p.tags.includes(selectedTag)) : posts;
+const hasMoreTags = tags.length > 8;
+const visibleTags = tags.slice(0, 8);
 ---
 
-<BaseLayout title="文章" description="博客文章列表">
-  <div class="min-h-screen flex flex-col">
-    <Header />
-    
-    <main class="flex-1 max-w-3xl mx-auto px-4 py-8 w-full">
-      <div class="mb-8">
-        <h1 class="text-4xl font-serif font-medium tracking-tight mb-2">文章</h1>
-        <p class="text-muted-foreground font-mono text-xs tracking-wider">
-          共 {posts.length} 篇
-        </p>
-      </div>
+<BaseLayout title="文章" description="文章列表与标签筛选">
+  <header class="page-header">
+    <h1>文章</h1>
+    <p>沉淀技术、想法与实践记录。</p>
+  </header>
 
-      <!-- 标签筛选 -->
-      {tags.length > 0 && (
-        <div class="flex flex-wrap gap-2 mb-6">
-          <a href="/blog" class="px-2 py-0.5 text-xs font-mono bg-foreground text-background rounded-md">
-            全部
-          </a>
-          {tags.map(tag => (
-            <a 
-              href={`/blog?tag=${tag}`}
-              class="px-2 py-0.5 text-xs font-mono text-muted-foreground hover:text-foreground bg-muted rounded-md transition-colors"
-            >
-              #{tag}
-            </a>
-          ))}
-        </div>
-      )}
+  <section class="tag-filter">
+    <div class="tag-hint">TAG FILTER</div>
 
-      <!-- 文章列表 -->
-      <div class="divide-y divide-border/50">
-        {posts.map(post => (
-          <PostItem 
-            title={post.title}
-            date={post.date}
-            tags={post.tags}
-            slug={post.slug}
-            pinned={post.pinned}
-          />
-        ))}
-      </div>
-    </main>
+    <div class="tag-row">
+      <a href="/blog" class:list={["tag-link", { active: !selectedTag }]}>全部</a>
 
-    <Footer />
-  </div>
+      {visibleTags.map(tag => (
+        <a
+          href={`/blog?tag=${encodeURIComponent(tag.name)}`}
+          class:list={["tag-link", { active: selectedTag === tag.name }]}
+        >
+          <span>{tag.name}</span>
+          <small>{tag.count}</small>
+        </a>
+      ))}
+
+      {hasMoreTags && <span class="tag-more">+{tags.length - 8}</span>}
+    </div>
+  </section>
+
+  <section class="posts-list">
+    {filteredPosts.length === 0 ? (
+      <div class="empty">暂无文章</div>
+    ) : (
+      filteredPosts.map(post => (
+        <PostItem
+          title={post.title}
+          date={post.date}
+          tags={post.tags}
+          slug={post.slug}
+          pinned={post.pinned}
+        />
+      ))
+    )}
+  </section>
 </BaseLayout>
+
+<style>
+  .tag-filter { margin-bottom: 2.5rem; }
+
+  .tag-hint {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    color: color-mix(in oklab, var(--muted-foreground) 50%, transparent);
+    margin-bottom: 0.8rem;
+  }
+
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.8rem 1.2rem;
+  }
+
+  .tag-link {
+    position: relative;
+    font-family: var(--font-mono);
+    font-size: 0.84rem;
+    color: var(--muted-foreground);
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    transition: color var(--transition-base);
+  }
+
+  .tag-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -0.15rem;
+    width: 0;
+    height: 1px;
+    background: var(--foreground);
+    transition: width var(--transition-base);
+  }
+
+  .tag-link:hover,
+  .tag-link.active { color: var(--foreground); }
+
+  .tag-link:hover::after,
+  .tag-link.active::after { width: 100%; }
+
+  .tag-link small {
+    font-size: 0.62rem;
+    opacity: 0.5;
+  }
+
+  .tag-more {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+  }
+
+  .posts-list {
+    border-top: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
+  }
+
+  .empty {
+    padding: 5rem 0;
+    font-family: var(--font-serif);
+    color: color-mix(in oklab, var(--muted-foreground) 65%, transparent);
+  }
+</style>

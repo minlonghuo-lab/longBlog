@@ -1,21 +1,16 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import Header from '../../components/Header.astro';
-import Footer from '../../components/Footer.astro';
 import { posts } from '../../data/posts';
 
-// 预定义所有可能的 slug（静态站点必须）
 export function getStaticPaths() {
-  return posts.map(post => ({
+  return posts.map((post) => ({
     params: { slug: post.slug },
     props: { post },
   }));
 }
 
-// 获取当前路由的文章
 const { post } = Astro.props;
 
-// 格式化日期
 function formatDate(date: Date): string {
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -26,49 +21,64 @@ function formatDate(date: Date): string {
 ---
 
 <BaseLayout title={post.title} description={`${post.title} - longBlog`}>
-  <div class="min-h-screen flex flex-col">
-    <Header />
-    
-    <main class="flex-1 max-w-3xl mx-auto px-4 py-8 w-full">
-      <!-- 返回链接 -->
-      <a 
-        href="/blog" 
-        class="inline-flex items-center gap-2 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors mb-8"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m15 18-6-6 6-6"/>
-        </svg>
-        返回文章列表
-      </a>
+  <a href="/blog" class="back-link">← 返回文章列表</a>
 
-      <!-- 文章头部 -->
-      <header class="mb-12">
-        <h1 class="text-4xl md:text-5xl font-serif font-medium tracking-tight mb-4">
-          {post.title}
-        </h1>
-        <div class="flex items-center gap-4 text-xs font-mono text-muted-foreground/60 tracking-wider">
-          <time>{formatDate(post.date)}</time>
-          {post.tags.length > 0 && (
-            <div class="flex items-center gap-2">
-              {post.tags.map(tag => (
-                <span class="px-2 py-0.5 bg-muted rounded-md">#{tag}</span>
-              ))}
-            </div>
-          )}
-        </div>
-      </header>
+  <header class="post-header">
+    <h1>{post.title}</h1>
+    <div class="meta">
+      <time>{formatDate(post.date)}</time>
+      <div class="tags">
+        {post.tags.map((tag) => <span>#{tag}</span>)}
+      </div>
+    </div>
+  </header>
 
-      <!-- 文章内容 -->
-      <article class="prose prose-neutral max-w-none">
-        <p class="text-lg leading-relaxed text-muted-foreground">
-          文章内容正在加载中...
-        </p>
-        <p class="text-muted-foreground">
-          这是一个示例文章页面。你可以在 posts.ts 中添加文章内容。
-        </p>
-      </article>
-    </main>
-
-    <Footer />
-  </div>
+  <article class="content">
+    {post.content.split('\n').map((line: string) => (
+      line.trim() === '' ? <br /> : <p>{line}</p>
+    ))}
+  </article>
 </BaseLayout>
+
+<style>
+  .back-link {
+    display: inline-block;
+    margin-bottom: 2rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    transition: color var(--transition-base);
+  }
+
+  .back-link:hover { color: var(--foreground); }
+
+  .post-header {
+    margin-bottom: 2.5rem;
+  }
+
+  .post-header h1 {
+    margin: 0 0 1rem;
+  }
+
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+
+  .tags {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .content p {
+    margin: 0 0 1rem;
+    line-height: 1.85;
+    color: var(--foreground);
+  }
+</style>

@@ -1,10 +1,10 @@
 // Site Configuration
 export const SITE_TITLE = 'longBlog';
-export const SITE_DESCRIPTION = '这是一个博客';
+export const SITE_DESCRIPTION = '基于 Astro 复刻 flare-stack-blog 的极简博客';
 
 // Author Info
-export const AUTHOR = 'longBlog';
-export const AUTHOR_INTRO = '在这里，分享技术与生活';
+export const AUTHOR = 'Minlonghuo';
+export const AUTHOR_INTRO = '分享技术、产品和日常记录。';
 
 // Social Links
 export const SOCIAL_LINKS = [
@@ -14,7 +14,7 @@ export const SOCIAL_LINKS = [
 
 // Navigation
 export const NAV_ITEMS = [
-  { name: '首页', href: '/' },
+  { name: '主页', href: '/' },
   { name: '文章', href: '/blog' },
   { name: '说说', href: '/shuoshuo' },
   { name: '友链', href: '/friends' },

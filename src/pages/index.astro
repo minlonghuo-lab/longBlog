@@ -4,33 +4,27 @@ import PostItem from '../components/PostItem.astro';
 import { getSortedPosts, getPinnedPosts } from '../data/posts';
 import { AUTHOR, AUTHOR_INTRO, SOCIAL_LINKS, SITE_TITLE } from '../consts';
 
-// 获取文章
 const allPosts = getSortedPosts();
 const pinnedPosts = getPinnedPosts();
-
-// 合并置顶文章和非置顶文章
 const displayPosts = [...pinnedPosts, ...allPosts.filter(p => !p.pinned)];
 ---
 
 <BaseLayout title={SITE_TITLE} description={AUTHOR_INTRO}>
-  <!-- 简介区 -->
-  <section class="py-12 border-b border-border/50">
-    <h1 class="text-4xl md:text-5xl font-serif font-medium tracking-tight mb-4">
-      你好 <span class="inline-block animate-[wave_2s_ease-in-out_infinite]">👋</span>
+  <section class="hero-section divider">
+    <h1>
+      你好 <span class="wave">👋</span>
     </h1>
-    
-    <p class="text-muted-foreground leading-relaxed">
-      我是 <span class="font-medium text-foreground">{AUTHOR}</span> —— {AUTHOR_INTRO}
+
+    <p class="hero-intro">
+      我是 <span class="hero-author">{AUTHOR}</span> —— {AUTHOR_INTRO}
     </p>
 
-    <!-- 社交链接 -->
-    <div class="flex items-center gap-4 mt-6">
+    <div class="hero-social">
       {SOCIAL_LINKS.map(link => (
-        <a 
+        <a
           href={link.url}
           target={link.platform === 'email' ? undefined : '_blank'}
           rel={link.platform === 'email' ? undefined : 'noopener noreferrer'}
-          class="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
         >
           {link.label}
         </a>
@@ -38,16 +32,13 @@ const displayPosts = [...pinnedPosts, ...allPosts.filter(p => !p.pinned)];
     </div>
   </section>
 
-  <!-- 最新文章区 -->
-  <section class="py-8">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-sm font-medium">最新文章</h2>
-      <a href="/blog" class="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">
-        查看全部 →
-      </a>
+  <section class="posts-section">
+    <div class="section-head">
+      <h2>最新文章</h2>
+      <a href="/blog">查看全部 →</a>
     </div>
-    
-    <div class="divide-y divide-border/50">
+
+    <div>
       {displayPosts.map(post => (
         <PostItem
           slug={post.slug}
@@ -62,6 +53,79 @@ const displayPosts = [...pinnedPosts, ...allPosts.filter(p => !p.pinned)];
 </BaseLayout>
 
 <style>
+  .hero-section {
+    padding: 3rem 0;
+  }
+
+  .hero-section h1 {
+    margin: 0 0 1rem;
+  }
+
+  .wave {
+    display: inline-block;
+    animation: wave 2s ease-in-out infinite;
+    transform-origin: 70% 70%;
+  }
+
+  .hero-intro {
+    margin: 0;
+    color: var(--muted-foreground);
+    line-height: 1.7;
+  }
+
+  .hero-author {
+    color: var(--foreground);
+    font-weight: 500;
+  }
+
+  .hero-social {
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .hero-social a {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    transition: color var(--transition-base);
+  }
+
+  .hero-social a:hover {
+    color: var(--foreground);
+  }
+
+  .posts-section {
+    padding: 2rem 0;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .section-head h2 {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .section-head a {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    transition: color var(--transition-base);
+  }
+
+  .section-head a:hover {
+    color: var(--foreground);
+  }
+
   @keyframes wave {
     0%, 100% { transform: rotate(0deg); }
     25% { transform: rotate(20deg); }

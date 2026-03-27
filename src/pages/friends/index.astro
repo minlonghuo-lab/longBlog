@@ -4,15 +4,13 @@ import FriendCard from '../../components/FriendCard.astro';
 import { friendLinks } from '../../data/friends';
 ---
 
-<BaseLayout title="友链" description="友情链接">
-  <!-- 页面标题 -->
+<BaseLayout title="友链" description="友情链接与站点推荐">
   <header class="page-header">
     <h1>友链</h1>
-    <p>交换友链，互访交流</p>
+    <p>交换友链，互访交流，发现更多有趣内容。</p>
   </header>
 
-  <!-- 友链列表 -->
-  <div class="friends-list">
+  <section class="friends-list">
     {friendLinks.length === 0 ? (
       <div class="empty-state">
         <p>暂无友链</p>
@@ -20,7 +18,7 @@ import { friendLinks } from '../../data/friends';
     ) : (
       <div class="friends-grid">
         {friendLinks.map(link => (
-          <FriendCard 
+          <FriendCard
             name={link.name}
             url={link.url}
             description={link.description}
@@ -29,22 +27,18 @@ import { friendLinks } from '../../data/friends';
         ))}
       </div>
     )}
-  </div>
+  </section>
 
-  <!-- 申请友链 -->
-  <div class="apply-section">
+  <section class="apply-section">
     <div class="apply-info">
       <h3>申请友链</h3>
-      <p>欢迎交换友链，可以在留言板留言或通过邮箱联系</p>
+      <p>欢迎交换友链，可通过邮箱联系我。</p>
     </div>
-    <a href="mailto:hello@example.com" class="apply-link">
-      <span>✉️ 联系我</span>
-    </a>
-  </div>
+    <a href="mailto:hello@example.com" class="apply-link">✉️ 联系我</a>
+  </section>
 </BaseLayout>
 
 <style>
-  /* 友链网格 */
   .friends-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -58,7 +52,6 @@ import { friendLinks } from '../../data/friends';
     }
   }
 
-  /* 空状态 */
   .empty-state {
     padding: 5rem 0;
     text-align: center;
@@ -66,19 +59,17 @@ import { friendLinks } from '../../data/friends';
 
   .empty-state p {
     font-family: var(--font-serif);
-    font-size: 1.125rem;
     color: var(--muted-foreground);
-    opacity: 0.5;
+    opacity: 0.6;
   }
 
-  /* 申请友链区 */
   .apply-section {
-    margin-top: 5rem;
-    padding-top: 2.5rem;
+    margin-top: 4rem;
+    padding-top: 2rem;
     border-top: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
   }
 
   @media (min-width: 640px) {
@@ -90,29 +81,22 @@ import { friendLinks } from '../../data/friends';
   }
 
   .apply-info h3 {
+    margin: 0 0 0.3rem;
     font-family: var(--font-sans);
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--foreground);
-    margin: 0 0 0.25rem 0;
+    font-size: 0.9rem;
   }
 
   .apply-info p {
-    font-family: var(--font-sans);
-    font-size: 0.875rem;
-    font-weight: 300;
-    color: var(--muted-foreground);
     margin: 0;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
   }
 
   .apply-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
     font-family: var(--font-mono);
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     color: var(--muted-foreground);
-    transition: color 0.3s ease;
+    transition: color var(--transition-base);
   }
 
   .apply-link:hover {

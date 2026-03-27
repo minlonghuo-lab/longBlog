@@ -1,12 +1,12 @@
 ---
-import { AUTHOR, SOCIAL_LINKS } from '../consts';
+import { AUTHOR } from '../consts';
 
 const year = new Date().getFullYear();
 ---
 
 <footer class="site-footer">
-  <div class="container">
-    <p>&copy; {year} {AUTHOR}</p>
+  <div class="container footer-inner">
+    <p>© {year} {AUTHOR}</p>
   </div>
 </footer>
 
@@ -16,18 +16,17 @@ const year = new Date().getFullYear();
     border-top: 1px solid var(--border);
   }
 
-  .site-footer .container {
+  .footer-inner {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
   }
 
-  .site-footer p {
+  .footer-inner p {
+    margin: 0;
     font-family: var(--font-mono);
     font-size: 0.75rem;
     color: var(--muted-foreground);
-    margin: 0;
     opacity: 0.6;
   }
 </style>

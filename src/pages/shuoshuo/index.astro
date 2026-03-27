@@ -1,2 +1,68 @@
-[CONTEXT OFFLOADED] Content (~301 tokens, 768 bytes) saved to: /var/minis/offloads/tools/file_write_fb6x8d8sxm_1.txt
-Use file_read tool to retrieve it.
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { memos } from '../../data/memos';
+
+function formatDate(input: string) {
+  const d = new Date(input);
+  return d.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+---
+
+<BaseLayout title="说说" description="日常碎片与短内容记录">
+  <header class="page-header">
+    <h1>说说</h1>
+    <p>记录当下，保持表达。</p>
+  </header>
+
+  <section class="memos-list">
+    {memos.map((memo) => (
+      <article class="memo-item">
+        <p>{memo.content}</p>
+        <time>{formatDate(memo.createdTs)}</time>
+      </article>
+    ))}
+  </section>
+</BaseLayout>
+
+<style>
+  .memos-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-bottom: 2rem;
+  }
+
+  .memo-item {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1rem 1rem 0.85rem;
+    transition: border-color var(--transition-base), transform var(--transition-base);
+  }
+
+  .memo-item:hover {
+    border-color: color-mix(in oklab, var(--foreground) 20%, var(--border));
+    transform: translateY(-1px);
+  }
+
+  .memo-item p {
+    margin: 0;
+    color: var(--foreground);
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+
+  .memo-item time {
+    margin-top: 0.75rem;
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--muted-foreground);
+    letter-spacing: 0.04em;
+  }
+</style>
