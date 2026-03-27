@@ -261,8 +261,8 @@ function formatDate(date: Date): string {
 
   .post-paper {
     position: relative;
-    width: clamp(38rem, 62vw, 60rem);
-    max-width: none;
+    width: min(60rem, calc(100vw - (2 * clamp(1.25rem, 8vw, 15rem))));
+    max-width: calc(100vw - 2rem);
     margin: 0 auto;
     padding: clamp(1.6rem, 3vw, 2.4rem) clamp(1.25rem, 3.2vw, 2.75rem) clamp(2.2rem, 4vw, 3.2rem);
     background:
