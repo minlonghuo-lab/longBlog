@@ -60,29 +60,60 @@ const visibleTags = tags.slice(0, 8);
     const empty = document.getElementById('posts-empty');
     const tagLinks = Array.from(document.querySelectorAll('#tag-row .tag-link'));
 
-    const selectedTag = new URLSearchParams(window.location.search).get('tag') || '';
+    const applyFilter = (selectedTag) => {
+      let visibleCount = 0;
 
-    let visibleCount = 0;
-    for (const row of rows) {
-      const tagStr = row.getAttribute('data-tags') || '';
-      const tags = tagStr ? tagStr.split('|') : [];
-      const visible = !selectedTag || tags.includes(selectedTag);
-      row.style.display = visible ? '' : 'none';
-      if (visible) visibleCount += 1;
-    }
+      for (const row of rows) {
+        const tagStr = row.getAttribute('data-tags') || '';
+        const tags = tagStr ? tagStr.split('|') : [];
+        const visible = !selectedTag || tags.includes(selectedTag);
 
-    if (empty) {
-      empty.style.display = visibleCount === 0 ? 'block' : 'none';
-    }
+        if (visible) {
+          row.classList.remove('is-hidden');
+          row.style.display = '';
+          requestAnimationFrame(() => row.classList.add('is-visible'));
+          visibleCount += 1;
+        } else {
+          row.classList.remove('is-visible');
+          row.classList.add('is-hidden');
+          window.setTimeout(() => {
+            if (row.classList.contains('is-hidden')) row.style.display = 'none';
+          }, 120);
+        }
+      }
+
+      if (empty) {
+        empty.style.display = visibleCount === 0 ? 'block' : 'none';
+      }
+
+      for (const link of tagLinks) {
+        const tag = link.getAttribute('data-tag') || '';
+        link.classList.toggle('active', tag === selectedTag);
+      }
+    };
+
+    const currentTag = new URLSearchParams(window.location.search).get('tag') || '';
+    applyFilter(currentTag);
 
     for (const link of tagLinks) {
-      const tag = link.getAttribute('data-tag') || '';
-      if (tag === selectedTag) {
-        link.classList.add('active');
-      } else {
-        link.classList.remove('active');
-      }
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const tag = link.getAttribute('data-tag') || '';
+        const url = new URL(window.location.href);
+        if (tag) {
+          url.searchParams.set('tag', tag);
+        } else {
+          url.searchParams.delete('tag');
+        }
+        window.history.pushState({}, '', url);
+        applyFilter(tag);
+      });
     }
+
+    window.addEventListener('popstate', () => {
+      const tag = new URLSearchParams(window.location.search).get('tag') || '';
+      applyFilter(tag);
+    });
   })();
 </script>
 
@@ -145,6 +176,22 @@ const visibleTags = tags.slice(0, 8);
 
   .posts-list {
     border-top: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
+  }
+
+  .post-row {
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.14s ease, transform 0.14s ease;
+  }
+
+  .post-row.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .post-row.is-hidden {
+    opacity: 0;
+    transform: translateY(4px);
   }
 
   .empty {
