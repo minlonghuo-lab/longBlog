@@ -41,7 +41,10 @@ const memosApiBase = 'https://memos.ssaw.top';
   let loading = false;
   const seen = new Set();
 
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 3;
+  const MAX_SAME_TOKEN_HITS = 2;
+  let lastNextPageToken = '';
+  let sameTokenHits = 0;
 
   function formatDate(input) {
     const d = new Date(input);
@@ -103,9 +106,9 @@ const memosApiBase = 'https://memos.ssaw.top';
   }
 
   function renderMemo(memo) {
-    const id = Number((memo.name || '').split('/')[1] || Date.now());
-    if (seen.has(id)) return;
-    seen.add(id);
+    const memoKey = String(memo.name || `${memo.createTime}-${memo.updateTime}-${memo.content?.slice(0, 16) || ''}`);
+    if (seen.has(memoKey)) return;
+    seen.add(memoKey);
 
     const content = processContent(memo.content || '');
     const images = mapImages(memo);
@@ -168,10 +171,23 @@ const memosApiBase = 'https://memos.ssaw.top';
 
       publicMemos.forEach(renderMemo);
 
-      pageToken = data.nextPageToken || '';
+      const nextToken = data.nextPageToken || '';
+      if (nextToken && nextToken === lastNextPageToken) {
+        sameTokenHits += 1;
+      } else {
+        sameTokenHits = 0;
+      }
+      lastNextPageToken = nextToken;
+
+      pageToken = nextToken;
       hasMore = !!pageToken;
 
+      if (sameTokenHits >= MAX_SAME_TOKEN_HITS) {
+        hasMore = false;
+      }
+
       if (!hasMore) {
+        loadingEl.style.display = 'none';
         endEl.style.display = listEl.children.length ? 'block' : 'none';
       }
 
@@ -281,15 +297,17 @@ const memosApiBase = 'https://memos.ssaw.top';
   }
 
   .memo-images {
-    margin-top: 0.8rem;
+    margin-top: 0.72rem;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem;
+    grid-template-columns: repeat(3, 3.08rem);
+    gap: 0.32rem;
+    justify-content: flex-start;
   }
 
   @media (min-width: 768px) {
     .memo-images {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(3, 3.32rem);
+      gap: 0.36rem;
     }
   }
 
@@ -297,12 +315,12 @@ const memosApiBase = 'https://memos.ssaw.top';
     display: block;
     width: 100%;
     aspect-ratio: 1/1;
-    border: none;
+    border: 1px solid color-mix(in oklab, var(--border) 86%, transparent);
     padding: 0;
     overflow: hidden;
-    border-radius: 0.5rem;
+    border-radius: 0.42rem;
     cursor: zoom-in;
-    background: var(--muted);
+    background: color-mix(in oklab, var(--muted) 96%, transparent);
   }
 
   .memo-img-btn img {
