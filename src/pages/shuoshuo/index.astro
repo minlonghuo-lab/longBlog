@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 
 const memosApiBase = 'https://memos.ssaw.top';
+const memosBuildStamp = '2026-03-27-1145';
 ---
 
 <BaseLayout title="说说" description="日常碎碎念">
@@ -26,7 +27,7 @@ const memosApiBase = 'https://memos.ssaw.top';
   </div>
 </BaseLayout>
 
-<script define:vars={{ memosApiBase }}>
+<script define:vars={{ memosApiBase, memosBuildStamp }}>
   const listEl = document.getElementById('memos-list');
   const loadingEl = document.getElementById('memos-loading');
   const endEl = document.getElementById('memos-end');
@@ -35,6 +36,8 @@ const memosApiBase = 'https://memos.ssaw.top';
   const previewEl = document.getElementById('image-preview');
   const previewImgEl = document.getElementById('preview-image');
   const closeBtn = document.getElementById('preview-close');
+
+  window.__MEMOS_BUILD__ = memosBuildStamp;
 
   let pageToken = '';
   let hasMore = true;
