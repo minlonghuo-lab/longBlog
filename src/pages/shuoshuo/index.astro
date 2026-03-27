@@ -39,6 +39,12 @@ const memosApiBase = 'https://memos.ssaw.top';
   let pageToken = '';
   let hasMore = true;
   let loading = false;
+  let currentApiBase = memosApiBase;
+  const apiBaseCandidates = Array.from(new Set([
+    window.location.origin,
+    memosApiBase,
+    'https://ssaw.top',
+  ]));
   const seen = new Set();
 
   const PAGE_SIZE = 10;
@@ -103,9 +109,9 @@ const memosApiBase = 'https://memos.ssaw.top';
   }
 
   function renderMemo(memo) {
-    const id = Number((memo.name || '').split('/')[1] || Date.now());
-    if (seen.has(id)) return;
-    seen.add(id);
+    const memoKey = String(memo.name || `${memo.createTime}-${memo.updateTime}-${memo.content?.slice(0, 16) || ''}`);
+    if (seen.has(memoKey)) return;
+    seen.add(memoKey);
 
     const content = processContent(memo.content || '');
     const images = mapImages(memo);
@@ -143,6 +149,25 @@ const memosApiBase = 'https://memos.ssaw.top';
     listEl.appendChild(article);
   }
 
+  async function fetchMemosWithFallback(qs) {
+    let lastError = null;
+
+    for (const base of apiBaseCandidates) {
+      try {
+        const resp = await fetch(`${base}/api/v1/memos?${qs.toString()}`, { credentials: 'omit' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        if (!Array.isArray(data?.memos)) throw new Error('Invalid memos payload');
+        currentApiBase = base;
+        return data;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    throw lastError || new Error('No available memos API');
+  }
+
   async function loadMore() {
     if (!hasMore || loading) return;
 
@@ -153,10 +178,7 @@ const memosApiBase = 'https://memos.ssaw.top';
       const qs = new URLSearchParams({ pageSize: String(PAGE_SIZE) });
       if (pageToken) qs.set('pageToken', pageToken);
 
-      const resp = await fetch(`${memosApiBase}/api/v1/memos?${qs.toString()}`);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-
-      const data = await resp.json();
+      const data = await fetchMemosWithFallback(qs);
       const memos = Array.isArray(data.memos) ? data.memos : [];
       const publicMemos = memos.filter((m) => m.visibility === 'PUBLIC');
 
@@ -224,67 +246,72 @@ const memosApiBase = 'https://memos.ssaw.top';
 
 <style>
   .memos-wrap {
-    padding-bottom: 4rem;
+    padding-bottom: 5rem;
   }
 
   .memos-list {
     display: flex;
     flex-direction: column;
-    gap: 2.4rem;
+    gap: 3rem;
+    margin-top: 0.5rem;
   }
 
   .memo-item {
     position: relative;
-    padding-left: 2rem;
+    padding-left: 2.1rem;
   }
 
   .timeline-line {
     position: absolute;
-    left: 0.35rem;
+    left: 0.38rem;
     top: 0;
-    bottom: -2.4rem;
+    bottom: -3rem;
     width: 1px;
-    background: var(--border);
+    background: color-mix(in oklab, var(--border) 80%, transparent);
   }
 
   .timeline-dot {
     position: absolute;
-    left: 0.17rem;
-    top: 0.45rem;
-    width: 0.5rem;
-    height: 0.5rem;
+    left: 0.16rem;
+    top: 0.52rem;
+    width: 0.52rem;
+    height: 0.52rem;
     border-radius: 999px;
-    background: color-mix(in oklab, var(--foreground) 35%, transparent);
+    background: color-mix(in oklab, var(--foreground) 26%, transparent);
   }
 
   .memo-meta {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
+    gap: 0.75rem;
     font-family: var(--font-mono);
-    font-size: 0.7rem;
-    color: color-mix(in oklab, var(--muted-foreground) 75%, transparent);
-    margin-bottom: 0.55rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
+    color: color-mix(in oklab, var(--muted-foreground) 72%, transparent);
+    margin-bottom: 0.62rem;
   }
 
   .memo-pinned {
     color: var(--foreground);
-    font-weight: 600;
+    font-weight: 500;
+    font-size: 0.69rem;
   }
 
   .memo-content {
-    font-size: 0.93rem;
-    line-height: 1.78;
+    font-size: 0.94rem;
+    line-height: 1.82;
     color: var(--foreground);
     white-space: pre-wrap;
     word-break: break-word;
+    max-width: 42rem;
   }
 
   .memo-images {
-    margin-top: 0.8rem;
+    margin-top: 0.9rem;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem;
+    gap: 0.5rem;
+    max-width: 30rem;
   }
 
   @media (min-width: 768px) {
@@ -300,7 +327,7 @@ const memosApiBase = 'https://memos.ssaw.top';
     border: none;
     padding: 0;
     overflow: hidden;
-    border-radius: 0.5rem;
+    border-radius: 0.6rem;
     cursor: zoom-in;
     background: var(--muted);
   }
@@ -317,26 +344,28 @@ const memosApiBase = 'https://memos.ssaw.top';
   }
 
   .memo-tags {
-    margin-top: 0.65rem;
+    margin-top: 0.7rem;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.45rem;
   }
 
   .memo-tags span {
     font-size: 0.72rem;
-    color: var(--muted-foreground);
-    background: var(--muted);
+    color: color-mix(in oklab, var(--muted-foreground) 95%, transparent);
+    background: color-mix(in oklab, var(--muted) 88%, white);
     border-radius: 999px;
     padding: 0.12rem 0.5rem;
   }
 
   .memos-status {
     text-align: center;
-    margin-top: 2rem;
+    margin-top: 2.2rem;
     font-family: var(--font-mono);
-    font-size: 0.75rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
     color: var(--muted-foreground);
+    opacity: 0.7;
   }
 
   .memos-sentinel {
