@@ -19,13 +19,13 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       <div class="card-head">
         <div>
           <div class="card-kicker">Knowledge Map</div>
-          <h2>笔记树形地图</h2>
+          <h2>可见笔记知识地图</h2>
         </div>
         <a href={triliumBaseUrl} target="_blank" rel="noopener noreferrer" class="card-link">打开 Trilium ↗</a>
       </div>
 
       <p class="card-intro">
-        动态展示 TriliumNext 笔记树结构，支持展开、收起和跳转。部署时建议通过服务端代理接口提供数据，避免将 ETAPI Token 暴露到前端。
+        展示 Trilium 中 <code>root</code> 下的可见笔记结构，并以可拖动、可缩放、可交互的图谱形式呈现。点击节点可展开下一层，双击节点可跳转到 Trilium 对应笔记。
       </p>
 
       <div class="tree-toolbar">
@@ -109,7 +109,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
 
     if (!(graphEl instanceof HTMLElement)) return;
 
-    const rootHint = '_hidden';
+    const rootHint = 'root';
     const nodeStore = new Map();
     const loadedNodes = new Set();
     let network = null;
@@ -336,7 +336,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         instance.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
       });
       instance.stabilize(180);
-      setStatus(`知识地图已加载：拖动画布、滚轮缩放、点击节点展开、双击节点打开 Trilium`);
+      setStatus(`知识地图已加载：展示 root 下可见笔记，支持拖动画布、滚轮缩放、点击节点展开、双击节点打开 Trilium`);
     };
 
     fitBtn?.addEventListener('click', () => {
