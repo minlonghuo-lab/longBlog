@@ -162,7 +162,6 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
         document.body.classList.remove('page-ready');
         document.body.classList.add('page-leave', 'page-navigating');
 
-        const progress = document.getElementById('route-progress');
         if (progress) progress.classList.add('active');
 
         if (url.pathname === '/shuoshuo') {
@@ -189,6 +188,14 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
         window.location.href = url.href;
       });
 
+      const progress = document.getElementById('route-progress');
+
+      const restorePageState = () => {
+        document.body.classList.remove('page-leave', 'page-navigating');
+        document.body.classList.add('page-ready');
+        if (progress) progress.classList.remove('active');
+      };
+
       const updateHeaderState = () => {
         if (window.scrollY > 20) {
           document.body.classList.add('scrolled');
@@ -198,9 +205,31 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
       };
 
       requestAnimationFrame(() => {
-        document.body.classList.add('page-ready');
+        restorePageState();
         updateHeaderState();
         updateThemeToggleState();
+      });
+
+      window.addEventListener('pageshow', () => {
+        restorePageState();
+        updateHeaderState();
+        updateThemeToggleState();
+      });
+
+      window.addEventListener('popstate', () => {
+        requestAnimationFrame(() => {
+          restorePageState();
+          updateHeaderState();
+          updateThemeToggleState();
+        });
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          restorePageState();
+          updateHeaderState();
+          updateThemeToggleState();
+        }
       });
 
       window.addEventListener('scroll', updateHeaderState, { passive: true });
