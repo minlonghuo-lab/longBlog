@@ -67,6 +67,17 @@ function isActive(href: string) {
     box-shadow: 0 6px 18px rgba(15, 15, 20, 0.04);
   }
 
+  :global(html[data-theme='dark']) body.scrolled .site-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    background: linear-gradient(
+      to bottom,
+      rgba(17, 20, 30, 0.8) 0%,
+      rgba(17, 20, 30, 0.72) 52%,
+      rgba(17, 20, 30, 0.64) 100%
+    );
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  }
+
   .site-header::before {
     content: '';
     position: absolute;
@@ -107,8 +118,27 @@ function isActive(href: string) {
     right: 16%;
   }
 
+  :global(html[data-theme='dark']) body.scrolled .site-header::before {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.16) 22%,
+      rgba(255, 255, 255, 0.06) 50%,
+      transparent 100%
+    );
+  }
+
   body.scrolled .site-header::after {
     opacity: 1;
+  }
+
+  :global(html[data-theme='dark']) body.scrolled .site-header::after {
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.02) 42%,
+      rgba(255, 255, 255, 0) 100%
+    );
   }
 
   .site-header-spacer {

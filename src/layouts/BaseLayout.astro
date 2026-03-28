@@ -31,11 +31,26 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
   <link rel="icon" href="/favicon.ico" />
   <link rel="preconnect" href={MEMOS_URL} crossorigin />
 
+  <script is:inline>
+    (() => {
+      const storageKey = 'LONG_BLOG_THEME';
+      const root = document.documentElement;
+      const media = window.matchMedia('(prefers-color-scheme: dark)');
+      const saved = localStorage.getItem(storageKey);
+      const theme = saved === 'light' || saved === 'dark'
+        ? saved
+        : (media.matches ? 'dark' : 'light');
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+    })();
+  </script>
+
   <script defer src="https://cloud.umami.is/script.js" data-website-id="a6048160-1a40-41bb-93e5-361c47a998b3"></script>
 
   <title>{pageTitle}</title>
 </head>
 <body>
+  <div id="theme-transition" class="theme-transition" aria-hidden="true"></div>
   <Header />
   <main class="page-main" id="page-main">
     <slot />
@@ -48,24 +63,88 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
       const main = document.getElementById('page-main');
       if (!main) return;
 
-      const updateHeaderState = () => {
-        if (window.scrollY > 20) {
-          document.body.classList.add('scrolled');
-        } else {
-          document.body.classList.remove('scrolled');
-        }
+      const storageKey = 'LONG_BLOG_THEME';
+      const root = document.documentElement;
+      const themeTransition = document.getElementById('theme-transition');
+      const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+
+      const getStoredTheme = () => {
+        const value = localStorage.getItem(storageKey);
+        return value === 'light' || value === 'dark' ? value : null;
       };
 
-      requestAnimationFrame(() => {
-        document.body.classList.add('page-ready');
-        updateHeaderState();
-      });
+      const getPreferredTheme = () => getStoredTheme() || (themeMedia.matches ? 'dark' : 'light');
 
-      window.addEventListener('scroll', updateHeaderState, { passive: true });
+      const applyTheme = (theme) => {
+        root.dataset.theme = theme;
+        root.style.colorScheme = theme;
+      };
+
+      applyTheme(getPreferredTheme());
+
+      const animateThemeTransition = (theme, sourceEl) => {
+        if (!(themeTransition instanceof HTMLElement) || !(sourceEl instanceof HTMLElement) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          applyTheme(theme);
+          return;
+        }
+
+        const rect = sourceEl.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const maxRadius = Math.hypot(
+          Math.max(centerX, window.innerWidth - centerX),
+          Math.max(centerY, window.innerHeight - centerY)
+        );
+
+        themeTransition.style.setProperty('--theme-origin-x', `${centerX}px`);
+        themeTransition.style.setProperty('--theme-origin-y', `${centerY}px`);
+        themeTransition.style.setProperty('--theme-target-scale', String(maxRadius / 24));
+        themeTransition.classList.remove('is-active', 'to-dark', 'to-light');
+        void themeTransition.offsetWidth;
+        themeTransition.classList.add(theme === 'dark' ? 'to-dark' : 'to-light', 'is-active');
+
+        requestAnimationFrame(() => {
+          applyTheme(theme);
+        });
+
+        window.setTimeout(() => {
+          themeTransition.classList.remove('is-active', 'to-dark', 'to-light');
+        }, 720);
+      };
+
+      const updateThemeToggleState = () => {
+        const theme = root.dataset.theme || getPreferredTheme();
+        document.querySelectorAll('#theme-toggle').forEach((button) => {
+          if (!(button instanceof HTMLButtonElement)) return;
+          const isDark = theme === 'dark';
+          button.setAttribute('aria-pressed', String(isDark));
+          button.setAttribute('aria-label', isDark ? '切换到浅色模式' : '切换到深色模式');
+          button.title = isDark ? '切换到浅色模式' : '切换到深色模式';
+        });
+      };
+
+      updateThemeToggleState();
+
+      themeMedia.addEventListener('change', (event) => {
+        if (getStoredTheme()) return;
+        applyTheme(event.matches ? 'dark' : 'light');
+        updateThemeToggleState();
+      });
 
       document.addEventListener('click', async (event) => {
         const target = event.target;
         if (!(target instanceof Element)) return;
+
+        const themeButton = target.closest('#theme-toggle');
+        if (themeButton instanceof HTMLButtonElement) {
+          event.preventDefault();
+          const current = root.dataset.theme || getPreferredTheme();
+          const next = current === 'dark' ? 'light' : 'dark';
+          localStorage.setItem(storageKey, next);
+          animateThemeTransition(next, themeButton);
+          updateThemeToggleState();
+          return;
+        }
 
         const anchor = target.closest('a');
         if (!anchor) return;
@@ -109,6 +188,22 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
 
         window.location.href = url.href;
       });
+
+      const updateHeaderState = () => {
+        if (window.scrollY > 20) {
+          document.body.classList.add('scrolled');
+        } else {
+          document.body.classList.remove('scrolled');
+        }
+      };
+
+      requestAnimationFrame(() => {
+        document.body.classList.add('page-ready');
+        updateHeaderState();
+        updateThemeToggleState();
+      });
+
+      window.addEventListener('scroll', updateHeaderState, { passive: true });
     })();
   </script>
 </body>

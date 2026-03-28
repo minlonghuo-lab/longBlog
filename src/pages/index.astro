@@ -34,6 +34,22 @@ const socialIcons = {
           <img src={socialIcons[link.platform as keyof typeof socialIcons]} alt="" aria-hidden="true" />
         </a>
       ))}
+
+      <button
+        id="theme-toggle"
+        class="theme-toggle"
+        type="button"
+        aria-label="切换深色 / 浅色模式"
+        title="切换深色 / 浅色模式"
+      >
+        <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+          <path d="M12 2.75v2.1M12 19.15v2.1M21.25 12h-2.1M4.85 12h-2.1M18.54 5.46l-1.49 1.49M6.95 17.05l-1.49 1.49M18.54 18.54l-1.49-1.49M6.95 6.95 5.46 5.46" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+        <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20.2 14.35A7.95 7.95 0 0 1 9.65 3.8a8.6 8.6 0 1 0 10.55 10.55Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+        </svg>
+      </button>
     </div>
   </section>
 
@@ -91,7 +107,8 @@ const socialIcons = {
     flex-wrap: wrap;
   }
 
-  .hero-social a {
+  .hero-social a,
+  .theme-toggle {
     width: 2.1rem;
     height: 2.1rem;
     display: inline-flex;
@@ -100,10 +117,12 @@ const socialIcons = {
     border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
     border-radius: 999px;
     color: var(--muted-foreground);
-    transition: color var(--transition-base), border-color var(--transition-base), transform var(--transition-base), background-color var(--transition-base);
+    background: transparent;
+    transition: color var(--transition-base), border-color var(--transition-base), transform var(--transition-base), background-color var(--transition-base), box-shadow var(--transition-base);
   }
 
-  .hero-social a:hover {
+  .hero-social a:hover,
+  .theme-toggle:hover {
     color: var(--foreground);
     border-color: color-mix(in oklab, var(--foreground) 16%, transparent);
     background: color-mix(in oklab, var(--muted) 82%, white);
@@ -114,6 +133,56 @@ const socialIcons = {
     width: 1rem;
     height: 1rem;
     display: block;
+  }
+
+  .theme-toggle {
+    position: relative;
+    cursor: pointer;
+    padding: 0;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .theme-toggle:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--foreground) 10%, transparent);
+  }
+
+  .theme-icon {
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    transition: opacity 0.28s ease, transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .theme-icon-sun {
+    opacity: 0;
+    transform: scale(0.72) rotate(-36deg);
+  }
+
+  .theme-icon-moon {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+
+  :global(html[data-theme='light']) .theme-icon-sun {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+
+  :global(html[data-theme='light']) .theme-icon-moon {
+    opacity: 0;
+    transform: scale(0.72) rotate(28deg);
+  }
+
+  :global(html[data-theme='dark']) .theme-icon-sun {
+    opacity: 0;
+    transform: scale(0.72) rotate(-36deg);
+  }
+
+  :global(html[data-theme='dark']) .theme-icon-moon {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
   }
 
   .posts-section {
