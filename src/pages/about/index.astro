@@ -1,0 +1,696 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE_HISTORY_IMAGE_URL, TRILIUM_BASE_URL, TRILIUM_TREE_API_URL } from '../../consts';
+
+const treeApiUrl = TRILIUM_TREE_API_URL || '';
+const siteHistoryImageUrl = SITE_HISTORY_IMAGE_URL || '';
+const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
+---
+
+<BaseLayout title="关于" description="关于本站、知识体系与建站历史">
+  <header class="page-header about-header">
+    <div class="eyebrow">ABOUT</div>
+    <h1>关于</h1>
+    <p>这里放一些与站点本身有关的内容：一个是来自 TriliumNext 的知识地图，一个是记录折腾过程的建站历史。</p>
+  </header>
+
+  <section class="about-grid">
+    <section class="about-card knowledge-card">
+      <div class="card-head">
+        <div>
+          <div class="card-kicker">Knowledge Map</div>
+          <h2>笔记树形地图</h2>
+        </div>
+        <a href={triliumBaseUrl} target="_blank" rel="noopener noreferrer" class="card-link">打开 Trilium ↗</a>
+      </div>
+
+      <p class="card-intro">
+        动态展示 TriliumNext 笔记树结构，支持展开、收起和跳转。部署时建议通过服务端代理接口提供数据，避免将 ETAPI Token 暴露到前端。
+      </p>
+
+      <div class="tree-toolbar">
+        <div class="tree-toolbar-info">
+          <span class="dot"></span>
+          <span id="tree-status">准备加载知识地图…</span>
+        </div>
+        <div class="tree-toolbar-actions">
+          <button id="tree-expand-all" type="button">展开全部</button>
+          <button id="tree-collapse-all" type="button">收起全部</button>
+        </div>
+      </div>
+
+      <div class="tree-shell">
+        <div id="knowledge-tree-empty" class="placeholder" style="display:none;">
+          <strong>还没有配置知识地图接口</strong>
+          <p>请在部署环境中设置 <code>PUBLIC_TRILIUM_TREE_API_URL</code>，值建议指向你自己的服务端代理接口。</p>
+        </div>
+        <div id="knowledge-tree-error" class="placeholder" style="display:none;">
+          <strong>知识地图加载失败</strong>
+          <p>请检查代理接口是否可访问、返回格式是否正确，或确认 Trilium 端服务状态。</p>
+        </div>
+        <div id="knowledge-tree-loading" class="placeholder is-loading">
+          <strong>正在连接知识地图…</strong>
+          <p>首次加载可能会稍慢一点点。</p>
+        </div>
+        <div id="knowledge-tree" class="knowledge-tree" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="about-card history-card">
+      <div class="card-head">
+        <div>
+          <div class="card-kicker">Site History</div>
+          <h2>建站历史</h2>
+        </div>
+        {siteHistoryImageUrl ? (
+          <a href={siteHistoryImageUrl} target="_blank" rel="noopener noreferrer" class="card-link">查看原图 ↗</a>
+        ) : (
+          <span class="card-link disabled">等待配置</span>
+        )}
+      </div>
+
+      <p class="card-intro">
+        这里用于展示站点演进、迭代记录、版本截图或阶段性成果。你只需要在环境变量中填入建站历史图片外链，我会在这里以大图卡片的形式展示。
+      </p>
+
+      {siteHistoryImageUrl ? (
+        <a href={siteHistoryImageUrl} target="_blank" rel="noopener noreferrer" class="history-image-link" aria-label="查看建站历史原图">
+          <figure class="history-image-wrap">
+            <img
+              src={siteHistoryImageUrl}
+              alt="建站历史时间线图片"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+              class="history-image"
+            />
+            <figcaption class="history-caption">点击可查看原图，适合放时间线、版本演进图、阶段截图拼图等内容。</figcaption>
+          </figure>
+        </a>
+      ) : (
+        <div class="placeholder history-placeholder">
+          <strong>还没有配置建站历史图片</strong>
+          <p>请在部署环境中设置 <code>PUBLIC_SITE_HISTORY_IMAGE_URL</code>，例如你图床中的时间线长图地址。</p>
+        </div>
+      )}
+    </section>
+  </section>
+</BaseLayout>
+
+<script define:vars={{ treeApiUrl, triliumBaseUrl }}>
+  (() => {
+    const apiUrl = String(treeApiUrl || '').trim();
+    const shell = document.getElementById('knowledge-tree');
+    const loading = document.getElementById('knowledge-tree-loading');
+    const empty = document.getElementById('knowledge-tree-empty');
+    const error = document.getElementById('knowledge-tree-error');
+    const status = document.getElementById('tree-status');
+    const expandAllBtn = document.getElementById('tree-expand-all');
+    const collapseAllBtn = document.getElementById('tree-collapse-all');
+
+    if (!(shell instanceof HTMLElement)) return;
+
+    const nodeStore = new Map();
+    const rootHint = '_hidden';
+
+    const setStatus = (text) => {
+      if (status) status.textContent = text;
+    };
+
+    const show = (el, visible) => {
+      if (el instanceof HTMLElement) el.style.display = visible ? '' : 'none';
+    };
+
+    const escapeHtml = (value) => String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+
+    const createUrl = (noteId) => {
+      const url = new URL(apiUrl);
+      url.searchParams.set('rootNoteId', noteId);
+      return url.toString();
+    };
+
+    const normalizeNode = (node, depth = 0) => {
+      if (!node || typeof node !== 'object') return null;
+      const noteId = String(node.noteId || node.id || node.note_id || '');
+      const title = String(node.title || node.name || node.noteTitle || noteId || '未命名笔记');
+      const path = String(node.path || `/${title}`);
+      const href = String(node.href || (noteId ? `${triliumBaseUrl}/#root/${noteId}` : triliumBaseUrl));
+      const childCount = Number(node.childCount || 0);
+      const hasChildren = Boolean(node.hasChildren || childCount > 0);
+      const loaded = Boolean(node.loaded);
+      const prefix = node.prefix ? String(node.prefix) : '';
+      const childrenRaw = Array.isArray(node.children) ? node.children : [];
+      const children = childrenRaw.map((child) => normalizeNode(child, depth + 1)).filter(Boolean);
+
+      return {
+        noteId,
+        title,
+        path,
+        href,
+        childCount,
+        hasChildren,
+        loaded,
+        prefix,
+        depth,
+        children,
+      };
+    };
+
+    const saveNode = (node) => {
+      nodeStore.set(node.noteId, node);
+      for (const child of node.children || []) saveNode(child);
+    };
+
+    const renderNode = (node) => {
+      saveNode(node);
+
+      const item = document.createElement('div');
+      item.className = 'tree-node';
+      item.style.setProperty('--tree-depth', String(node.depth));
+      item.dataset.depth = String(node.depth);
+      item.dataset.noteId = node.noteId;
+
+      const row = document.createElement('div');
+      row.className = 'tree-row';
+
+      if (node.hasChildren) {
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'tree-toggle';
+        toggle.dataset.noteId = node.noteId;
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', `展开 ${node.title}`);
+        toggle.textContent = '▸';
+        row.appendChild(toggle);
+      } else {
+        const spacer = document.createElement('span');
+        spacer.className = 'tree-spacer';
+        spacer.setAttribute('aria-hidden', 'true');
+        spacer.textContent = '•';
+        row.appendChild(spacer);
+      }
+
+      const link = document.createElement('a');
+      link.className = 'tree-link';
+      link.href = node.href;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.innerHTML = `<span class="tree-title">${node.prefix ? `${escapeHtml(node.prefix)} · ` : ''}${escapeHtml(node.title)}</span>${node.path ? `<span class="tree-path">${escapeHtml(node.path)}</span>` : ''}${node.hasChildren ? `<span class="tree-meta">${node.childCount} 个子节点</span>` : ''}`;
+      row.appendChild(link);
+      item.appendChild(row);
+
+      if (node.hasChildren) {
+        const childrenEl = document.createElement('div');
+        childrenEl.className = 'tree-children';
+        childrenEl.hidden = true;
+
+        if (node.loaded && node.children.length) {
+          node.children.forEach((child) => childrenEl.appendChild(renderNode(child)));
+        }
+
+        item.appendChild(childrenEl);
+      }
+
+      return item;
+    };
+
+    const setExpanded = (nodeEl, expanded) => {
+      const toggle = nodeEl.querySelector(':scope > .tree-row > .tree-toggle');
+      const children = nodeEl.querySelector(':scope > .tree-children');
+      if (!(toggle instanceof HTMLButtonElement) || !(children instanceof HTMLElement)) return;
+      toggle.setAttribute('aria-expanded', String(expanded));
+      toggle.setAttribute('aria-label', `${expanded ? '收起' : '展开'} ${nodeEl.querySelector(':scope > .tree-row .tree-title')?.textContent || '节点'}`);
+      toggle.textContent = expanded ? '▾' : '▸';
+      children.hidden = !expanded;
+      nodeEl.classList.toggle('is-open', expanded);
+    };
+
+    const loadChildren = async (noteId, depth) => {
+      const res = await fetch(createUrl(noteId), { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const normalized = normalizeNode(data?.root, depth);
+      if (!normalized) throw new Error('Invalid node response');
+      return normalized;
+    };
+
+    shell.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const button = target.closest('.tree-toggle');
+      if (!(button instanceof HTMLButtonElement)) return;
+      const nodeEl = button.closest('.tree-node');
+      if (!(nodeEl instanceof HTMLElement)) return;
+      const noteId = nodeEl.dataset.noteId;
+      if (!noteId) return;
+
+      const expanded = button.getAttribute('aria-expanded') === 'true';
+      const childrenEl = nodeEl.querySelector(':scope > .tree-children');
+      if (!(childrenEl instanceof HTMLElement)) return;
+
+      if (expanded) {
+        setExpanded(nodeEl, false);
+        return;
+      }
+
+      const currentNode = nodeStore.get(noteId);
+      if (currentNode?.loaded) {
+        setExpanded(nodeEl, true);
+        return;
+      }
+
+      button.disabled = true;
+      nodeEl.classList.add('is-loading');
+      setStatus(`正在加载「${currentNode?.title || noteId}」…`);
+
+      try {
+        const depth = Number(nodeEl.dataset.depth || '0');
+        const loadedNode = await loadChildren(noteId, depth);
+        currentNode.loaded = true;
+        currentNode.children = (loadedNode.children || []).map((child) => ({ ...child, depth: depth + 1 }));
+        currentNode.childCount = loadedNode.childCount;
+        currentNode.hasChildren = loadedNode.hasChildren;
+        saveNode(currentNode);
+
+        childrenEl.innerHTML = '';
+        currentNode.children.forEach((child) => childrenEl.appendChild(renderNode(child)));
+        setExpanded(nodeEl, true);
+        setStatus(`已展开「${currentNode.title}」`);
+      } catch (err) {
+        console.error('[about] lazy tree load failed', err);
+        setStatus('子节点加载失败，请稍后重试');
+      } finally {
+        button.disabled = false;
+        nodeEl.classList.remove('is-loading');
+      }
+    });
+
+    expandAllBtn?.addEventListener('click', () => {
+      shell.querySelectorAll('.tree-node').forEach((nodeEl) => setExpanded(nodeEl, true));
+      setStatus('已展开当前已加载节点');
+    });
+
+    collapseAllBtn?.addEventListener('click', () => {
+      shell.querySelectorAll('.tree-node').forEach((nodeEl) => setExpanded(nodeEl, false));
+      setStatus('已收起全部节点');
+    });
+
+    const renderTree = (data) => {
+      const root = normalizeNode(data?.root, 0);
+      shell.innerHTML = '';
+
+      if (!root) {
+        show(loading, false);
+        show(error, true);
+        setStatus('知识地图暂无可展示内容');
+        return;
+      }
+
+      shell.appendChild(renderNode(root));
+      show(loading, false);
+      setStatus(`知识地图已加载根节点：${root.title}`);
+    };
+
+    if (!apiUrl) {
+      show(loading, false);
+      show(empty, true);
+      setStatus('等待配置知识地图接口');
+      return;
+    }
+
+    fetch(createUrl(rootHint), { headers: { Accept: 'application/json' } })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        show(empty, false);
+        show(error, false);
+        renderTree(data);
+      })
+      .catch((err) => {
+        console.error('[about] knowledge tree load failed', err);
+        show(loading, false);
+        show(error, true);
+        setStatus('知识地图加载失败');
+      });
+  })();
+</script>
+
+<style>
+  .about-header {
+    padding-bottom: 2rem;
+  }
+
+  .eyebrow {
+    margin-bottom: 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.24em;
+    color: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+  }
+
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.4rem;
+  }
+
+  @media (min-width: 1100px) {
+    .about-grid {
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      align-items: start;
+    }
+  }
+
+  .about-card {
+    position: relative;
+    padding: 1.3rem;
+    border: 1px solid color-mix(in oklab, var(--border) 78%, transparent);
+    border-radius: 1.35rem;
+    background: linear-gradient(180deg, color-mix(in oklab, white 94%, var(--muted) 6%), color-mix(in oklab, white 98%, var(--muted) 2%));
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+  }
+
+  :global(html[data-theme='dark']) .about-card {
+    background: linear-gradient(180deg, rgba(24, 29, 41, 0.96), rgba(18, 23, 34, 0.94));
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 22px 54px rgba(0, 0, 0, 0.18);
+  }
+
+  .card-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .card-head {
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+  }
+
+  .card-kicker {
+    margin-bottom: 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.18em;
+    color: color-mix(in oklab, var(--muted-foreground) 58%, transparent);
+    text-transform: uppercase;
+  }
+
+  .card-head h2 {
+    margin: 0;
+    font-size: 1.35rem;
+  }
+
+  .card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--muted-foreground);
+    transition: color var(--transition-base);
+    white-space: nowrap;
+  }
+
+  .card-link:hover {
+    color: var(--foreground);
+  }
+
+  .card-link.disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .card-intro {
+    margin: 0 0 1rem;
+    color: var(--muted-foreground);
+    line-height: 1.8;
+  }
+
+  .tree-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.85rem 0.95rem;
+    border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in oklab, var(--muted) 82%, white);
+  }
+
+  :global(html[data-theme='dark']) .tree-toolbar {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  @media (min-width: 640px) {
+    .tree-toolbar {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  .tree-toolbar-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--muted-foreground);
+    font-size: 0.92rem;
+  }
+
+  .dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #2dd4bf, #60a5fa);
+    box-shadow: 0 0 0 5px color-mix(in oklab, #60a5fa 14%, transparent);
+    flex-shrink: 0;
+  }
+
+  .tree-toolbar-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .tree-toolbar-actions button {
+    border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--foreground);
+    padding: 0.45rem 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    transition: background-color var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
+  }
+
+  .tree-toolbar-actions button:hover {
+    transform: translateY(-1px);
+    background: color-mix(in oklab, var(--muted) 76%, white);
+    border-color: color-mix(in oklab, var(--foreground) 14%, transparent);
+  }
+
+  .tree-shell {
+    position: relative;
+    min-height: 26rem;
+    padding: 1rem;
+    border-radius: 1.15rem;
+    border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+    background:
+      radial-gradient(circle at top right, color-mix(in oklab, #93c5fd 14%, transparent), transparent 34%),
+      linear-gradient(180deg, color-mix(in oklab, white 98%, var(--muted) 2%), color-mix(in oklab, var(--muted) 78%, white));
+  }
+
+  :global(html[data-theme='dark']) .tree-shell {
+    border-color: rgba(255, 255, 255, 0.08);
+    background:
+      radial-gradient(circle at top right, rgba(96, 165, 250, 0.12), transparent 34%),
+      linear-gradient(180deg, rgba(16, 20, 30, 0.98), rgba(20, 24, 34, 0.95));
+  }
+
+  .placeholder {
+    display: grid;
+    place-items: center;
+    min-height: 22rem;
+    text-align: center;
+    color: var(--muted-foreground);
+    padding: 1rem;
+  }
+
+  .placeholder strong {
+    display: block;
+    margin-bottom: 0.65rem;
+    color: var(--foreground);
+    font-family: var(--font-serif);
+    font-size: 1.08rem;
+  }
+
+  .placeholder p {
+    max-width: 30rem;
+    margin: 0;
+    line-height: 1.8;
+  }
+
+  .placeholder code {
+    padding: 0.15rem 0.38rem;
+    border-radius: 0.45rem;
+    background: color-mix(in oklab, var(--muted) 78%, white);
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+  }
+
+  .knowledge-tree {
+    display: grid;
+    gap: 0.28rem;
+  }
+
+  .tree-node {
+    display: grid;
+    gap: 0.24rem;
+  }
+
+  .tree-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    min-width: 0;
+    padding-left: calc(var(--tree-depth, 0) * 1rem);
+  }
+
+  .tree-toggle,
+  .tree-spacer {
+    width: 1.1rem;
+    margin-top: 0.16rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-foreground);
+    flex-shrink: 0;
+  }
+
+  .tree-toggle {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    transition: color var(--transition-base), transform var(--transition-base);
+  }
+
+  .tree-toggle:hover {
+    color: var(--foreground);
+  }
+
+  .tree-toggle:disabled {
+    opacity: 0.55;
+    cursor: wait;
+  }
+
+  .tree-node.is-loading > .tree-row .tree-link {
+    opacity: 0.7;
+  }
+
+  .tree-link {
+    min-width: 0;
+    flex: 1;
+    display: grid;
+    gap: 0.08rem;
+    padding: 0.42rem 0.65rem;
+    border-radius: 0.8rem;
+    transition: background-color var(--transition-base), transform var(--transition-base), opacity var(--transition-base);
+  }
+
+  .tree-link:hover {
+    background: color-mix(in oklab, var(--muted) 80%, white);
+    transform: translateX(2px);
+  }
+
+  :global(html[data-theme='dark']) .tree-link:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .tree-title {
+    display: block;
+    font-size: 0.96rem;
+    color: var(--foreground);
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .tree-path {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: color-mix(in oklab, var(--muted-foreground) 78%, transparent);
+    word-break: break-all;
+  }
+
+  .tree-meta {
+    display: block;
+    font-size: 0.72rem;
+    color: color-mix(in oklab, var(--muted-foreground) 68%, transparent);
+  }
+
+  .tree-children {
+    display: grid;
+    gap: 0.18rem;
+  }
+
+  .history-image-link {
+    display: block;
+  }
+
+  .history-image-wrap {
+    margin: 0;
+    border-radius: 1.15rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in oklab, var(--border) 78%, transparent);
+    background: color-mix(in oklab, var(--muted) 84%, white);
+    transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+  }
+
+  .history-image-link:hover .history-image-wrap {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+    border-color: color-mix(in oklab, var(--foreground) 12%, transparent);
+  }
+
+  :global(html[data-theme='dark']) .history-image-wrap {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .history-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 58rem;
+    object-fit: contain;
+    background: color-mix(in oklab, var(--muted) 90%, white);
+  }
+
+  .history-caption {
+    padding: 0.9rem 1rem 1rem;
+    color: var(--muted-foreground);
+    font-size: 0.9rem;
+    line-height: 1.7;
+    border-top: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+  }
+
+  .history-placeholder {
+    min-height: 28rem;
+    border: 1px dashed color-mix(in oklab, var(--border) 85%, transparent);
+    border-radius: 1.15rem;
+  }
+</style>

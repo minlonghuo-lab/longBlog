@@ -20,10 +20,16 @@ export const SOCIAL_LINKS = [
 export const CONTACT_EMAIL = emailAddress;
 export const MEMOS_URL = (env.MEMOS_URL || 'https://memos.ssaw.top').replace(/\/$/, '');
 
+// About page / embeds
+export const TRILIUM_BASE_URL = (env.PUBLIC_TRILIUM_BASE_URL || env.TRILIUM_BASE_URL || 'https://blog.ssaw.top').replace(/\/$/, '');
+export const TRILIUM_TREE_API_URL = (env.PUBLIC_TRILIUM_TREE_API_URL || '').trim();
+export const SITE_HISTORY_IMAGE_URL = (env.PUBLIC_SITE_HISTORY_IMAGE_URL || '').trim();
+
 // Navigation
 export const NAV_ITEMS = [
   { name: '主页', href: '/' },
   { name: '文章', href: '/blog' },
   { name: '说说', href: '/shuoshuo' },
   { name: '友链', href: '/friends' },
+  { name: '关于', href: '/about' },
 ];
