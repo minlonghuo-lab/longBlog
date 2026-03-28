@@ -199,19 +199,22 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     };
 
     const expandDefaultPath = async () => {
-      const blogNode = Array.from(nodeStore.values()).find((node) => node.title === '我的博客');
-      if (!blogNode) return;
-      setStatus('正在展开「我的博客」…');
-      await expandNode(blogNode.noteId);
+      const rootChildren = Array.from(nodeStore.values()).filter((node) => node.parentId === 'root');
+      const blogNode = rootChildren.find((node) => node.title === '我的博客');
+      const siteHistoryNode = rootChildren.find((node) => node.title === '建站历史');
 
-      const siteHistoryNode = Array.from(nodeStore.values()).find((node) => node.title === '建站历史' && node.parentId === blogNode.noteId);
+      if (blogNode) {
+        setStatus('正在展开「我的博客」…');
+        await expandNode(blogNode.noteId);
+      }
+
       if (siteHistoryNode) {
         setStatus('正在展开「建站历史」…');
         await expandNode(siteHistoryNode.noteId);
       }
 
       network.fit({ animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
-      setStatus('已为你展开「我的博客 / 建站历史」，并适配当前视图。');
+      setStatus('已为你展开 root 下的「我的博客 / 建站历史」，并适配当前视图。');
     };
 
     const renderGraph = async (data) => {
