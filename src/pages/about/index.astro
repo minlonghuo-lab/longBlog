@@ -474,6 +474,39 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     border-color: color-mix(in oklab, var(--foreground) 12%, transparent);
   }
 
+  .placeholder {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    color: var(--muted-foreground);
+    padding: 1.5rem;
+    z-index: 2;
+  }
+
+  .placeholder strong {
+    display: block;
+    margin-bottom: 0.65rem;
+    color: var(--foreground);
+    font-family: var(--font-serif);
+    font-size: 1.08rem;
+  }
+
+  .placeholder p {
+    max-width: 30rem;
+    margin: 0;
+    line-height: 1.8;
+  }
+
+  .placeholder code {
+    padding: 0.15rem 0.38rem;
+    border-radius: 0.45rem;
+    background: color-mix(in oklab, var(--muted) 78%, white);
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+  }
+
   .graph-shell {
     position: relative;
     min-height: 36rem;
