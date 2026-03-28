@@ -1,9 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { SITE_HISTORY_IMAGE_URL, TRILIUM_BASE_URL, TRILIUM_TREE_API_URL } from '../../consts';
+import { TRILIUM_BASE_URL, TRILIUM_TREE_API_URL } from '../../consts';
 
 const treeApiUrl = TRILIUM_TREE_API_URL || '';
-const siteHistoryImageUrl = SITE_HISTORY_IMAGE_URL || '';
 const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
 ---
 
@@ -11,11 +10,11 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
   <header class="page-header about-header">
     <div class="eyebrow">ABOUT</div>
     <h1>关于</h1>
-    <p>这里放一些与站点本身有关的内容：一个是来自 TriliumNext 的知识地图，一个是记录折腾过程的建站历史。</p>
+    <p>这里展示的是我的知识结构与建站脉络：以 Trilium 中 <code>root</code> 下的可见笔记为基础，把日记、学习笔记、博客内容等汇总成一张可交互知识地图。</p>
   </header>
 
-  <section class="about-grid">
-    <section class="about-card knowledge-card">
+  <section class="about-single">
+    <section class="about-paper knowledge-card">
       <div class="card-head">
         <div>
           <div class="card-kicker">Knowledge Map</div>
@@ -25,7 +24,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       </div>
 
       <p class="card-intro">
-        展示 Trilium 中 <code>root</code> 下的可见笔记结构，并以可拖动、可缩放、可交互的图谱形式呈现。点击节点可展开下一层，双击节点可跳转到 Trilium 对应笔记。
+        这张地图展示的是 Trilium 中 <code>root</code> 下所有可见笔记，而不是系统隐藏节点。建站历史也被纳入知识地图本身，你可以把它理解成博客内容、知识沉淀与个人演进过程的一张总览图。支持拖动画布、滚轮缩放、点击节点展开下一层，双击节点可直接跳转到对应笔记。
       </p>
 
       <div class="tree-toolbar">
@@ -54,44 +53,6 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         </div>
         <div id="knowledge-graph" class="knowledge-graph" aria-label="Trilium 知识地图交互图" data-api-url={treeApiUrl} data-trilium-base-url={triliumBaseUrl}></div>
       </div>
-    </section>
-
-    <section class="about-card history-card">
-      <div class="card-head">
-        <div>
-          <div class="card-kicker">Site History</div>
-          <h2>建站历史</h2>
-        </div>
-        {siteHistoryImageUrl ? (
-          <a href={siteHistoryImageUrl} target="_blank" rel="noopener noreferrer" class="card-link">查看原图 ↗</a>
-        ) : (
-          <span class="card-link disabled">等待配置</span>
-        )}
-      </div>
-
-      <p class="card-intro">
-        这里用于展示站点演进、迭代记录、版本截图或阶段性成果。你只需要在环境变量中填入建站历史图片外链，我会在这里以大图卡片的形式展示。
-      </p>
-
-      {siteHistoryImageUrl ? (
-        <a href={siteHistoryImageUrl} target="_blank" rel="noopener noreferrer" class="history-image-link" aria-label="查看建站历史原图">
-          <figure class="history-image-wrap">
-            <img
-              src={siteHistoryImageUrl}
-              alt="建站历史时间线图片"
-              loading="lazy"
-              referrerpolicy="no-referrer"
-              class="history-image"
-            />
-            <figcaption class="history-caption">点击可查看原图，适合放时间线、版本演进图、阶段截图拼图等内容。</figcaption>
-          </figure>
-        </a>
-      ) : (
-        <div class="placeholder history-placeholder">
-          <strong>还没有配置建站历史图片</strong>
-          <p>请在部署环境中设置 <code>PUBLIC_SITE_HISTORY_IMAGE_URL</code>，例如你图床中的时间线长图地址。</p>
-        </div>
-      )}
     </section>
   </section>
 </BaseLayout>
@@ -352,159 +313,66 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     color: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
   }
 
-  .about-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.4rem;
-  }
-
-  @media (min-width: 1100px) {
-    .about-grid {
-      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-      align-items: start;
-    }
-  }
-
-  .about-card {
-    position: relative;
-    padding: 1.3rem;
-    border: 1px solid color-mix(in oklab, var(--border) 78%, transparent);
-    border-radius: 1.35rem;
-    background: linear-gradient(180deg, color-mix(in oklab, white 94%, var(--muted) 6%), color-mix(in oklab, white 98%, var(--muted) 2%));
-    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.04);
-    overflow: hidden;
-  }
-
-  :global(html[data-theme='dark']) .about-card {
-    background: linear-gradient(180deg, rgba(24, 29, 41, 0.96), rgba(18, 23, 34, 0.94));
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 22px 54px rgba(0, 0, 0, 0.18);
-  }
-
-  .card-head {
+  .about-single {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    justify-content: center;
   }
 
-  @media (min-width: 640px) {
-    .card-head {
-      flex-direction: row;
-      align-items: flex-start;
-      justify-content: space-between;
-    }
+  .about-paper {
+    position: relative;
+    width: min(66rem, calc(100vw - (2 * clamp(1.25rem, 7vw, 12rem))));
+    max-width: calc(100vw - 2rem);
+    margin: 0 auto;
+    padding: clamp(1.7rem, 3vw, 2.5rem) clamp(1.35rem, 2.8vw, 2.4rem) clamp(2.4rem, 4vw, 3.4rem);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,250,249,0.96)),
+      repeating-linear-gradient(180deg, rgba(17,17,17,0.02) 0, rgba(17,17,17,0.02) 1px, transparent 1px, transparent 28px);
+    border: 1px solid color-mix(in oklab, var(--border) 88%, white);
+    border-radius: 1.4rem;
+    box-shadow:
+      0 30px 80px rgba(15, 23, 42, 0.06),
+      0 8px 24px rgba(15, 23, 42, 0.04),
+      inset 0 1px 0 rgba(255,255,255,0.92);
   }
 
-  .card-kicker {
-    margin-bottom: 0.25rem;
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    letter-spacing: 0.18em;
-    color: color-mix(in oklab, var(--muted-foreground) 58%, transparent);
-    text-transform: uppercase;
+  .about-paper::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.65);
   }
 
-  .card-head h2 {
-    margin: 0;
-    font-size: 1.35rem;
+  :global(html[data-theme='dark']) .about-paper {
+    background:
+      linear-gradient(180deg, rgba(23, 28, 40, 0.96), rgba(19, 23, 34, 0.95)),
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.018) 0, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 28px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 28px 72px rgba(0, 0, 0, 0.34),
+      0 8px 24px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255,255,255,0.05);
   }
 
-  .card-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-family: var(--font-mono);
-    font-size: 0.76rem;
-    color: var(--muted-foreground);
-    transition: color var(--transition-base);
-    white-space: nowrap;
-  }
-
-  .card-link:hover {
-    color: var(--foreground);
-  }
-
-  .card-link.disabled {
-    opacity: 0.5;
-    cursor: default;
+  :global(html[data-theme='dark']) .about-paper::before {
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
   }
 
   .card-intro {
-    margin: 0 0 1rem;
+    margin: 0 0 1.2rem;
     color: var(--muted-foreground);
-    line-height: 1.8;
-  }
-
-  .tree-toolbar {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-    padding: 0.85rem 0.95rem;
-    border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
-    border-radius: 1rem;
-    background: color-mix(in oklab, var(--muted) 82%, white);
-  }
-
-  :global(html[data-theme='dark']) .tree-toolbar {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-
-  @media (min-width: 640px) {
-    .tree-toolbar {
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-    }
-  }
-
-  .tree-toolbar-info {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.55rem;
-    color: var(--muted-foreground);
-    font-size: 0.92rem;
-  }
-
-  .dot {
-    width: 0.55rem;
-    height: 0.55rem;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #2dd4bf, #60a5fa);
-    box-shadow: 0 0 0 5px color-mix(in oklab, #60a5fa 14%, transparent);
-    flex-shrink: 0;
-  }
-
-  .tree-toolbar-actions {
-    display: flex;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-  }
-
-  .tree-toolbar-actions button {
-    border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
-    border-radius: 999px;
-    background: transparent;
-    color: var(--foreground);
-    padding: 0.45rem 0.85rem;
-    font-family: var(--font-mono);
-    font-size: 0.74rem;
-    transition: background-color var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
-  }
-
-  .tree-toolbar-actions button:hover {
-    transform: translateY(-1px);
-    background: color-mix(in oklab, var(--muted) 76%, white);
-    border-color: color-mix(in oklab, var(--foreground) 14%, transparent);
+    line-height: 1.95;
+    font-size: 0.98rem;
   }
 
   .graph-shell {
     position: relative;
-    min-height: 30rem;
-    padding: 0.75rem;
-    border-radius: 1.15rem;
+    min-height: 36rem;
+    padding: 1rem;
+    border-radius: 1.2rem;
     border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
     background:
       radial-gradient(circle at top right, color-mix(in oklab, #93c5fd 14%, transparent), transparent 34%),
@@ -519,104 +387,36 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       linear-gradient(180deg, rgba(16, 20, 30, 0.98), rgba(20, 24, 34, 0.95));
   }
 
-  .placeholder {
-    display: grid;
-    place-items: center;
-    min-height: 22rem;
-    text-align: center;
-    color: var(--muted-foreground);
-    padding: 1rem;
-  }
-
-  .placeholder strong {
-    display: block;
-    margin-bottom: 0.65rem;
-    color: var(--foreground);
-    font-family: var(--font-serif);
-    font-size: 1.08rem;
-  }
-
-  .placeholder p {
-    max-width: 30rem;
-    margin: 0;
-    line-height: 1.8;
-  }
-
-  .placeholder code {
-    padding: 0.15rem 0.38rem;
-    border-radius: 0.45rem;
-    background: color-mix(in oklab, var(--muted) 78%, white);
-    font-family: var(--font-mono);
-    font-size: 0.8em;
-  }
-
   .knowledge-graph {
     display: none;
     width: 100%;
-    min-height: 28rem;
-    height: 62vh;
-    max-height: 46rem;
-    border-radius: 0.95rem;
+    min-height: 34rem;
+    height: 72vh;
+    max-height: 58rem;
+    border-radius: 1rem;
     background:
-      radial-gradient(circle at center, rgba(255,255,255,0.7), rgba(255,255,255,0.15));
+      radial-gradient(circle at center, rgba(255,255,255,0.76), rgba(255,255,255,0.16));
   }
 
   :global(html[data-theme='dark']) .knowledge-graph {
     background:
-      radial-gradient(circle at center, rgba(17, 24, 39, 0.72), rgba(17, 24, 39, 0.18));
+      radial-gradient(circle at center, rgba(17, 24, 39, 0.76), rgba(17, 24, 39, 0.2));
   }
 
   @media (max-width: 640px) {
-    .knowledge-graph {
-      height: 24rem;
-      min-height: 24rem;
+    .about-paper {
+      width: calc(100vw - 1rem);
+      padding: 1.15rem 0.95rem 1.35rem;
     }
-  }
 
-  .history-image-link {
-    display: block;
-  }
+    .graph-shell {
+      min-height: 28rem;
+      padding: 0.7rem;
+    }
 
-  .history-image-wrap {
-    margin: 0;
-    border-radius: 1.15rem;
-    overflow: hidden;
-    border: 1px solid color-mix(in oklab, var(--border) 78%, transparent);
-    background: color-mix(in oklab, var(--muted) 84%, white);
-    transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
-  }
-
-  .history-image-link:hover .history-image-wrap {
-    transform: translateY(-2px);
-    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
-    border-color: color-mix(in oklab, var(--foreground) 12%, transparent);
-  }
-
-  :global(html[data-theme='dark']) .history-image-wrap {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.03);
-  }
-
-  .history-image {
-    display: block;
-    width: 100%;
-    height: auto;
-    max-height: 58rem;
-    object-fit: contain;
-    background: color-mix(in oklab, var(--muted) 90%, white);
-  }
-
-  .history-caption {
-    padding: 0.9rem 1rem 1rem;
-    color: var(--muted-foreground);
-    font-size: 0.9rem;
-    line-height: 1.7;
-    border-top: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
-  }
-
-  .history-placeholder {
-    min-height: 28rem;
-    border: 1px dashed color-mix(in oklab, var(--border) 85%, transparent);
-    border-radius: 1.15rem;
+    .knowledge-graph {
+      height: 25rem;
+      min-height: 25rem;
+    }
   }
 </style>
