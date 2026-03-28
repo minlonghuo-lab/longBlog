@@ -52,7 +52,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
           <strong>正在连接知识地图…</strong>
           <p>首次加载可能会稍慢一点点。</p>
         </div>
-        <div id="knowledge-graph" class="knowledge-graph" aria-label="Trilium 知识地图交互图"></div>
+        <div id="knowledge-graph" class="knowledge-graph" aria-label="Trilium 知识地图交互图" data-api-url={treeApiUrl} data-trilium-base-url={triliumBaseUrl}></div>
       </div>
     </section>
 
@@ -96,8 +96,11 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
   </section>
 </BaseLayout>
 
-<script define:vars={{ treeApiUrl, triliumBaseUrl }}>
+<script type="module" src="../../scripts/about-graph.ts"></script>
+
+<script is:inline>
   (() => {
+    return;
     const apiUrl = String(treeApiUrl || '').trim();
     const graphEl = document.getElementById('knowledge-graph');
     const loading = document.getElementById('knowledge-tree-loading');
