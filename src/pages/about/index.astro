@@ -179,6 +179,41 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       return normalized;
     };
 
+    const expandNode = async (noteId) => {
+      const currentNode = nodeStore.get(String(noteId));
+      if (!currentNode?.hasChildren) return currentNode;
+      if (loadedNodes.has(String(noteId))) return currentNode;
+
+      const loaded = await loadChildren(String(noteId));
+      currentNode.loaded = true;
+      currentNode.children = loaded.children || [];
+      currentNode.childCount = loaded.childCount;
+      ingestNode(currentNode);
+      currentNode.children.forEach((child) => {
+        child.parentId = currentNode.noteId;
+        ingestNode(child);
+      });
+      loadedNodes.add(String(noteId));
+      network.stabilize(120);
+      return currentNode;
+    };
+
+    const expandDefaultPath = async () => {
+      const blogNode = Array.from(nodeStore.values()).find((node) => node.title === '我的博客');
+      if (!blogNode) return;
+      setStatus('正在展开「我的博客」…');
+      await expandNode(blogNode.noteId);
+
+      const siteHistoryNode = Array.from(nodeStore.values()).find((node) => node.title === '建站历史' && node.parentId === blogNode.noteId);
+      if (siteHistoryNode) {
+        setStatus('正在展开「建站历史」…');
+        await expandNode(siteHistoryNode.noteId);
+      }
+
+      network.fit({ animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+      setStatus('已为你展开「我的博客 / 建站历史」，并适配当前视图。');
+    };
+
     const renderGraph = async (data) => {
       const root = normalizeNode(data?.root, 0, '');
       if (!root) {
@@ -207,6 +242,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       });
       network.stabilize(180);
       setStatus('知识地图已加载：拖动画布、滚轮缩放，点击节点可继续展开。');
+      await expandDefaultPath();
     };
 
     network.on('click', async (params) => {
@@ -218,17 +254,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
 
       setStatus(`正在加载「${currentNode.title}」的子节点…`);
       try {
-        const loaded = await loadChildren(String(noteId));
-        currentNode.loaded = true;
-        currentNode.children = loaded.children || [];
-        currentNode.childCount = loaded.childCount;
-        ingestNode(currentNode);
-        currentNode.children.forEach((child) => {
-          child.parentId = currentNode.noteId;
-          ingestNode(child);
-        });
-        loadedNodes.add(String(noteId));
-        network.stabilize(120);
+        await expandNode(String(noteId));
         setStatus(`已展开「${currentNode.title}」，继续点击其它节点可向下浏览`);
       } catch (err) {
         console.error('[about] graph children load failed', err);
