@@ -34,12 +34,12 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
           <span id="tree-status">准备加载知识地图…</span>
         </div>
         <div class="tree-toolbar-actions">
-          <button id="tree-expand-all" type="button">展开全部</button>
-          <button id="tree-collapse-all" type="button">收起全部</button>
+          <button id="graph-fit" type="button">适配视图</button>
+          <button id="graph-reset" type="button">重新加载</button>
         </div>
       </div>
 
-      <div class="tree-shell">
+      <div class="graph-shell">
         <div id="knowledge-tree-empty" class="placeholder" style="display:none;">
           <strong>还没有配置知识地图接口</strong>
           <p>请在部署环境中设置 <code>PUBLIC_TRILIUM_TREE_API_URL</code>，值建议指向你自己的服务端代理接口。</p>
@@ -52,7 +52,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
           <strong>正在连接知识地图…</strong>
           <p>首次加载可能会稍慢一点点。</p>
         </div>
-        <div id="knowledge-tree" class="knowledge-tree" aria-live="polite"></div>
+        <div id="knowledge-graph" class="knowledge-graph" aria-label="Trilium 知识地图交互图"></div>
       </div>
     </section>
 
@@ -99,18 +99,22 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
 <script define:vars={{ treeApiUrl, triliumBaseUrl }}>
   (() => {
     const apiUrl = String(treeApiUrl || '').trim();
-    const shell = document.getElementById('knowledge-tree');
+    const graphEl = document.getElementById('knowledge-graph');
     const loading = document.getElementById('knowledge-tree-loading');
     const empty = document.getElementById('knowledge-tree-empty');
     const error = document.getElementById('knowledge-tree-error');
     const status = document.getElementById('tree-status');
-    const expandAllBtn = document.getElementById('tree-expand-all');
-    const collapseAllBtn = document.getElementById('tree-collapse-all');
+    const fitBtn = document.getElementById('graph-fit');
+    const resetBtn = document.getElementById('graph-reset');
 
-    if (!(shell instanceof HTMLElement)) return;
+    if (!(graphEl instanceof HTMLElement)) return;
 
-    const nodeStore = new Map();
     const rootHint = '_hidden';
+    const nodeStore = new Map();
+    const loadedNodes = new Set();
+    let network = null;
+    let nodes = null;
+    let edges = null;
 
     const setStatus = (text) => {
       if (status) status.textContent = text;
@@ -120,189 +124,192 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       if (el instanceof HTMLElement) el.style.display = visible ? '' : 'none';
     };
 
-    const escapeHtml = (value) => String(value)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-
     const createUrl = (noteId) => {
       const url = new URL(apiUrl);
       url.searchParams.set('rootNoteId', noteId);
       return url.toString();
     };
 
-    const normalizeNode = (node, depth = 0) => {
+    const normalizeNode = (node, depth = 0, parentId = '') => {
       if (!node || typeof node !== 'object') return null;
       const noteId = String(node.noteId || node.id || node.note_id || '');
       const title = String(node.title || node.name || node.noteTitle || noteId || '未命名笔记');
-      const path = String(node.path || `/${title}`);
       const href = String(node.href || (noteId ? `${triliumBaseUrl}/#root/${noteId}` : triliumBaseUrl));
+      const path = String(node.path || `/${title}`);
+      const type = String(node.type || 'text');
       const childCount = Number(node.childCount || 0);
       const hasChildren = Boolean(node.hasChildren || childCount > 0);
       const loaded = Boolean(node.loaded);
       const prefix = node.prefix ? String(node.prefix) : '';
       const childrenRaw = Array.isArray(node.children) ? node.children : [];
-      const children = childrenRaw.map((child) => normalizeNode(child, depth + 1)).filter(Boolean);
+      const children = childrenRaw.map((child) => normalizeNode(child, depth + 1, noteId)).filter(Boolean);
 
       return {
         noteId,
         title,
-        path,
         href,
+        path,
+        type,
         childCount,
         hasChildren,
         loaded,
         prefix,
         depth,
+        parentId,
         children,
       };
     };
 
-    const saveNode = (node) => {
+    const nodeColor = (node) => {
+      if (node.type === 'noteMap') return '#ef4444';
+      if (node.type === 'search') return '#f59e0b';
+      if (node.hasChildren) return '#264f3a';
+      return '#111827';
+    };
+
+    const upsertGraphNode = (node) => {
       nodeStore.set(node.noteId, node);
-      for (const child of node.children || []) saveNode(child);
-    };
-
-    const renderNode = (node) => {
-      saveNode(node);
-
-      const item = document.createElement('div');
-      item.className = 'tree-node';
-      item.style.setProperty('--tree-depth', String(node.depth));
-      item.dataset.depth = String(node.depth);
-      item.dataset.noteId = node.noteId;
-
-      const row = document.createElement('div');
-      row.className = 'tree-row';
-
-      if (node.hasChildren) {
-        const toggle = document.createElement('button');
-        toggle.type = 'button';
-        toggle.className = 'tree-toggle';
-        toggle.dataset.noteId = node.noteId;
-        toggle.setAttribute('aria-expanded', 'false');
-        toggle.setAttribute('aria-label', `展开 ${node.title}`);
-        toggle.textContent = '▸';
-        row.appendChild(toggle);
+      const label = node.prefix ? `${node.prefix} · ${node.title}` : node.title;
+      const existing = nodes.get(node.noteId);
+      const payload = {
+        id: node.noteId,
+        label,
+        title: `${node.path}${node.hasChildren ? `\n子节点：${node.childCount}` : ''}`,
+        shape: 'dot',
+        size: node.hasChildren ? 14 : 8,
+        color: {
+          background: nodeColor(node),
+          border: nodeColor(node),
+          highlight: { background: '#dc2626', border: '#dc2626' },
+          hover: { background: '#0f172a', border: '#0f172a' },
+        },
+        font: {
+          color: '#374151',
+          size: node.hasChildren ? 16 : 11,
+          face: 'Inter, system-ui, sans-serif',
+          strokeWidth: 0,
+        },
+        physics: true,
+      };
+      if (existing) {
+        nodes.update(payload);
       } else {
-        const spacer = document.createElement('span');
-        spacer.className = 'tree-spacer';
-        spacer.setAttribute('aria-hidden', 'true');
-        spacer.textContent = '•';
-        row.appendChild(spacer);
+        nodes.add(payload);
       }
-
-      const link = document.createElement('a');
-      link.className = 'tree-link';
-      link.href = node.href;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.innerHTML = `<span class="tree-title">${node.prefix ? `${escapeHtml(node.prefix)} · ` : ''}${escapeHtml(node.title)}</span>${node.path ? `<span class="tree-path">${escapeHtml(node.path)}</span>` : ''}${node.hasChildren ? `<span class="tree-meta">${node.childCount} 个子节点</span>` : ''}`;
-      row.appendChild(link);
-      item.appendChild(row);
-
-      if (node.hasChildren) {
-        const childrenEl = document.createElement('div');
-        childrenEl.className = 'tree-children';
-        childrenEl.hidden = true;
-
-        if (node.loaded && node.children.length) {
-          node.children.forEach((child) => childrenEl.appendChild(renderNode(child)));
-        }
-
-        item.appendChild(childrenEl);
-      }
-
-      return item;
     };
 
-    const setExpanded = (nodeEl, expanded) => {
-      const toggle = nodeEl.querySelector(':scope > .tree-row > .tree-toggle');
-      const children = nodeEl.querySelector(':scope > .tree-children');
-      if (!(toggle instanceof HTMLButtonElement) || !(children instanceof HTMLElement)) return;
-      toggle.setAttribute('aria-expanded', String(expanded));
-      toggle.setAttribute('aria-label', `${expanded ? '收起' : '展开'} ${nodeEl.querySelector(':scope > .tree-row .tree-title')?.textContent || '节点'}`);
-      toggle.textContent = expanded ? '▾' : '▸';
-      children.hidden = !expanded;
-      nodeEl.classList.toggle('is-open', expanded);
+    const edgeId = (from, to) => `${from}-->${to}`;
+
+    const upsertEdge = (from, to) => {
+      const id = edgeId(from, to);
+      if (edges.get(id)) return;
+      edges.add({
+        id,
+        from,
+        to,
+        color: { color: 'rgba(148, 163, 184, 0.7)', highlight: '#94a3b8', hover: '#64748b' },
+        smooth: { type: 'dynamic' },
+        width: 1,
+      });
     };
 
-    const loadChildren = async (noteId, depth) => {
+    const ingestNode = (node) => {
+      upsertGraphNode(node);
+      for (const child of node.children || []) {
+        upsertGraphNode(child);
+        upsertEdge(node.noteId, child.noteId);
+      }
+    };
+
+    const loadChildren = async (noteId) => {
       const res = await fetch(createUrl(noteId), { headers: { Accept: 'application/json' } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const normalized = normalizeNode(data?.root, depth);
-      if (!normalized) throw new Error('Invalid node response');
+      const normalized = normalizeNode(data?.root, 0, '');
+      if (!normalized) throw new Error('Invalid graph node response');
       return normalized;
     };
 
-    shell.addEventListener('click', async (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      const button = target.closest('.tree-toggle');
-      if (!(button instanceof HTMLButtonElement)) return;
-      const nodeEl = button.closest('.tree-node');
-      if (!(nodeEl instanceof HTMLElement)) return;
-      const noteId = nodeEl.dataset.noteId;
-      if (!noteId) return;
+    const ensureNetwork = async () => {
+      if (network) return network;
+      const [{ Network }, { DataSet }] = await Promise.all([
+        import('vis-network/standalone/esm/vis-network'),
+        import('vis-data/peer/esm/vis-data'),
+      ]);
 
-      const expanded = button.getAttribute('aria-expanded') === 'true';
-      const childrenEl = nodeEl.querySelector(':scope > .tree-children');
-      if (!(childrenEl instanceof HTMLElement)) return;
+      nodes = new DataSet();
+      edges = new DataSet();
+      network = new Network(graphEl, { nodes, edges }, {
+        autoResize: true,
+        interaction: {
+          hover: true,
+          dragNodes: true,
+          dragView: true,
+          zoomView: true,
+          navigationButtons: true,
+          keyboard: true,
+        },
+        layout: {
+          improvedLayout: true,
+        },
+        physics: {
+          enabled: true,
+          stabilization: { iterations: 300, fit: true },
+          barnesHut: {
+            gravitationalConstant: -5000,
+            springLength: 150,
+            springConstant: 0.03,
+            damping: 0.2,
+            avoidOverlap: 0.4,
+          },
+        },
+        nodes: {
+          borderWidth: 0,
+        },
+        edges: {
+          selectionWidth: 0,
+        },
+      });
 
-      if (expanded) {
-        setExpanded(nodeEl, false);
-        return;
-      }
+      network.on('doubleClick', (params) => {
+        const noteId = params.nodes?.[0];
+        if (!noteId) return;
+        const node = nodeStore.get(String(noteId));
+        if (node?.href) window.open(node.href, '_blank', 'noopener,noreferrer');
+      });
 
-      const currentNode = nodeStore.get(noteId);
-      if (currentNode?.loaded) {
-        setExpanded(nodeEl, true);
-        return;
-      }
+      network.on('click', async (params) => {
+        const noteId = params.nodes?.[0];
+        if (!noteId) return;
+        const currentNode = nodeStore.get(String(noteId));
+        if (!currentNode?.hasChildren) return;
+        if (loadedNodes.has(String(noteId))) return;
 
-      button.disabled = true;
-      nodeEl.classList.add('is-loading');
-      setStatus(`正在加载「${currentNode?.title || noteId}」…`);
+        setStatus(`正在加载「${currentNode.title}」的子节点…`);
+        try {
+          const loaded = await loadChildren(String(noteId));
+          currentNode.loaded = true;
+          currentNode.children = loaded.children || [];
+          currentNode.childCount = loaded.childCount;
+          ingestNode(currentNode);
+          currentNode.children.forEach((child) => {
+            child.parentId = currentNode.noteId;
+            ingestNode(child);
+          });
+          loadedNodes.add(String(noteId));
+          network.stabilize(120);
+          setStatus(`已加载「${currentNode.title}」的 ${currentNode.children.length} 个子节点，双击节点可打开 Trilium`);
+        } catch (err) {
+          console.error('[about] graph children load failed', err);
+          setStatus('图谱子节点加载失败，请稍后重试');
+        }
+      });
 
-      try {
-        const depth = Number(nodeEl.dataset.depth || '0');
-        const loadedNode = await loadChildren(noteId, depth);
-        currentNode.loaded = true;
-        currentNode.children = (loadedNode.children || []).map((child) => ({ ...child, depth: depth + 1 }));
-        currentNode.childCount = loadedNode.childCount;
-        currentNode.hasChildren = loadedNode.hasChildren;
-        saveNode(currentNode);
+      return network;
+    };
 
-        childrenEl.innerHTML = '';
-        currentNode.children.forEach((child) => childrenEl.appendChild(renderNode(child)));
-        setExpanded(nodeEl, true);
-        setStatus(`已展开「${currentNode.title}」`);
-      } catch (err) {
-        console.error('[about] lazy tree load failed', err);
-        setStatus('子节点加载失败，请稍后重试');
-      } finally {
-        button.disabled = false;
-        nodeEl.classList.remove('is-loading');
-      }
-    });
-
-    expandAllBtn?.addEventListener('click', () => {
-      shell.querySelectorAll('.tree-node').forEach((nodeEl) => setExpanded(nodeEl, true));
-      setStatus('已展开当前已加载节点');
-    });
-
-    collapseAllBtn?.addEventListener('click', () => {
-      shell.querySelectorAll('.tree-node').forEach((nodeEl) => setExpanded(nodeEl, false));
-      setStatus('已收起全部节点');
-    });
-
-    const renderTree = (data) => {
-      const root = normalizeNode(data?.root, 0);
-      shell.innerHTML = '';
-
+    const renderGraph = async (data) => {
+      const root = normalizeNode(data?.root, 0, '');
       if (!root) {
         show(loading, false);
         show(error, true);
@@ -310,10 +317,51 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         return;
       }
 
-      shell.appendChild(renderNode(root));
+      const instance = await ensureNetwork();
+      nodes.clear();
+      edges.clear();
+      nodeStore.clear();
+      loadedNodes.clear();
+
+      ingestNode(root);
+      root.children.forEach((child) => {
+        child.parentId = root.noteId;
+        ingestNode(child);
+      });
+      loadedNodes.add(root.noteId);
+
       show(loading, false);
-      setStatus(`知识地图已加载根节点：${root.title}`);
+      graphEl.style.display = 'block';
+      instance.once('stabilizationIterationsDone', () => {
+        instance.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+      });
+      instance.stabilize(180);
+      setStatus(`知识地图已加载：拖动画布、滚轮缩放、点击节点展开、双击节点打开 Trilium`);
     };
+
+    fitBtn?.addEventListener('click', () => {
+      if (!network) return;
+      network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+      setStatus('已适配当前视图');
+    });
+
+    resetBtn?.addEventListener('click', async () => {
+      if (!apiUrl) return;
+      show(loading, true);
+      show(error, false);
+      try {
+        const data = await fetch(createUrl(rootHint), { headers: { Accept: 'application/json' } }).then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        });
+        await renderGraph(data);
+      } catch (err) {
+        console.error('[about] graph reload failed', err);
+        show(loading, false);
+        show(error, true);
+        setStatus('知识地图重新加载失败');
+      }
+    });
 
     if (!apiUrl) {
       show(loading, false);
@@ -330,10 +378,10 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       .then((data) => {
         show(empty, false);
         show(error, false);
-        renderTree(data);
+        return renderGraph(data);
       })
       .catch((err) => {
-        console.error('[about] knowledge tree load failed', err);
+        console.error('[about] knowledge graph load failed', err);
         show(loading, false);
         show(error, true);
         setStatus('知识地图加载失败');
@@ -502,18 +550,19 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     border-color: color-mix(in oklab, var(--foreground) 14%, transparent);
   }
 
-  .tree-shell {
+  .graph-shell {
     position: relative;
-    min-height: 26rem;
-    padding: 1rem;
+    min-height: 30rem;
+    padding: 0.75rem;
     border-radius: 1.15rem;
     border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
     background:
       radial-gradient(circle at top right, color-mix(in oklab, #93c5fd 14%, transparent), transparent 34%),
       linear-gradient(180deg, color-mix(in oklab, white 98%, var(--muted) 2%), color-mix(in oklab, var(--muted) 78%, white));
+    overflow: hidden;
   }
 
-  :global(html[data-theme='dark']) .tree-shell {
+  :global(html[data-theme='dark']) .graph-shell {
     border-color: rgba(255, 255, 255, 0.08);
     background:
       radial-gradient(circle at top right, rgba(96, 165, 250, 0.12), transparent 34%),
@@ -551,100 +600,27 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     font-size: 0.8em;
   }
 
-  .knowledge-tree {
-    display: grid;
-    gap: 0.28rem;
+  .knowledge-graph {
+    display: none;
+    width: 100%;
+    min-height: 28rem;
+    height: 62vh;
+    max-height: 46rem;
+    border-radius: 0.95rem;
+    background:
+      radial-gradient(circle at center, rgba(255,255,255,0.7), rgba(255,255,255,0.15));
   }
 
-  .tree-node {
-    display: grid;
-    gap: 0.24rem;
+  :global(html[data-theme='dark']) .knowledge-graph {
+    background:
+      radial-gradient(circle at center, rgba(17, 24, 39, 0.72), rgba(17, 24, 39, 0.18));
   }
 
-  .tree-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.55rem;
-    min-width: 0;
-    padding-left: calc(var(--tree-depth, 0) * 1rem);
-  }
-
-  .tree-toggle,
-  .tree-spacer {
-    width: 1.1rem;
-    margin-top: 0.16rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted-foreground);
-    flex-shrink: 0;
-  }
-
-  .tree-toggle {
-    border: 0;
-    background: transparent;
-    padding: 0;
-    cursor: pointer;
-    transition: color var(--transition-base), transform var(--transition-base);
-  }
-
-  .tree-toggle:hover {
-    color: var(--foreground);
-  }
-
-  .tree-toggle:disabled {
-    opacity: 0.55;
-    cursor: wait;
-  }
-
-  .tree-node.is-loading > .tree-row .tree-link {
-    opacity: 0.7;
-  }
-
-  .tree-link {
-    min-width: 0;
-    flex: 1;
-    display: grid;
-    gap: 0.08rem;
-    padding: 0.42rem 0.65rem;
-    border-radius: 0.8rem;
-    transition: background-color var(--transition-base), transform var(--transition-base), opacity var(--transition-base);
-  }
-
-  .tree-link:hover {
-    background: color-mix(in oklab, var(--muted) 80%, white);
-    transform: translateX(2px);
-  }
-
-  :global(html[data-theme='dark']) .tree-link:hover {
-    background: rgba(255, 255, 255, 0.04);
-  }
-
-  .tree-title {
-    display: block;
-    font-size: 0.96rem;
-    color: var(--foreground);
-    line-height: 1.5;
-    word-break: break-word;
-  }
-
-  .tree-path {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    color: color-mix(in oklab, var(--muted-foreground) 78%, transparent);
-    word-break: break-all;
-  }
-
-  .tree-meta {
-    display: block;
-    font-size: 0.72rem;
-    color: color-mix(in oklab, var(--muted-foreground) 68%, transparent);
-  }
-
-  .tree-children {
-    display: grid;
-    gap: 0.18rem;
+  @media (max-width: 640px) {
+    .knowledge-graph {
+      height: 24rem;
+      min-height: 24rem;
+    }
   }
 
   .history-image-link {
