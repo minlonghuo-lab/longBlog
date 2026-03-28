@@ -155,11 +155,20 @@ function formatDate(date: Date): string {
 
       const updateActiveHeading = () => {
         const tocLinks = allTocLinks();
-        if (!tocLinks.length) return;
+        if (!tocLinks.length || !tocItems.length) return;
+
+        const articleRect = content.getBoundingClientRect();
+        const reachedBottom = articleRect.bottom - window.innerHeight <= 24;
         let currentId = tocItems[0]?.id;
-        for (const item of tocItems) {
-          if (item.el.getBoundingClientRect().top <= 150) currentId = item.id;
+
+        if (reachedBottom) {
+          currentId = tocItems[tocItems.length - 1]?.id;
+        } else {
+          for (const item of tocItems) {
+            if (item.el.getBoundingClientRect().top <= 150) currentId = item.id;
+          }
         }
+
         tocLinks.forEach((link) => {
           const matched = link.dataset.target === currentId;
           link.classList.toggle('active', matched);
