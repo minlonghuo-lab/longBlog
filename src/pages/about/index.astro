@@ -15,26 +15,18 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
 
   <section class="about-single">
     <section class="about-paper knowledge-card">
-      <div class="card-head">
-        <div>
-          <div class="card-kicker">Knowledge Map</div>
-          <h2>可见笔记知识地图</h2>
-        </div>
-        <a href={triliumBaseUrl} target="_blank" rel="noopener noreferrer" class="card-link">打开 Trilium ↗</a>
-      </div>
-
       <p class="card-intro">
-        这张地图展示的是 Trilium 中 <code>root</code> 下所有可见笔记，而不是系统隐藏节点。建站历史也被纳入知识地图本身，你可以把它理解成博客内容、知识沉淀与个人演进过程的一张总览图。支持拖动画布、滚轮缩放、点击节点展开下一层，双击节点可直接跳转到对应笔记。
+        这张地图展示的是我 Trilium 中所有笔记，longBlog 仅为其中一条分支。你可以把它理解成我整个知识系统的一张总览图：支持拖动画布、滚轮缩放、点击节点展开下一层。
       </p>
 
       <div class="tree-toolbar">
         <div class="tree-toolbar-info">
           <span class="dot"></span>
-          <span id="tree-status">准备加载知识地图…</span>
+          <span id="tree-status">正在准备这张知识地图…</span>
         </div>
         <div class="tree-toolbar-actions">
-          <button id="graph-fit" type="button">适配视图</button>
-          <button id="graph-reset" type="button">重新加载</button>
+          <button id="graph-fit" type="button">回到全图</button>
+          <button id="graph-reset" type="button">从根节点重载</button>
         </div>
       </div>
 
@@ -215,15 +207,8 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
       });
       network.stabilize(180);
-      setStatus('知识地图已加载：展示 root 下可见笔记，支持拖动画布、滚轮缩放、点击节点展开、双击节点打开 Trilium');
+      setStatus('知识地图已加载：拖动画布、滚轮缩放，点击节点可继续展开。');
     };
-
-    network.on('doubleClick', (params) => {
-      const noteId = params.nodes?.[0];
-      if (!noteId) return;
-      const node = nodeStore.get(String(noteId));
-      if (node?.href) window.open(node.href, '_blank', 'noopener,noreferrer');
-    });
 
     network.on('click', async (params) => {
       const noteId = params.nodes?.[0];
@@ -245,7 +230,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         });
         loadedNodes.add(String(noteId));
         network.stabilize(120);
-        setStatus(`已加载「${currentNode.title}」的 ${currentNode.children.length} 个子节点，双击节点可打开 Trilium`);
+        setStatus(`已展开「${currentNode.title}」，继续点击其它节点可向下浏览`);
       } catch (err) {
         console.error('[about] graph children load failed', err);
         setStatus('图谱子节点加载失败，请稍后重试');
@@ -366,6 +351,66 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     color: var(--muted-foreground);
     line-height: 1.95;
     font-size: 0.98rem;
+  }
+
+  .tree-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin: 0 0 1.15rem;
+    padding: 0.85rem 0 0.95rem;
+    border-top: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 45%, transparent);
+  }
+
+  @media (min-width: 640px) {
+    .tree-toolbar {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  .tree-toolbar-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--muted-foreground);
+    font-size: 0.88rem;
+    line-height: 1.7;
+  }
+
+  .dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #2dd4bf, #60a5fa);
+    box-shadow: 0 0 0 4px color-mix(in oklab, #60a5fa 14%, transparent);
+    flex-shrink: 0;
+  }
+
+  .tree-toolbar-actions {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+  }
+
+  .tree-toolbar-actions button {
+    border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted-foreground);
+    padding: 0.42rem 0.82rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
+  }
+
+  .tree-toolbar-actions button:hover {
+    color: var(--foreground);
+    transform: translateY(-1px);
+    background: color-mix(in oklab, var(--muted) 84%, white);
+    border-color: color-mix(in oklab, var(--foreground) 12%, transparent);
   }
 
   .graph-shell {
