@@ -69,6 +69,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.18s ease;
+  position: relative;
+  isolation: isolate;
 }
 
 #page-main {
@@ -109,7 +111,20 @@ body::before {
   background: color-mix(in oklab, var(--background) 88%, transparent);
   opacity: 0;
   transition: opacity 0.32s ease;
-  z-index: -1;
+  z-index: -2;
+}
+
+.site-header,
+.page-main,
+.site-footer,
+.route-progress,
+.reading-progress,
+.back-to-top,
+.mobile-toc-trigger,
+.mobile-toc-sheet,
+.image-lightbox {
+  position: relative;
+  z-index: 1;
 }
 
 .theme-transition {
@@ -120,36 +135,36 @@ body::before {
   height: 48px;
   border-radius: 999px;
   pointer-events: none;
-  z-index: 999;
+  z-index: -1;
   opacity: 0;
   mix-blend-mode: normal;
-  filter: saturate(112%) blur(1px);
+  filter: saturate(108%) blur(0.5px);
   transform: translate(calc(var(--theme-origin-x, 50vw) - 24px), calc(var(--theme-origin-y, 50vh) - 24px)) scale(0.08);
   transform-origin: center;
   will-change: transform, opacity;
 }
 
 .theme-transition.to-light {
-  background: radial-gradient(circle, rgba(255,255,255,0.99) 0%, rgba(255,255,255,0.96) 54%, rgba(248,249,252,0.88) 100%);
+  background: radial-gradient(circle, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.62) 54%, rgba(248,249,252,0.48) 100%);
 }
 
 .theme-transition.to-dark {
-  background: radial-gradient(circle, rgba(14,18,28,0.99) 0%, rgba(15,19,30,0.96) 54%, rgba(18,24,38,0.88) 100%);
+  background: radial-gradient(circle, rgba(14,18,28,0.72) 0%, rgba(15,19,30,0.62) 54%, rgba(18,24,38,0.48) 100%);
 }
 
 .theme-transition.is-active {
   opacity: 1;
-  animation: theme-ripple 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: theme-ripple 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes theme-ripple {
   0% {
-    opacity: 0.96;
+    opacity: 0.72;
     transform: translate(calc(var(--theme-origin-x, 50vw) - 24px), calc(var(--theme-origin-y, 50vh) - 24px)) scale(0.08);
   }
-  58% {
-    opacity: 0.94;
-    transform: translate(calc(var(--theme-origin-x, 50vw) - 24px), calc(var(--theme-origin-y, 50vh) - 24px)) scale(calc(var(--theme-target-scale, 24) * 0.82));
+  55% {
+    opacity: 0.44;
+    transform: translate(calc(var(--theme-origin-x, 50vw) - 24px), calc(var(--theme-origin-y, 50vh) - 24px)) scale(calc(var(--theme-target-scale, 24) * 0.84));
   }
   100% {
     opacity: 0;
