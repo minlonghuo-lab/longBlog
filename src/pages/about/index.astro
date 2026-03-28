@@ -66,6 +66,10 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     const rootHint = 'root';
     const nodeStore = new Map();
     const loadedNodes = new Set();
+    const loadingNodes = new Set();
+    let isDragging = false;
+    let dragEndAt = 0;
+    let fitTimer = 0;
 
     const nodes = new DataSet();
     const edges = new DataSet();
@@ -79,17 +83,20 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         zoomView: true,
         navigationButtons: true,
         keyboard: true,
+        tooltipDelay: 120,
+        hideEdgesOnDrag: true,
+        hideEdgesOnZoom: true,
       },
       layout: { improvedLayout: true },
       physics: {
         enabled: true,
-        stabilization: { iterations: 300, fit: true },
+        stabilization: { iterations: 120, fit: false, updateInterval: 20 },
         barnesHut: {
-          gravitationalConstant: -5000,
-          springLength: 150,
-          springConstant: 0.03,
-          damping: 0.2,
-          avoidOverlap: 0.4,
+          gravitationalConstant: -4200,
+          springLength: 145,
+          springConstant: 0.028,
+          damping: 0.28,
+          avoidOverlap: 0.55,
         },
       },
       nodes: { borderWidth: 0 },
@@ -102,6 +109,18 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
 
     const show = (el, visible) => {
       if (el instanceof HTMLElement) el.style.display = visible ? '' : 'none';
+    };
+
+    const safeFit = (duration = 420) => {
+      if (fitTimer) window.clearTimeout(fitTimer);
+      fitTimer = window.setTimeout(() => {
+        network.fit({ animation: { duration, easingFunction: 'easeInOutQuad' } });
+      }, 36);
+    };
+
+    const safeStabilize = (iterations = 80) => {
+      network.stopSimulation();
+      network.stabilize(iterations);
     };
 
     const createUrl = (noteId) => {
@@ -180,22 +199,29 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     };
 
     const expandNode = async (noteId) => {
-      const currentNode = nodeStore.get(String(noteId));
+      const id = String(noteId);
+      const currentNode = nodeStore.get(id);
       if (!currentNode?.hasChildren) return currentNode;
-      if (loadedNodes.has(String(noteId))) return currentNode;
+      if (loadedNodes.has(id)) return currentNode;
+      if (loadingNodes.has(id)) return currentNode;
 
-      const loaded = await loadChildren(String(noteId));
-      currentNode.loaded = true;
-      currentNode.children = loaded.children || [];
-      currentNode.childCount = loaded.childCount;
-      ingestNode(currentNode);
-      currentNode.children.forEach((child) => {
-        child.parentId = currentNode.noteId;
-        ingestNode(child);
-      });
-      loadedNodes.add(String(noteId));
-      network.stabilize(120);
-      return currentNode;
+      loadingNodes.add(id);
+      try {
+        const loaded = await loadChildren(id);
+        currentNode.loaded = true;
+        currentNode.children = loaded.children || [];
+        currentNode.childCount = loaded.childCount;
+        ingestNode(currentNode);
+        currentNode.children.forEach((child) => {
+          child.parentId = currentNode.noteId;
+          ingestNode(child);
+        });
+        loadedNodes.add(id);
+        safeStabilize(70);
+        return currentNode;
+      } finally {
+        loadingNodes.delete(id);
+      }
     };
 
     const expandDefaultPath = async () => {
@@ -207,7 +233,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         await expandNode(blogNode.noteId);
       }
 
-      network.fit({ animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+      safeFit(520);
       setStatus('已默认展开「我的博客」，并适配当前视图。');
     };
 
@@ -234,15 +260,27 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
 
       show(loading, false);
       graphEl.style.display = 'block';
-      network.once('stabilizationIterationsDone', () => {
-        network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+      requestAnimationFrame(() => {
+        safeStabilize(90);
+        safeFit(420);
       });
-      network.stabilize(180);
       setStatus('知识地图已加载：拖动画布、滚轮缩放，点击节点可继续展开。');
       await expandDefaultPath();
     };
 
+    network.on('dragStart', () => {
+      isDragging = true;
+    });
+
+    network.on('dragEnd', () => {
+      dragEndAt = Date.now();
+      window.setTimeout(() => {
+        isDragging = false;
+      }, 120);
+    });
+
     network.on('click', async (params) => {
+      if (isDragging || Date.now() - dragEndAt < 180) return;
       const noteId = params.nodes?.[0];
       if (!noteId) return;
       const currentNode = nodeStore.get(String(noteId));
@@ -260,7 +298,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     });
 
     fitBtn?.addEventListener('click', () => {
-      network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+      safeFit(420);
       setStatus('已适配当前视图');
     });
 
@@ -268,6 +306,9 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       if (!apiUrl) return;
       show(loading, true);
       show(error, false);
+      isDragging = false;
+      dragEndAt = 0;
+      loadingNodes.clear();
       try {
         const data = await fetch(createUrl(rootHint), { headers: { Accept: 'application/json' } }).then((res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
