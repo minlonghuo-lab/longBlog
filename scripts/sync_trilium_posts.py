@@ -345,6 +345,16 @@ def write_generated(posts: List[dict]):
         f.write(content)
 
 
+def cleanup_removed_assets(note_ids: List[str]) -> List[str]:
+    removed_dirs = []
+    for note_id in note_ids:
+        path = os.path.join(ASSET_DIR, note_id)
+        if os.path.isdir(path):
+            subprocess.run(["rm", "-rf", path], check=False)
+            removed_dirs.append(note_id)
+    return removed_dirs
+
+
 def git_has_changes() -> bool:
     r = subprocess.run(
         ["git", "status", "--porcelain", "src/data/trilium-posts.generated.ts", "public/trilium-assets"],
@@ -394,6 +404,7 @@ def main():
         "failed": [],
         "aiUpdated": [],
         "removed": [],
+        "removedAssets": [],
     }
 
     for note in all_notes:
@@ -465,6 +476,8 @@ def main():
                 pass
             report["failed"].append({"id": note.get("noteId"), "title": note.get("title"), "error": str(e)[:300]})
 
+    removed_asset_ids = cleanup_removed_assets([item["id"] for item in report["removed"]])
+    report["removedAssets"] = removed_asset_ids
     write_generated(posts)
     report["gitChanged"] = git_has_changes()
     report["autoPushEnabled"] = AUTO_PUSH

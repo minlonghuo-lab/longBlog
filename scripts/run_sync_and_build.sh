@@ -31,6 +31,6 @@ if [ "$GIT_CHANGED" = "true" ]; then
   BUILD_RAN=true
 fi
 TITLE="longBlog 自动发布"
-BODY=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); updated=len(d.get("updated") or []); unchanged=len(d.get("unchanged") or []); removed=len(d.get("removed") or []); failed=len(d.get("failed") or []); ai=len(d.get("aiUpdated") or []); git_changed=d.get("gitChanged"); git_pushed=d.get("gitPushed"); msg=f"更新{updated}篇｜撤下{removed}篇｜未变{unchanged}篇｜失败{failed}篇｜AI {ai}篇｜Git变更 {git_changed}｜已推送 {git_pushed}"; print(urllib.parse.quote(msg, safe=""))')
+BODY=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); updated=len(d.get("updated") or []); unchanged=len(d.get("unchanged") or []); removed=len(d.get("removed") or []); removed_assets=len(d.get("removedAssets") or []); failed=len(d.get("failed") or []); ai=len(d.get("aiUpdated") or []); git_changed=d.get("gitChanged"); git_pushed=d.get("gitPushed"); msg=f"更新{updated}篇｜撤下{removed}篇｜清理资源{removed_assets}个｜未变{unchanged}篇｜失败{failed}篇｜AI {ai}篇｜Git变更 {git_changed}｜已推送 {git_pushed}"; print(urllib.parse.quote(msg, safe=""))')
 INFO=$(printf 'build=%s install=%s' "$BUILD_RAN" "$INSTALL_RAN" | $PYTHON_BIN -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip(), safe=""))')
 curl -fsS "$BARK_BASE_URL/$TITLE/$BODY?group=longBlog&url=&icon=https://ssaw.top/favicon.ico&level=active&copy=$INFO" >/dev/null 2>&1 || true
