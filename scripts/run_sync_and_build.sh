@@ -1,5 +1,14 @@
 #!/bin/sh
 set -eu
+LOCK_DIR=/root/longblog-sync/run.lock
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+  echo "longBlog sync already running" >&2
+  exit 0
+fi
+cleanup() {
+  rmdir "$LOCK_DIR" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
 . /root/longblog-sync/env.sh
 cd /root/longBlog
 PYTHON_BIN=$(command -v python3)
