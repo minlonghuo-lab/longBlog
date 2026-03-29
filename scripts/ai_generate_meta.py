@@ -24,18 +24,16 @@ def main():
 
     payload = json.load(sys.stdin)
     system_prompt = (
-        '你是中文技术博客元数据助手。请根据文章标题与正文，生成 summary、tags、slug。'
+        '你是中文技术博客元数据助手。请根据文章标题与正文，生成 summary、tags。'
         '要求：\n'
         '1. summary：50-120字，中文自然，不要使用“本文介绍了/通过本文你可以”等模板句。\n'
         '2. tags：返回3-6个具体标签，避免“技术/博客/记录/分享”等泛词。\n'
-        '3. slug：尽量可读、稳定、简短；可保留中文；空格改连字符；去特殊字符。\n'
-        '4. 只输出 JSON，对象格式为 {"summary": string, "tags": string[], "slug": string}。\n'
-        '5. 不要输出 Markdown，不要解释。'
+        '3. 只输出 JSON，对象格式为 {"summary": string, "tags": string[]}。\n'
+        '4. 不要输出 Markdown，不要解释。'
     )
     user_prompt = {
         'title': payload.get('title', ''),
         'content': payload.get('content', '')[:12000],
-        'existing_slug': payload.get('slug', ''),
         'existing_tags': payload.get('tags', []),
         'existing_summary': payload.get('summary', '')
     }
@@ -65,7 +63,6 @@ def main():
     result = {
         'summary': str(parsed.get('summary', '')).strip(),
         'tags': [str(x).strip() for x in (parsed.get('tags') or []) if str(x).strip()],
-        'slug': str(parsed.get('slug', '')).strip(),
     }
     print(json.dumps(result, ensure_ascii=False))
 

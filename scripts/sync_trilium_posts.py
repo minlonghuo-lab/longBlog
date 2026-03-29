@@ -72,14 +72,33 @@ def ensure_dir(path: str):
     os.makedirs(path, exist_ok=True)
 
 
-def slugify(title: str, note_id: str) -> str:
-    t = (title or "").strip().lower()
+def slugify(title: str) -> str:
+    t = normalize_whitespace(title).strip().lower()
     t = re.sub(r"\s+", "-", t)
     t = re.sub(r"[^\w\-\u4e00-\u9fff]", "", t)
     t = re.sub(r"-+", "-", t).strip("-")
-    if not t:
-        t = "post"
-    return f"{t}-{note_id[:6]}"
+    return t or "post"
+
+
+def ensure_unique_slug(base_slug: str, note_id: str, used_slugs: set) -> str:
+    slug = base_slug or "post"
+    if slug not in used_slugs:
+        used_slugs.add(slug)
+        return slug
+
+    suffix = note_id[:6].lower()
+    candidate = f"{slug}-{suffix}"
+    if candidate not in used_slugs:
+        used_slugs.add(candidate)
+        return candidate
+
+    index = 2
+    while True:
+        candidate = f"{slug}-{suffix}-{index}"
+        if candidate not in used_slugs:
+            used_slugs.add(candidate)
+            return candidate
+        index += 1
 
 
 def normalize_whitespace(text: str) -> str:
@@ -243,13 +262,12 @@ def compute_sync_hash(*, title: str, content_html: str, attachments: List[str], 
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
 
 
-def generate_ai_meta(title: str, content_html: str, slug: str, tags: List[str], summary: str) -> dict:
+def generate_ai_meta(title: str, content_html: str, tags: List[str], summary: str) -> dict:
     plain = re.sub(r"<[^>]+>", " ", content_html or "")
     plain = normalize_whitespace(plain)
     payload = {
         "title": title,
         "content": plain[:12000],
-        "slug": slug,
         "tags": tags,
         "summary": summary,
     }
@@ -266,16 +284,14 @@ def generate_ai_meta(title: str, content_html: str, slug: str, tags: List[str], 
     return {
         "summary": normalize_whitespace(data.get("summary", "")),
         "tags": [normalize_whitespace(x) for x in (data.get("tags") or []) if normalize_whitespace(x)],
-        "slug": normalize_whitespace(data.get("slug", "")),
     }
 
 
-def build_post_record(note: dict) -> Tuple[dict, dict, List[dict]]:
+def build_post_record(note: dict, used_slugs: set) -> Tuple[dict, dict, List[dict]]:
     attrs = note.get("attributes", []) or []
     attr_map = label_attrs(attrs)
     title = note.get("title", "未命名")
-    existing_slug = first_label_value(attr_map, "slug", "").strip()
-    slug = existing_slug or slugify(title, note["noteId"])
+    slug = ensure_unique_slug(slugify(title), note["noteId"], used_slugs)
     tags_raw = first_label_value(attr_map, "tags", "")
     tags = [x.strip() for x in re.split(r"[,，]", tags_raw) if x.strip()]
     summary = first_label_value(attr_map, "summary", "").strip()
@@ -283,21 +299,16 @@ def build_post_record(note: dict) -> Tuple[dict, dict, List[dict]]:
     html_localized, local_assets, assets_changed = localize_attachments(html_raw, note["noteId"])
 
     ai_refresh = first_label_value(attr_map, "aiRefresh", "false").lower() == "true"
-    needs_ai = ai_refresh or not existing_slug or not tags or not summary
+    needs_ai = ai_refresh or not tags or not summary
     ai_generated = False
     if needs_ai:
-        ai_meta = generate_ai_meta(title, html_localized, slug, tags, summary)
+        ai_meta = generate_ai_meta(title, html_localized, tags, summary)
         if (ai_refresh or not summary) and ai_meta.get("summary"):
             summary = ai_meta["summary"]
             ai_generated = True
         if (ai_refresh or not tags) and ai_meta.get("tags"):
             tags = ai_meta["tags"]
             ai_generated = True
-        if (ai_refresh or not existing_slug) and ai_meta.get("slug"):
-            slug = ai_meta["slug"]
-            ai_generated = True
-        if not slug:
-            slug = slugify(title, note["noteId"])
 
     sync_hash = compute_sync_hash(
         title=title,
@@ -430,12 +441,13 @@ def main():
         candidates.append(note)
 
     posts: List[dict] = []
+    used_slugs = set()
     for note in candidates:
         report["publishedCandidates"] += 1
         attrs = note.get("attributes", []) or []
         try:
             set_label(note["noteId"], attrs, "syncStatus", "publishing")
-            post, meta, attrs = build_post_record(note)
+            post, meta, attrs = build_post_record(note, used_slugs)
             needs_publish = (
                 not meta["prevSyncHash"]
                 or meta["prevSyncHash"] != meta["computedSyncHash"]
@@ -447,10 +459,10 @@ def main():
 
             if needs_publish:
                 ts = now_str()
+                set_label(note["noteId"], attrs, "slug", post["slug"])
                 if meta["aiGenerated"]:
                     set_label(note["noteId"], attrs, "summary", post["summary"])
                     set_label(note["noteId"], attrs, "tags", ",".join(post["tags"]))
-                    set_label(note["noteId"], attrs, "slug", post["slug"])
                     report["aiUpdated"].append({"id": note["noteId"], "title": post["title"]})
                 if not post["publishedAt"]:
                     post["publishedAt"] = ts
