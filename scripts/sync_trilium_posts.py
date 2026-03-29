@@ -130,10 +130,17 @@ def first_label_value(attr_map: Dict[str, List[dict]], name: str, default: str =
 
 def set_label(note_id: str, attrs: List[dict], name: str, value: str):
     value = normalize_label_value(value)
-    for a in attrs or []:
-        if a.get("type") == "label" and a.get("name") == name:
-            patch_json(f"/etapi/attributes/{a['attributeId']}", {"value": value})
-            return
+    live_attrs = (get_json(f"/etapi/notes/{note_id}").get("attributes", []) or [])
+    matches = [a for a in live_attrs if a.get("type") == "label" and a.get("name") == name]
+    if matches:
+        primary = matches[0]
+        patch_json(f"/etapi/attributes/{primary['attributeId']}", {"value": value})
+        for extra in matches[1:]:
+            try:
+                delete_path(f"/etapi/attributes/{extra['attributeId']}")
+            except Exception:
+                pass
+        return
     post_json("/etapi/attributes", {"noteId": note_id, "type": "label", "name": name, "value": value})
 
 
@@ -393,7 +400,7 @@ def git_commit_and_push(message: str) -> Tuple[bool, str]:
             return True, "nothing to commit"
         return False, commit_text.strip()
 
-    push_cmd = ["sh", "/var/minis/skills/github-sync-helper/scripts/gh_sync.sh", "push-main", "--yes"]
+    push_cmd = ["git", "push", GIT_REMOTE, GIT_BRANCH]
     push_res = subprocess.run(push_cmd, cwd=BASE_DIR, capture_output=True, text=True)
     push_text = (push_res.stdout or "") + (push_res.stderr or "")
     if push_res.returncode != 0:
