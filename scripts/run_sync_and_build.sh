@@ -1,64 +1,90 @@
 #!/bin/sh
 set -eu
 LOCK_DIR=/root/longblog-sync/run.lock
+PENDING_RERUN_FILE=/root/longblog-sync/pending_rerun
 REPORT_FILE=/root/longblog-sync/last_report.json
-RUN_STARTED_AT=$(date '+%Y-%m-%d %H:%M:%S%z')
-if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+
+write_lock_report() {
+  run_started_at="$1"
+  lock_reason="$2"
   LOCK_REPORT=$(python3 - <<PY
 import json
 print(json.dumps({
-  "runStartedAt": "$RUN_STARTED_AT",
-  "runFinishedAt": "$RUN_STARTED_AT",
+  "runStartedAt": "$run_started_at",
+  "runFinishedAt": "$run_started_at",
   "lockSkipped": True,
-  "lockReason": "longBlog sync already running"
+  "lockReason": "$lock_reason"
 }, ensure_ascii=False, indent=2))
 PY
 )
   printf '%s\n' "$LOCK_REPORT" >> /root/longblog-sync/sync.log
   printf '%s\n' "$LOCK_REPORT" > "$REPORT_FILE"
-  echo "longBlog sync already running" >&2
-  exit 0
-fi
-cleanup() {
-  rmdir "$LOCK_DIR" 2>/dev/null || true
 }
-trap cleanup EXIT INT TERM
-. /root/longblog-sync/env.sh
-cd /root/longBlog
-PYTHON_BIN=$(command -v python3)
-NPM_BIN=$(command -v npm)
-BARK_BASE_URL=${LONGBLOG_BARK_BASE_URL:-}
-SYNC_JSON=$($PYTHON_BIN scripts/sync_trilium_posts.py)
-SYNC_JSON=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); d["runStartedAt"] = sys.argv[1]; d["runFinishedAt"] = sys.argv[2]; d["lockSkipped"] = False; d["lockReason"] = ""; print(json.dumps(d, ensure_ascii=False, indent=2))' "$RUN_STARTED_AT" "$(date '+%Y-%m-%d %H:%M:%S%z')")
-printf '%s\n' "$SYNC_JSON" >> /root/longblog-sync/sync.log
-printf '%s\n' "$SYNC_JSON" > "$REPORT_FILE"
-GIT_CHANGED=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); print("true" if d.get("gitChanged") else "false")')
-BUILD_RAN=false
-INSTALL_RAN=false
-LOCK_HASH_FILE=/root/longblog-sync/package-lock.sha256
-CURRENT_HASH=$(sha256sum package-lock.json 2>/dev/null | awk '{print $1}')
-PREV_HASH=""
-if [ -f "$LOCK_HASH_FILE" ]; then
-  PREV_HASH=$(cat "$LOCK_HASH_FILE" 2>/dev/null || true)
-fi
-if [ "$GIT_CHANGED" = "true" ]; then
-  if [ ! -d node_modules ] || [ "$CURRENT_HASH" != "$PREV_HASH" ]; then
-    "$NPM_BIN" install >> /root/longblog-sync/build.log 2>&1
-    printf '%s' "$CURRENT_HASH" > "$LOCK_HASH_FILE"
-    INSTALL_RAN=true
+
+run_once() {
+  run_started_at=$(date '+%Y-%m-%d %H:%M:%S%z')
+  if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    : > "$PENDING_RERUN_FILE"
+    write_lock_report "$run_started_at" "longBlog sync already running; queued rerun"
+    echo "longBlog sync already running" >&2
+    return 0
   fi
-  "$NPM_BIN" run build >> /root/longblog-sync/build.log 2>&1
-  BUILD_RAN=true
-fi
-if [ -n "$BARK_BASE_URL" ]; then
-  TITLE=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); failed=len(d.get("failed") or []); title="longBlog 自动发布失败" if failed else "longBlog 自动发布"; print(urllib.parse.quote(title, safe=""))')
-  BODY=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); updated=len(d.get("updated") or []); unchanged=len(d.get("unchanged") or []); removed=len(d.get("removed") or []); removed_assets=len(d.get("removedAssets") or []); failed=len(d.get("failed") or []); ai=len(d.get("aiUpdated") or []); git_changed=d.get("gitChanged"); git_pushed=d.get("gitPushed"); msg=f"更新{updated}篇｜撤下{removed}篇｜清理资源{removed_assets}个｜未变{unchanged}篇｜失败{failed}篇｜AI {ai}篇｜Git变更 {git_changed}｜已推送 {git_pushed}"; print(urllib.parse.quote(msg, safe=""))')
-  ERROR_PART=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); failed=d.get("failed") or []; text="" if not failed else (failed[0].get("title","未知文章")+"："+failed[0].get("error",""))[:120]; print(urllib.parse.quote(text, safe=""))')
-  LEVEL=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); print("timeSensitive" if (d.get("failed") or []) else "active")')
-  INFO=$(printf 'build=%s install=%s' "$BUILD_RAN" "$INSTALL_RAN" | $PYTHON_BIN -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip(), safe=""))')
-  URL="$BARK_BASE_URL/$TITLE/$BODY?group=longBlog&icon=https://ssaw.top/favicon.ico&level=$LEVEL&copy=$INFO"
-  if [ -n "$ERROR_PART" ]; then
-    URL="$URL&body=$ERROR_PART"
+
+  cleanup() {
+    rmdir "$LOCK_DIR" 2>/dev/null || true
+  }
+  trap cleanup EXIT INT TERM
+
+  . /root/longblog-sync/env.sh
+  cd /root/longBlog
+  PYTHON_BIN=$(command -v python3)
+  NPM_BIN=$(command -v npm)
+  BARK_BASE_URL=${LONGBLOG_BARK_BASE_URL:-}
+
+  SYNC_JSON=$($PYTHON_BIN scripts/sync_trilium_posts.py)
+  run_finished_at=$(date '+%Y-%m-%d %H:%M:%S%z')
+  SYNC_JSON=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); d["runStartedAt"] = sys.argv[1]; d["runFinishedAt"] = sys.argv[2]; d["lockSkipped"] = False; d["lockReason"] = ""; print(json.dumps(d, ensure_ascii=False, indent=2))' "$run_started_at" "$run_finished_at")
+  printf '%s\n' "$SYNC_JSON" >> /root/longblog-sync/sync.log
+  printf '%s\n' "$SYNC_JSON" > "$REPORT_FILE"
+
+  GIT_CHANGED=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); print("true" if d.get("gitChanged") else "false")')
+  BUILD_RAN=false
+  INSTALL_RAN=false
+  LOCK_HASH_FILE=/root/longblog-sync/package-lock.sha256
+  CURRENT_HASH=$(sha256sum package-lock.json 2>/dev/null | awk '{print $1}')
+  PREV_HASH=""
+  if [ -f "$LOCK_HASH_FILE" ]; then
+    PREV_HASH=$(cat "$LOCK_HASH_FILE" 2>/dev/null || true)
   fi
-  curl -fsS "$URL" >/dev/null 2>&1 || true
+  if [ "$GIT_CHANGED" = "true" ]; then
+    if [ ! -d node_modules ] || [ "$CURRENT_HASH" != "$PREV_HASH" ]; then
+      "$NPM_BIN" install >> /root/longblog-sync/build.log 2>&1
+      printf '%s' "$CURRENT_HASH" > "$LOCK_HASH_FILE"
+      INSTALL_RAN=true
+    fi
+    "$NPM_BIN" run build >> /root/longblog-sync/build.log 2>&1
+    BUILD_RAN=true
+  fi
+
+  if [ -n "$BARK_BASE_URL" ]; then
+    TITLE=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); failed=len(d.get("failed") or []); title="longBlog 自动发布失败" if failed else "longBlog 自动发布"; print(urllib.parse.quote(title, safe=""))')
+    BODY=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); updated=len(d.get("updated") or []); unchanged=len(d.get("unchanged") or []); removed=len(d.get("removed") or []); removed_assets=len(d.get("removedAssets") or []); failed=len(d.get("failed") or []); ai=len(d.get("aiUpdated") or []); git_changed=d.get("gitChanged"); git_pushed=d.get("gitPushed"); msg=f"更新{updated}篇｜撤下{removed}篇｜清理资源{removed_assets}个｜未变{unchanged}篇｜失败{failed}篇｜AI {ai}篇｜Git变更 {git_changed}｜已推送 {git_pushed}"; print(urllib.parse.quote(msg, safe=""))')
+    ERROR_PART=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); failed=d.get("failed") or []; text="" if not failed else (failed[0].get("title","未知文章")+"："+failed[0].get("error","") )[:120]; print(urllib.parse.quote(text, safe=""))')
+    LEVEL=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); print("timeSensitive" if (d.get("failed") or []) else "active")')
+    INFO=$(printf 'build=%s install=%s' "$BUILD_RAN" "$INSTALL_RAN" | $PYTHON_BIN -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip(), safe=""))')
+    URL="$BARK_BASE_URL/$TITLE/$BODY?group=longBlog&icon=https://ssaw.top/favicon.ico&level=$LEVEL&copy=$INFO"
+    if [ -n "$ERROR_PART" ]; then
+      URL="$URL&body=$ERROR_PART"
+    fi
+    curl -fsS "$URL" >/dev/null 2>&1 || true
+  fi
+
+  trap - EXIT INT TERM
+  cleanup
+}
+
+run_once
+if [ -f "$PENDING_RERUN_FILE" ]; then
+  rm -f "$PENDING_RERUN_FILE"
+  run_once
 fi
