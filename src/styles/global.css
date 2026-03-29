@@ -154,7 +154,7 @@ body::before {
 
 .theme-transition.is-active {
   opacity: 1;
-  animation: theme-ripple 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: theme-ripple 0.98s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes theme-ripple {
