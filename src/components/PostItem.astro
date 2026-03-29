@@ -1,19 +1,16 @@
 ---
 interface Props {
   title: string;
-  date?: Date;
   publishedAt?: string | Date;
   tags: string[];
   slug: string;
   pinned?: boolean;
 }
 
-const { title, date, publishedAt, tags, slug, pinned } = Astro.props;
+const { title, publishedAt, tags, slug, pinned } = Astro.props;
 
 let postDate: Date;
-if (date) {
-  postDate = date;
-} else if (publishedAt) {
+if (publishedAt) {
   postDate = typeof publishedAt === 'string' ? new Date(publishedAt) : publishedAt;
 } else {
   postDate = new Date();

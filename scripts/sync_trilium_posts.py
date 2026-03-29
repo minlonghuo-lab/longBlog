@@ -311,15 +311,14 @@ def build_post_record(note: dict) -> Tuple[dict, dict, List[dict]]:
         "id": note["noteId"],
         "slug": slug,
         "title": title,
-        "createdAt": note.get("dateCreated") or note.get("utcDateCreated") or now_str(),
-        "updatedAt": note.get("dateModified") or note.get("utcDateModified") or now_str(),
+        "updatedAt": first_label_value(attr_map, "updatedAt", "").strip() or note.get("dateModified") or note.get("utcDateModified") or now_str(),
+        "publishedAt": first_label_value(attr_map, "publishedAt", "").strip(),
         "tags": tags,
         "summary": summary,
         "contentHtml": html_localized,
         "pinned": first_label_value(attr_map, "pinned", "").lower() == "true",
         "syncHash": sync_hash,
         "syncStatus": first_label_value(attr_map, "syncStatus", ""),
-        "publishedAt": first_label_value(attr_map, "publishedAt", ""),
     }
     meta = {
         "attrs": attrs,

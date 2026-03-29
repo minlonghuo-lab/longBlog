@@ -4,7 +4,7 @@ export interface Post {
   id: string;
   slug: string;
   title: string;
-  date: Date;
+  publishedAt: Date;
   updatedAt: Date;
   tags: string[];
   summary: string;
@@ -14,7 +14,6 @@ export interface Post {
 
 function toDate(v?: string) {
   if (!v) return new Date();
-  // Trilium格式: 2026-03-09 22:38:06.700+0800
   const normalized = v.replace(' ', 'T').replace(/(\+\d{2})(\d{2})$/, '$1:$2');
   const d = new Date(normalized);
   return Number.isNaN(d.getTime()) ? new Date() : d;
@@ -24,7 +23,7 @@ export const posts: Post[] = triliumPosts.map((p) => ({
   id: p.id,
   slug: p.slug,
   title: p.title,
-  date: toDate(p.createdAt),
+  publishedAt: toDate(p.publishedAt || p.updatedAt),
   updatedAt: toDate(p.updatedAt),
   tags: p.tags ?? [],
   summary: p.summary ?? '',
@@ -33,7 +32,7 @@ export const posts: Post[] = triliumPosts.map((p) => ({
 }));
 
 export function getSortedPosts(): Post[] {
-  return [...posts].sort((a, b) => b.date.getTime() - a.date.getTime());
+  return [...posts].sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
 }
 
 export function getPinnedPosts(): Post[] {

@@ -10,7 +10,7 @@ const searchPosts = displayPosts.map((post) => ({
   title: post.title,
   summary: post.summary,
   tags: post.tags,
-  date: post.date.toISOString(),
+  publishedAt: post.publishedAt.toISOString(),
 }));
 
 const socialIcons = {
@@ -95,7 +95,7 @@ const socialIcons = {
         <PostItem
           slug={post.slug}
           title={post.title}
-          date={post.date}
+          publishedAt={post.publishedAt}
           tags={post.tags}
           pinned={post.pinned}
         />

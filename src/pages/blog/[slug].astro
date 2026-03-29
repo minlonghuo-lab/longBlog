@@ -16,7 +16,7 @@ function formatDate(date: Date): string {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  });
+  }).replace(/\//g, '/');
 }
 ---
 
@@ -46,7 +46,7 @@ function formatDate(date: Date): string {
           {post.summary && <p class="summary">{post.summary}</p>}
 
           <div class="meta">
-            <time>创建：{formatDate(post.date)}</time>
+            <time>发布：{formatDate(post.publishedAt)}</time>
             <time>更新：{formatDate(post.updatedAt)}</time>
             <div class="tags">
               {post.tags.map((tag) => <span>#{tag}</span>)}
