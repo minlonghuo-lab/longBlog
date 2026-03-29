@@ -1,7 +1,21 @@
 #!/bin/sh
 set -eu
 LOCK_DIR=/root/longblog-sync/run.lock
+REPORT_FILE=/root/longblog-sync/last_report.json
+RUN_STARTED_AT=$(date '+%Y-%m-%d %H:%M:%S%z')
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+  LOCK_REPORT=$(python3 - <<PY
+import json
+print(json.dumps({
+  "runStartedAt": "$RUN_STARTED_AT",
+  "runFinishedAt": "$RUN_STARTED_AT",
+  "lockSkipped": True,
+  "lockReason": "longBlog sync already running"
+}, ensure_ascii=False, indent=2))
+PY
+)
+  printf '%s\n' "$LOCK_REPORT" >> /root/longblog-sync/sync.log
+  printf '%s\n' "$LOCK_REPORT" > "$REPORT_FILE"
   echo "longBlog sync already running" >&2
   exit 0
 fi
@@ -15,8 +29,8 @@ PYTHON_BIN=$(command -v python3)
 NPM_BIN=$(command -v npm)
 BARK_BASE_URL=${LONGBLOG_BARK_BASE_URL:-}
 SYNC_JSON=$($PYTHON_BIN scripts/sync_trilium_posts.py)
+SYNC_JSON=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); d["runStartedAt"] = sys.argv[1]; d["runFinishedAt"] = sys.argv[2]; d["lockSkipped"] = False; d["lockReason"] = ""; print(json.dumps(d, ensure_ascii=False, indent=2))' "$RUN_STARTED_AT" "$(date '+%Y-%m-%d %H:%M:%S%z')")
 printf '%s\n' "$SYNC_JSON" >> /root/longblog-sync/sync.log
-REPORT_FILE=/root/longblog-sync/last_report.json
 printf '%s\n' "$SYNC_JSON" > "$REPORT_FILE"
 GIT_CHANGED=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); print("true" if d.get("gitChanged") else "false")')
 BUILD_RAN=false
