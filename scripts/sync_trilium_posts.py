@@ -385,7 +385,15 @@ def main():
     root = get_json(f"/etapi/notes/{ROOT_NOTE_ID}")
     all_notes = walk_note_tree(ROOT_NOTE_ID)
     candidates = []
-    report = {"rootTitle": root.get("title", ""), "scanned": 0, "publishedCandidates": 0, "updated": [], "unchanged": [], "failed": []}
+    report = {
+        "rootTitle": root.get("title", ""),
+        "scanned": 0,
+        "publishedCandidates": 0,
+        "updated": [],
+        "unchanged": [],
+        "failed": [],
+        "aiUpdated": [],
+    }
 
     for note in all_notes:
         report["scanned"] += 1
@@ -425,6 +433,7 @@ def main():
                     set_label(note["noteId"], attrs, "summary", post["summary"])
                     set_label(note["noteId"], attrs, "tags", ",".join(post["tags"]))
                     set_label(note["noteId"], attrs, "slug", post["slug"])
+                    report["aiUpdated"].append({"id": note["noteId"], "title": post["title"]})
                 if not post["publishedAt"]:
                     post["publishedAt"] = ts
                     set_label(note["noteId"], attrs, "publishedAt", ts)
