@@ -34,14 +34,7 @@ def now_str() -> str:
 
 
 def request(method: str, path: str, *, json_data=None, params=None, timeout=30, expected=None):
-    r = requests.request(
-        method,
-        f"{BASE_URL}{path}",
-        headers=HEADERS_JSON,
-        json=json_data,
-        params=params,
-        timeout=timeout,
-    )
+    r = requests.request(method, f"{BASE_URL}{path}", headers=HEADERS_JSON, json=json_data, params=params, timeout=timeout)
     if expected and r.status_code not in expected:
         raise requests.HTTPError(f"{method} {path} -> {r.status_code}: {r.text[:300]}", response=r)
     r.raise_for_status()
@@ -85,13 +78,11 @@ def ensure_unique_slug(base_slug: str, note_id: str, used_slugs: set) -> str:
     if slug not in used_slugs:
         used_slugs.add(slug)
         return slug
-
     suffix = note_id[:6].lower()
     candidate = f"{slug}-{suffix}"
     if candidate not in used_slugs:
         used_slugs.add(candidate)
         return candidate
-
     index = 2
     while True:
         candidate = f"{slug}-{suffix}-{index}"
@@ -197,11 +188,7 @@ def download_attachment_by_etapi(attachment_id: str) -> Tuple[Optional[bytes], O
         return None, None
     try:
         meta = get_json(f"/etapi/attachments/{attachment_id}")
-        r = requests.get(
-            f"{BASE_URL}/etapi/attachments/{attachment_id}/content",
-            headers=HEADERS_AUTH,
-            timeout=60,
-        )
+        r = requests.get(f"{BASE_URL}/etapi/attachments/{attachment_id}/content", headers=HEADERS_AUTH, timeout=60)
         if not r.ok:
             return None, None
         content_type = r.headers.get("content-type", meta.get("mime", ""))
@@ -219,114 +206,76 @@ def localize_attachments(html: str, note_id: str) -> Tuple[str, List[str], bool]
     urls = find_attachment_urls(html)
     if not urls:
         return html, [], False
-
     note_dir = os.path.join(ASSET_DIR, note_id)
     ensure_dir(note_dir)
     changed = False
     local_assets: List[str] = []
-
     for raw in urls:
         abs_url = to_abs_attachment_url(raw)
         attachment_id = extract_attachment_id(abs_url)
         content, content_type = download_attachment_by_etapi(attachment_id)
         if content is None:
             continue
-
         h = hashlib.md5(abs_url.encode("utf-8")).hexdigest()[:16]
         ext = ext_from_meta(abs_url, content_type or "")
         fname = f"{h}{ext}"
         fpath = os.path.join(note_dir, fname)
         local_url = f"/trilium-assets/{note_id}/{fname}"
         local_assets.append(local_url)
-
-        existing = None
+        old = None
         if os.path.exists(fpath):
             with open(fpath, "rb") as f:
-                existing = f.read()
-        if existing != content:
+                old = f.read()
+        if old != content:
             with open(fpath, "wb") as f:
                 f.write(content)
             changed = True
-
-        if raw != local_url:
-            new_html = html.replace(raw, local_url).replace(abs_url, local_url)
-            if new_html != html:
-                changed = True
-                html = new_html
-
-    return html, sorted(set(local_assets)), changed
+        html = html.replace(raw, local_url).replace(abs_url, local_url)
+    return html, local_assets, changed
 
 
-def compute_sync_hash(*, title: str, content_html: str, attachments: List[str], slug: str, summary: str, tags: List[str]) -> str:
-    payload = {
-        "title": normalize_whitespace(title),
-        "contentHtml": normalize_whitespace(content_html),
-        "attachments": sorted(attachments),
-        "slug": normalize_whitespace(slug),
-        "summary": normalize_whitespace(summary),
-        "tags": sorted([normalize_whitespace(t) for t in tags if normalize_whitespace(t)]),
-    }
-    return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
-
-
-def generate_ai_meta(title: str, content_html: str, tags: List[str], summary: str) -> dict:
-    plain = re.sub(r"<[^>]+>", " ", content_html or "")
-    plain = normalize_whitespace(plain)
-    payload = {
-        "title": title,
-        "content": plain[:12000],
-        "tags": tags,
-        "summary": summary,
-    }
-    res = subprocess.run(
-        ["python3", os.path.join(BASE_DIR, "scripts", "ai_generate_meta.py")],
-        input=json.dumps(payload, ensure_ascii=False),
-        capture_output=True,
-        text=True,
-        timeout=240,
-    )
-    if res.returncode != 0:
-        raise RuntimeError("AI meta generation failed")
-    data = json.loads((res.stdout or "").strip())
-    return {
-        "summary": normalize_whitespace(data.get("summary", "")),
-        "tags": [normalize_whitespace(x) for x in (data.get("tags") or []) if normalize_whitespace(x)],
-    }
+def parse_tags(attr_map: Dict[str, List[dict]]) -> List[str]:
+    values = [a.get("value", "") for a in attr_map.get("tags", [])]
+    if len(values) == 1 and "," in values[0]:
+        values = [x.strip() for x in values[0].split(",")]
+    return [v.strip() for v in values if v and v.strip()]
 
 
 def build_post_record(note: dict, used_slugs: set) -> Tuple[dict, dict, List[dict]]:
+    note_id = note["noteId"]
     attrs = note.get("attributes", []) or []
     attr_map = label_attrs(attrs)
-    title = note.get("title", "未命名")
-    slug = ensure_unique_slug(slugify(title), note["noteId"], used_slugs)
-    tags_raw = first_label_value(attr_map, "tags", "")
-    tags = [x.strip() for x in re.split(r"[,，]", tags_raw) if x.strip()]
-    summary = first_label_value(attr_map, "summary", "").strip()
-    html_raw = get_text(f"/etapi/notes/{note['noteId']}/content")
-    html_localized, local_assets, assets_changed = localize_attachments(html_raw, note["noteId"])
-
+    title = (note.get("title") or "未命名").strip()
+    html = get_text(f"/etapi/notes/{note_id}/content")
+    html_localized, local_assets, assets_changed = localize_attachments(html, note_id)
+    explicit_slug = first_label_value(attr_map, "slug", "").strip()
+    base_slug = explicit_slug or slugify(title)
+    slug = ensure_unique_slug(base_slug, note_id, used_slugs)
     ai_refresh = first_label_value(attr_map, "aiRefresh", "false").lower() == "true"
-    needs_ai = ai_refresh or not tags or not summary
+    summary = first_label_value(attr_map, "summary", "").strip()
+    tags = parse_tags(attr_map)
     ai_generated = False
-    if needs_ai:
-        ai_meta = generate_ai_meta(title, html_localized, tags, summary)
-        if (ai_refresh or not summary) and ai_meta.get("summary"):
-            summary = ai_meta["summary"]
+    if ai_refresh or not summary or not tags:
+        try:
+            output = subprocess.check_output(["python3", os.path.join(BASE_DIR, "scripts", "ai_generate_meta.py"), note_id], text=True)
+            meta = json.loads(output)
+            summary = meta.get("summary", summary).strip()
+            tags = meta.get("tags", tags)
+            if meta.get("slug"):
+                slug = ensure_unique_slug(meta["slug"], note_id, used_slugs)
             ai_generated = True
-        if (ai_refresh or not tags) and ai_meta.get("tags"):
-            tags = ai_meta["tags"]
-            ai_generated = True
-
-    sync_hash = compute_sync_hash(
-        title=title,
-        content_html=html_localized,
-        attachments=local_assets,
-        slug=slug,
-        summary=summary,
-        tags=tags,
-    )
+        except Exception:
+            pass
+    payload_for_hash = {
+        "title": title,
+        "slug": slug,
+        "summary": summary,
+        "tags": tags,
+        "contentHtml": html_localized,
+    }
+    sync_hash = hashlib.sha256(json.dumps(payload_for_hash, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
     post = {
-        "id": note["noteId"],
+        "id": note_id,
         "slug": slug,
         "title": title,
         "updatedAt": first_label_value(attr_map, "updatedAt", "").strip() or note.get("dateModified") or note.get("utcDateModified") or now_str(),
@@ -347,6 +296,7 @@ def build_post_record(note: dict, used_slugs: set) -> Tuple[dict, dict, List[dic
         "prevSyncHash": first_label_value(attr_map, "syncHash", ""),
         "aiRefresh": ai_refresh,
         "aiGenerated": ai_generated,
+        "syncRequested": first_label_value(attr_map, "sync", "false").lower() == "true",
     }
     return post, meta, attrs
 
@@ -373,35 +323,21 @@ def cleanup_removed_assets(note_ids: List[str]) -> List[str]:
 
 
 def git_has_changes() -> bool:
-    r = subprocess.run(
-        ["git", "status", "--porcelain", "src/data/trilium-posts.generated.ts", "public/trilium-assets"],
-        cwd=BASE_DIR,
-        capture_output=True,
-        text=True,
-    )
+    r = subprocess.run(["git", "status", "--porcelain", "src/data/trilium-posts.generated.ts", "public/trilium-assets"], cwd=BASE_DIR, capture_output=True, text=True)
     return bool(r.stdout.strip())
 
 
 def git_commit_and_push(message: str) -> Tuple[bool, str]:
-    add_cmd = ["git", "add", "src/data/trilium-posts.generated.ts", "public/trilium-assets"]
-    add_res = subprocess.run(add_cmd, cwd=BASE_DIR, capture_output=True, text=True)
+    add_res = subprocess.run(["git", "add", "src/data/trilium-posts.generated.ts", "public/trilium-assets"], cwd=BASE_DIR, capture_output=True, text=True)
     if add_res.returncode != 0:
         return False, (add_res.stderr or add_res.stdout).strip()
-
-    commit_res = subprocess.run(
-        ["git", "commit", "-m", message],
-        cwd=BASE_DIR,
-        capture_output=True,
-        text=True,
-    )
+    commit_res = subprocess.run(["git", "commit", "-m", message], cwd=BASE_DIR, capture_output=True, text=True)
     commit_text = (commit_res.stdout or "") + (commit_res.stderr or "")
     if commit_res.returncode != 0:
         if "nothing to commit" in commit_text.lower():
             return True, "nothing to commit"
         return False, commit_text.strip()
-
-    push_cmd = ["git", "push", GIT_REMOTE, GIT_BRANCH]
-    push_res = subprocess.run(push_cmd, cwd=BASE_DIR, capture_output=True, text=True)
+    push_res = subprocess.run(["git", "push", GIT_REMOTE, GIT_BRANCH], cwd=BASE_DIR, capture_output=True, text=True)
     push_text = (push_res.stdout or "") + (push_res.stderr or "")
     if push_res.returncode != 0:
         return False, push_text.strip()
@@ -412,17 +348,7 @@ def main():
     root = get_json(f"/etapi/notes/{ROOT_NOTE_ID}")
     all_notes = walk_note_tree(ROOT_NOTE_ID)
     candidates = []
-    report = {
-        "rootTitle": root.get("title", ""),
-        "scanned": 0,
-        "publishedCandidates": 0,
-        "updated": [],
-        "unchanged": [],
-        "failed": [],
-        "aiUpdated": [],
-        "removed": [],
-        "removedAssets": [],
-    }
+    report = {"rootTitle": root.get("title", ""), "scanned": 0, "publishedCandidates": 0, "updated": [], "unchanged": [], "failed": [], "aiUpdated": [], "removed": [], "removedAssets": []}
 
     for note in all_notes:
         report["scanned"] += 1
@@ -432,7 +358,6 @@ def main():
             continue
         if should_skip_note(note):
             continue
-
         attrs = note.get("attributes", []) or []
         attr_map = label_attrs(attrs)
         publish_value = first_label_value(attr_map, "publish", "false").lower()
@@ -440,11 +365,11 @@ def main():
             if first_label_value(attr_map, "syncStatus", "") == "published":
                 try:
                     set_label(note["noteId"], attrs, "syncStatus", "removed")
+                    set_label(note["noteId"], attrs, "sync", "false")
                     report["removed"].append({"id": note["noteId"], "title": note.get("title", "未命名")})
                 except Exception as e:
                     report["failed"].append({"id": note.get("noteId"), "title": note.get("title"), "error": str(e)[:300]})
             continue
-
         candidates.append(note)
 
     posts: List[dict] = []
@@ -453,18 +378,11 @@ def main():
         report["publishedCandidates"] += 1
         attrs = note.get("attributes", []) or []
         try:
-            set_label(note["noteId"], attrs, "syncStatus", "publishing")
             post, meta, attrs = build_post_record(note, used_slugs)
-            needs_publish = (
-                not meta["prevSyncHash"]
-                or meta["prevSyncHash"] != meta["computedSyncHash"]
-                or meta["aiRefresh"]
-            )
-
-            if not post["publishedAt"]:
-                post["publishedAt"] = first_label_value(label_attrs(attrs), "publishedAt", "")
-
+            first_publish = not post["publishedAt"]
+            needs_publish = first_publish or meta["syncRequested"] or meta["aiRefresh"]
             if needs_publish:
+                set_label(note["noteId"], attrs, "syncStatus", "publishing")
                 ts = now_str()
                 set_label(note["noteId"], attrs, "slug", post["slug"])
                 if meta["aiGenerated"]:
@@ -477,6 +395,7 @@ def main():
                 set_label(note["noteId"], attrs, "syncHash", meta["computedSyncHash"])
                 set_label(note["noteId"], attrs, "updatedAt", ts)
                 set_label(note["noteId"], attrs, "syncStatus", "published")
+                set_label(note["noteId"], attrs, "sync", "false")
                 if meta["aiRefresh"]:
                     set_label(note["noteId"], attrs, "aiRefresh", "false")
                 post["syncStatus"] = "published"
@@ -485,7 +404,6 @@ def main():
                 set_label(note["noteId"], attrs, "syncStatus", "published")
                 post["syncStatus"] = "published"
                 report["unchanged"].append({"id": note["noteId"], "title": post["title"]})
-
             posts.append(post)
         except Exception as e:
             try:
