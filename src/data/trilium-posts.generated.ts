@@ -5,6 +5,23 @@ export interface TriliumPostRecord {
 
 export const triliumPosts: TriliumPostRecord[] = [
   {
+    "id": "yAEdBzTrtiHe",
+    "slug": "这是一个测试博客",
+    "title": "这是一个测试博客",
+    "updatedAt": "2026-03-30 01:48:01.906+0800",
+    "publishedAt": "2026-03-29 22:38:03.613+0800",
+    "tags": [
+      "自动化",
+      "博客发布",
+      "longBlog"
+    ],
+    "summary": "自动化流程将内容发布到longBlog平台，简化博客发布流程。",
+    "contentHtml": "<p>由自动化流自动发布到longBlog，确实挺不错的。加了好几层兜底策略。🥳</p>",
+    "pinned": false,
+    "syncHash": "d5bb6252333a1b21be9057fbbad79a83a354bef1705ff1f93e1d74c3a7eadcde",
+    "syncStatus": "published"
+  },
+  {
     "id": "4o1kCT4CizAt",
     "slug": "飞牛nas部署matrix",
     "title": "飞牛nas部署Matrix",
