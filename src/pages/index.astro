@@ -5,6 +5,13 @@ import { getSortedPosts } from '../data/posts';
 import { AUTHOR, AUTHOR_INTRO, SOCIAL_LINKS, SITE_TITLE } from '../consts';
 
 const displayPosts = getSortedPosts();
+const searchPosts = displayPosts.map((post) => ({
+  slug: post.slug,
+  title: post.title,
+  summary: post.summary,
+  tags: post.tags,
+  date: post.date.toISOString(),
+}));
 
 const socialIcons = {
   github: '/social-icons/github.svg',
@@ -50,6 +57,30 @@ const socialIcons = {
           <path d="M20.2 14.35A7.95 7.95 0 0 1 9.65 3.8a8.6 8.6 0 1 0 10.55 10.55Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
         </svg>
       </button>
+
+      <button
+        id="search-toggle"
+        class="theme-toggle"
+        type="button"
+        aria-label="搜索文章"
+        title="搜索文章"
+      >
+        <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="5.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+          <path d="M15.2 15.2 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="search-panel" class="search-panel" hidden>
+      <div class="search-panel-inner">
+        <div class="search-head">
+          <input id="search-input" type="search" placeholder="搜索文章标题、摘要、标签…" autocomplete="off" />
+          <button id="search-close" type="button" aria-label="关闭搜索">✕</button>
+        </div>
+        <div id="search-results" class="search-results"></div>
+      </div>
+    </div>
     </div>
   </section>
 
@@ -72,6 +103,99 @@ const socialIcons = {
     </div>
   </section>
 </BaseLayout>
+
+<script define:vars={{ searchPosts }}>
+  (() => {
+    const toggle = document.getElementById('search-toggle');
+    const panel = document.getElementById('search-panel');
+    const input = document.getElementById('search-input');
+    const closeBtn = document.getElementById('search-close');
+    const results = document.getElementById('search-results');
+    const posts = Array.isArray(searchPosts) ? searchPosts : [];
+
+    if (!(toggle instanceof HTMLButtonElement) || !(panel instanceof HTMLElement) || !(input instanceof HTMLInputElement) || !(results instanceof HTMLElement)) return;
+
+    const escapeHtml = (value) => String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+
+    const openPanel = () => {
+      panel.hidden = false;
+      requestAnimationFrame(() => {
+        panel.classList.add('is-open');
+        input.focus();
+      });
+    };
+
+    const closePanel = () => {
+      panel.classList.remove('is-open');
+      window.setTimeout(() => {
+        panel.hidden = true;
+      }, 180);
+    };
+
+    const renderResults = (items) => {
+      if (!items.length) {
+        results.innerHTML = '<div class="search-empty">没有找到匹配的文章。</div>';
+        return;
+      }
+
+      results.innerHTML = items.map((post) => `
+        <a class="search-result-item" href="/blog/${encodeURIComponent(post.slug)}">
+          <div class="search-result-title">${escapeHtml(post.title)}</div>
+          ${post.summary ? `<div class="search-result-summary">${escapeHtml(post.summary)}</div>` : ''}
+          <div class="search-result-meta">${(post.tags || []).map((tag) => `#${escapeHtml(tag)}`).join(' ')}</div>
+        </a>
+      `).join('');
+    };
+
+    const doSearch = (keyword) => {
+      const q = keyword.trim().toLowerCase();
+      if (!q) {
+        renderResults(posts.slice(0, 8));
+        return;
+      }
+      const matched = posts.filter((post) => {
+        const haystack = [post.title, post.summary, post.slug, ...(post.tags || [])].join(' ').toLowerCase();
+        return haystack.includes(q);
+      });
+      renderResults(matched.slice(0, 20));
+    };
+
+    toggle.addEventListener('click', () => {
+      if (panel.hidden) {
+        openPanel();
+        doSearch('');
+      } else {
+        closePanel();
+      }
+    });
+
+    closeBtn?.addEventListener('click', closePanel);
+    input.addEventListener('input', () => doSearch(input.value));
+
+    panel.addEventListener('click', (event) => {
+      if (event.target === panel) closePanel();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      const metaOrCtrl = event.metaKey || event.ctrlKey;
+      if (metaOrCtrl && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        if (panel.hidden) {
+          openPanel();
+          doSearch(input.value);
+        } else {
+          closePanel();
+        }
+      }
+      if (event.key === 'Escape' && !panel.hidden) closePanel();
+    });
+  })();
+</script>
 
 <style>
   .hero-section {
@@ -148,12 +272,137 @@ const socialIcons = {
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--foreground) 10%, transparent);
   }
 
-  .theme-icon {
+  .theme-icon,
+  .search-icon {
     position: absolute;
     width: 1rem;
     height: 1rem;
     transition: opacity 0.28s ease, transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
   }
+
+  .search-icon {
+    position: static;
+    transition: none;
+  }
+
+  .search-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: start center;
+    padding: 7rem 1rem 1rem;
+    background: rgba(255, 255, 255, 0.42);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+  }
+
+  .search-panel.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  :global(html[data-theme='dark']) .search-panel {
+    background: rgba(7, 10, 18, 0.48);
+  }
+
+  .search-panel-inner {
+    width: min(42rem, 100%);
+    border: 1px solid color-mix(in oklab, var(--border) 78%, transparent);
+    border-radius: 1.2rem;
+    background: color-mix(in oklab, white 96%, var(--muted) 4%);
+    box-shadow: 0 28px 80px rgba(15, 23, 42, 0.12);
+    overflow: hidden;
+  }
+
+  :global(html[data-theme='dark']) .search-panel-inner {
+    background: linear-gradient(180deg, rgba(22, 26, 38, 0.98), rgba(17, 21, 32, 0.96));
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+  }
+
+  .search-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.8rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 68%, transparent);
+  }
+
+  .search-head input {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--foreground);
+    font-size: 0.98rem;
+    outline: none;
+  }
+
+  .search-head input::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  .search-head button {
+    border: 0;
+    background: transparent;
+    color: var(--muted-foreground);
+    font-size: 1rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    transition: color var(--transition-base), background-color var(--transition-base);
+  }
+
+  .search-head button:hover {
+    color: var(--foreground);
+    background: color-mix(in oklab, var(--muted) 82%, white);
+  }
+
+  .search-results {
+    max-height: min(60vh, 34rem);
+    overflow: auto;
+    padding: 0.45rem;
+  }
+
+  .search-result-item {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: 0.95rem;
+    transition: background-color var(--transition-base), transform var(--transition-base);
+  }
+
+  .search-result-item:hover {
+    background: color-mix(in oklab, var(--muted) 80%, white);
+    transform: translateY(-1px);
+  }
+
+  :global(html[data-theme='dark']) .search-result-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .search-result-title {
+    font-size: 0.95rem;
+    color: var(--foreground);
+  }
+
+  .search-result-summary {
+    font-size: 0.84rem;
+    color: var(--muted-foreground);
+    line-height: 1.75;
+  }
+
+  .search-result-meta,
+  .search-empty {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: color-mix(in oklab, var(--muted-foreground) 80%, transparent);
+  }
+
 
   .theme-icon-sun {
     opacity: 0;
@@ -183,6 +432,20 @@ const socialIcons = {
   :global(html[data-theme='dark']) .theme-icon-moon {
     opacity: 1;
     transform: scale(1) rotate(0deg);
+  }
+
+  @media (max-width: 640px) {
+    .search-panel {
+      padding-top: 6rem;
+    }
+
+    .search-panel-inner {
+      border-radius: 1rem;
+    }
+
+    .search-head {
+      padding: 0.7rem;
+    }
   }
 
   .posts-section {
