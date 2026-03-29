@@ -157,9 +157,9 @@ export const triliumPosts: TriliumPostRecord[] = [
       "longBlog"
     ],
     "summary": "自动化流程将内容发布到longBlog平台，简化博客发布流程。",
-    "contentHtml": "<p>由自动化流自动发布到longBlog。🥳</p>",
+    "contentHtml": "<p>由自动化流自动发布到longBlog，确实挺不错的。🥳</p>",
     "pinned": false,
-    "syncHash": "028aeeeeb0d59d90d93153d620135247f2f1b207ed9cabcacbab101a9a2b82ca",
+    "syncHash": "516e7d1d0b0f7ddb3701fa1878124b647d4afce696d4d21aec95cb480406c0ee",
     "syncStatus": "published"
   }
 ];
