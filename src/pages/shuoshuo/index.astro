@@ -3,6 +3,49 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { MEMOS_URL } from '../../consts';
 
 const memosApiBase = MEMOS_URL;
+const PAGE_SIZE = 10;
+
+async function fetchJson(url) {
+  const resp = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return await resp.json();
+}
+
+function memoKey(memo) {
+  return String(memo?.name || `${memo?.createTime || ''}-${memo?.updateTime || ''}-${memo?.content?.slice?.(0, 16) || ''}`);
+}
+
+let initialMemos = [];
+let initialNextPageToken = '';
+let initialError = '';
+
+try {
+  const data = await fetchJson(`${memosApiBase}/api/v1/memos?pageSize=${PAGE_SIZE}`);
+  let memos = Array.isArray(data?.memos) ? data.memos : [];
+
+  try {
+    const pinData = await fetchJson(`${memosApiBase}/api/v1/memos?pageSize=100`);
+    const pinMemos = Array.isArray(pinData?.memos) ? pinData.memos.filter((m) => m?.pinned) : [];
+    if (pinMemos.length) {
+      const mergeMap = new Map();
+      for (const m of [...pinMemos, ...memos]) {
+        mergeMap.set(memoKey(m), m);
+      }
+      memos = [...mergeMap.values()];
+    }
+  } catch {}
+
+  initialMemos = memos
+    .filter((m) => m?.visibility === 'PUBLIC')
+    .sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return new Date(b.createTime).getTime() - new Date(a.createTime).getTime();
+    });
+  initialNextPageToken = data?.nextPageToken || '';
+} catch (e) {
+  initialError = e instanceof Error ? e.message : '加载失败';
+}
 ---
 
 <BaseLayout title="说说" description="日常碎碎念">
@@ -14,9 +57,10 @@ const memosApiBase = MEMOS_URL;
   <section class="memos-wrap">
     <div id="memos-list" class="memos-list"></div>
 
-    <div id="memos-loading" class="memos-status">加载中...</div>
+    <div id="memos-loading" class="memos-status" style={initialError ? 'display:none;' : undefined}>加载中...</div>
     <div id="memos-end" class="memos-status" style="display:none;">- END -</div>
     <div id="memos-empty" class="memos-status" style="display:none;">暂无内容</div>
+    <div id="memos-error" class="memos-status" style={initialError ? '' : 'display:none;'}>{initialError || '加载失败，请稍后刷新重试'}</div>
 
     <div id="memos-sentinel" class="memos-sentinel"></div>
   </section>
@@ -27,11 +71,12 @@ const memosApiBase = MEMOS_URL;
   </div>
 </BaseLayout>
 
-<script define:vars={{ memosApiBase }}>
+<script define:vars={{ memosApiBase, initialMemos, initialNextPageToken, initialError, PAGE_SIZE }}>
   const listEl = document.getElementById('memos-list');
   const loadingEl = document.getElementById('memos-loading');
   const endEl = document.getElementById('memos-end');
   const emptyEl = document.getElementById('memos-empty');
+  const errorEl = document.getElementById('memos-error');
 
   document.documentElement.classList.add('memos-page');
   document.body.classList.add('memos-page');
@@ -40,16 +85,14 @@ const memosApiBase = MEMOS_URL;
   const previewImgEl = document.getElementById('preview-image');
   const closeBtn = document.getElementById('preview-close');
 
-  let pageToken = '';
-  let hasMore = true;
+  let pageToken = initialNextPageToken || '';
+  let hasMore = !!initialNextPageToken;
   let loading = false;
-  let pinnedReady = false;
   const seen = new Set();
   const memoStore = new Map();
 
-  const PAGE_SIZE = 10;
   const MAX_SAME_TOKEN_HITS = 2;
-  let lastNextPageToken = '';
+  let lastNextPageToken = initialNextPageToken || '';
   let sameTokenHits = 0;
   let requestPageSize = PAGE_SIZE;
 
@@ -104,11 +147,7 @@ const memosApiBase = MEMOS_URL;
       if ((att.type || '').startsWith('image/')) {
         images.push(fileUrl);
       } else {
-        files.push({
-          name: filename,
-          url: fileUrl,
-          type: att.type || 'file',
-        });
+        files.push({ name: filename, url: fileUrl, type: att.type || 'file' });
       }
     }
 
@@ -120,8 +159,6 @@ const memosApiBase = MEMOS_URL;
   }
 
   function renderMemo(memo) {
-    const memoKey = String(memo.name || `${memo.createTime}-${memo.updateTime}-${memo.content?.slice(0, 16) || ''}`);
-
     const content = processContent(memo.content || '');
     const { images, files } = mapAttachments(memo);
     const tags = (memo.tags || []).filter((t) => !String(t).startsWith('#'));
@@ -129,21 +166,15 @@ const memosApiBase = MEMOS_URL;
     article.className = 'memo-item';
 
     const imageGridHTML = images.length
-      ? `<div class="memo-images memo-images-${Math.min(images.length, 9)}" style="--thumb-size:4.8rem;max-width:15.2rem;">${images
-          .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}" style="width:4.8rem;height:4.8rem;max-width:4.8rem;max-height:4.8rem;" aria-label="查看大图"><img src="${escapeHTML(img)}" loading="lazy" alt="图片缩略图" style="width:100%;height:100%;object-fit:cover;" /></button>`)
-          .join('')}</div>`
+      ? `<div class="memo-images memo-images-${Math.min(images.length, 9)}" style="--thumb-size:4.8rem;max-width:15.2rem;">${images.map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}" style="width:4.8rem;height:4.8rem;max-width:4.8rem;max-height:4.8rem;" aria-label="查看大图"><img src="${escapeHTML(img)}" loading="lazy" alt="图片缩略图" style="width:100%;height:100%;object-fit:cover;" /></button>`).join('')}</div>`
       : '';
 
     const filesHTML = files.length
-      ? `<div class="memo-files">${files
-          .map((file) => `<a href="${escapeHTML(file.url)}" target="_blank" rel="noopener noreferrer" class="memo-file"><span class="memo-file-name">📎 ${escapeHTML(file.name)}</span><span class="memo-file-type">${escapeHTML(file.type)}</span></a>`)
-          .join('')}</div>`
+      ? `<div class="memo-files">${files.map((file) => `<a href="${escapeHTML(file.url)}" target="_blank" rel="noopener noreferrer" class="memo-file"><span class="memo-file-name">📎 ${escapeHTML(file.name)}</span><span class="memo-file-type">${escapeHTML(file.type)}</span></a>`).join('')}</div>`
       : '';
 
     const tagsHTML = tags.length
-      ? `<div class="memo-tags">${tags
-          .map((tag) => `<span>#${escapeHTML(String(tag))}</span>`)
-          .join('')}</div>`
+      ? `<div class="memo-tags">${tags.map((tag) => `<span>#${escapeHTML(String(tag))}</span>`).join('')}</div>`
       : '';
 
     article.innerHTML = `
@@ -176,89 +207,44 @@ const memosApiBase = MEMOS_URL;
       const node = renderMemo(memo);
       if (node) listEl.appendChild(node);
     }
+
+    emptyEl.style.display = items.length ? 'none' : 'block';
+    endEl.style.display = !hasMore && items.length ? 'block' : 'none';
+  }
+
+  function addMemos(memos) {
+    for (const memo of memos) {
+      const key = String(memo.name || `${memo.createTime}-${memo.updateTime}-${memo.content?.slice(0, 16) || ''}`);
+      seen.add(key);
+      memoStore.set(key, memo);
+    }
+    renderAllMemos();
   }
 
   async function loadMore() {
-    if (!hasMore || loading) return;
-
+    if (!hasMore || loading || initialError) return;
     loading = true;
     loadingEl.style.display = 'block';
+    errorEl.style.display = 'none';
 
     try {
-      let data = null;
+      const qs = new URLSearchParams({ pageSize: String(requestPageSize) });
+      if (pageToken) qs.set('pageToken', pageToken);
 
-      if (!pageToken && requestPageSize === PAGE_SIZE) {
-        const cached = sessionStorage.getItem('LONG_BLOG_MEMOS_CACHE');
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (parsed?.data?.memos && Date.now() - parsed.ts < 30 * 1000) {
-              data = parsed.data;
-            }
-          } catch (e) {}
-          sessionStorage.removeItem('LONG_BLOG_MEMOS_CACHE');
-        }
-      }
-
-      if (!data) {
-        const qs = new URLSearchParams({ pageSize: String(requestPageSize) });
-        if (pageToken) qs.set('pageToken', pageToken);
-
-        const resp = await fetch(`${memosApiBase}/api/v1/memos?${qs.toString()}`);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        data = await resp.json();
-      }
-
+      const resp = await fetch(`${memosApiBase}/api/v1/memos?${qs.toString()}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
       let memos = Array.isArray(data.memos) ? data.memos : [];
-
-      if (!pinnedReady) {
-        try {
-          const pinResp = await fetch(`${memosApiBase}/api/v1/memos?pageSize=100`);
-          if (pinResp.ok) {
-            const pinData = await pinResp.json();
-            const pinMemos = Array.isArray(pinData?.memos) ? pinData.memos.filter((m) => m?.pinned) : [];
-            if (pinMemos.length) {
-              const mergeMap = new Map();
-              for (const m of [...pinMemos, ...memos]) {
-                const key = String(m.name || `${m.createTime}-${m.updateTime}-${m.content?.slice(0, 16) || ''}`);
-                mergeMap.set(key, m);
-              }
-              memos = [...mergeMap.values()];
-            }
-          }
-        } catch (e) {
-          // ignore pinned prefetch failure
-        }
-        pinnedReady = true;
-      }
-
       const publicMemos = memos.filter((m) => m.visibility === 'PUBLIC');
 
-      publicMemos.sort((a, b) => {
-        if (a.pinned && !b.pinned) return -1;
-        if (!a.pinned && b.pinned) return 1;
-        return new Date(b.createTime).getTime() - new Date(a.createTime).getTime();
-      });
-
       const beforeCount = seen.size;
-      for (const memo of publicMemos) {
-        const memoKey = String(memo.name || `${memo.createTime}-${memo.updateTime}-${memo.content?.slice(0, 16) || ''}`);
-        if (!seen.has(memoKey)) {
-          seen.add(memoKey);
-          memoStore.set(memoKey, memo);
-        } else {
-          memoStore.set(memoKey, memo);
-        }
-      }
+      addMemos(publicMemos);
       const addedCount = seen.size - beforeCount;
-      renderAllMemos();
+
       const nextToken = data.nextPageToken || '';
       if (nextToken) {
-        if (nextToken === lastNextPageToken) {
-          sameTokenHits += 1;
-        } else {
-          sameTokenHits = 0;
-        }
+        if (nextToken === lastNextPageToken) sameTokenHits += 1;
+        else sameTokenHits = 0;
         lastNextPageToken = nextToken;
         pageToken = nextToken;
         hasMore = sameTokenHits < MAX_SAME_TOKEN_HITS;
@@ -276,12 +262,10 @@ const memosApiBase = MEMOS_URL;
         loadingEl.style.display = 'none';
         endEl.style.display = listEl.children.length ? 'block' : 'none';
       }
-
-      if (!listEl.children.length) {
-        emptyEl.style.display = 'block';
-      }
     } catch (err) {
-      loadingEl.textContent = '加载失败，请稍后刷新重试';
+      loadingEl.style.display = 'none';
+      errorEl.textContent = '加载失败，请稍后刷新重试';
+      errorEl.style.display = 'block';
       console.error('[memos] load error:', err);
       return;
     } finally {
@@ -290,18 +274,27 @@ const memosApiBase = MEMOS_URL;
     }
   }
 
-  const io = new IntersectionObserver(
-    (entries) => {
-      const entry = entries[0];
-      if (entry && entry.isIntersecting) loadMore();
-    },
-    { rootMargin: '360px 0px' },
-  );
+  if (Array.isArray(initialMemos) && initialMemos.length) {
+    addMemos(initialMemos);
+    loadingEl.style.display = hasMore ? 'none' : 'none';
+    endEl.style.display = !hasMore ? 'block' : 'none';
+    try {
+      sessionStorage.setItem('LONG_BLOG_MEMOS_CACHE', JSON.stringify({ ts: Date.now(), data: { memos: initialMemos, nextPageToken: initialNextPageToken } }));
+    } catch {}
+  } else if (!initialError) {
+    emptyEl.style.display = 'block';
+    loadingEl.style.display = 'none';
+  }
+
+  const io = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    if (entry && entry.isIntersecting) loadMore();
+  }, { rootMargin: '360px 0px' });
 
   io.observe(sentinelEl);
 
   window.addEventListener('scroll', () => {
-    if (!hasMore || loading) return;
+    if (!hasMore || loading || initialError) return;
     const remain = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
     if (remain < 420) loadMore();
   }, { passive: true });
@@ -331,8 +324,6 @@ const memosApiBase = MEMOS_URL;
     document.documentElement.classList.remove('memos-page');
     document.body.classList.remove('memos-page');
   });
-
-  loadMore();
 </script>
 
 <style is:global>
@@ -358,256 +349,35 @@ const memosApiBase = MEMOS_URL;
     background: transparent !important;
   }
 
-  .memos-wrap {
-    padding-bottom: 4.5rem;
-  }
-
-  .memos-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2.55rem;
-  }
-
-  .memo-item {
-    position: relative;
-    padding-left: 2.04rem;
-  }
-
-  .timeline-line {
-    position: absolute;
-    left: 0.36rem;
-    top: 0;
-    bottom: -2.55rem;
-    width: 1px;
-    background: color-mix(in oklab, var(--border) 92%, transparent);
-  }
-
-  .timeline-dot {
-    position: absolute;
-    left: 0.15rem;
-    top: 0.49rem;
-    width: 0.43rem;
-    height: 0.43rem;
-    border-radius: 999px;
-    background: color-mix(in oklab, var(--foreground) 28%, transparent);
-  }
-
-  .memo-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.02em;
-    color: color-mix(in oklab, var(--muted-foreground) 78%, transparent);
-    margin-bottom: 0.62rem;
-    line-height: 1.2;
-  }
-
-  .memo-pinned {
-    color: var(--foreground);
-    font-weight: 500;
-    font-size: 0.64rem;
-    border: 1px solid color-mix(in oklab, var(--border) 92%, transparent);
-    border-radius: 999px;
-    padding: 0.04rem 0.34rem;
-  }
-
-  .memo-content {
-    font-family: var(--font-sans);
-    font-size: 1.02rem;
-    font-weight: 400;
-    line-height: 1.82;
-    color: color-mix(in oklab, var(--foreground) 95%, transparent);
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-width: 42rem;
-    letter-spacing: 0.002em;
-  }
-
-  .memo-body {
-    padding-right: 0.25rem;
-  }
-
-  .memo-item::after {
-    content: '';
-    position: absolute;
-    left: 2.04rem;
-    right: 0;
-    bottom: -1.24rem;
-    height: 1px;
-    background: color-mix(in oklab, var(--border) 66%, transparent);
-    opacity: 0.4;
-  }
-
-  .memo-item:last-child::after {
-    display: none;
-  }
-
-  .memo-images {
-    --thumb-size: 5.25rem;
-    margin-top: 0.72rem;
-    display: grid;
-    grid-template-columns: repeat(3, var(--thumb-size));
-    grid-auto-rows: var(--thumb-size);
-    gap: 0.38rem;
-    justify-content: flex-start;
-    width: fit-content;
-  }
-
-  .memo-images-1 {
-    grid-template-columns: var(--thumb-size);
-  }
-
-  .memo-images-2 {
-    grid-template-columns: repeat(2, var(--thumb-size));
-  }
-
-  @media (min-width: 768px) {
-    .memo-images {
-      --thumb-size: 5.6rem;
-      gap: 0.4rem;
-    }
-  }
-
-  .memo-img-btn {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
-    padding: 0;
-    overflow: hidden;
-    border-radius: 0.48rem;
-    cursor: zoom-in;
-    background: color-mix(in oklab, var(--muted) 96%, transparent);
-  }
-
-  .memo-img-btn img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: transform var(--transition-base), opacity var(--transition-base);
-  }
-
-  .memo-img-btn:hover img {
-    transform: scale(1.04);
-    opacity: 0.97;
-  }
-
-  .memo-content img {
-    max-width: min(11rem, 40vw);
-    max-height: 8rem;
-    width: auto;
-    height: auto;
-    border-radius: 0.45rem;
-    display: block;
-    margin-top: 0.5rem;
-  }
-
-  .memo-files {
-    margin-top: 0.68rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.34rem;
-    max-width: 26rem;
-  }
-
-  .memo-file {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.6rem;
-    border: 1px solid color-mix(in oklab, var(--border) 84%, transparent);
-    border-radius: 0.44rem;
-    padding: 0.34rem 0.52rem;
-    background: color-mix(in oklab, var(--muted) 94%, white);
-    transition: border-color var(--transition-base), background-color var(--transition-base);
-  }
-
-  .memo-file:hover {
-    border-color: color-mix(in oklab, var(--muted-foreground) 28%, var(--border));
-    background: color-mix(in oklab, var(--muted) 88%, white);
-  }
-
-  .memo-file-name {
-    font-size: 0.78rem;
-    color: color-mix(in oklab, var(--foreground) 88%, transparent);
-    line-height: 1.35;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .memo-file-type {
-    flex-shrink: 0;
-    font-family: var(--font-mono);
-    font-size: 0.64rem;
-    color: color-mix(in oklab, var(--muted-foreground) 74%, transparent);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  .memo-tags {
-    margin-top: 0.7rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.42rem;
-  }
-
-  .memo-tags span {
-    font-size: 0.71rem;
-    color: color-mix(in oklab, var(--muted-foreground) 86%, transparent);
-    background: color-mix(in oklab, var(--muted) 92%, white);
-    border-radius: 999px;
-    padding: 0.11rem 0.48rem;
-  }
-
-  .memos-status {
-    text-align: center;
-    margin-top: 2.2rem;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: color-mix(in oklab, var(--muted-foreground) 82%, transparent);
-    letter-spacing: 0.08em;
-  }
-
-  .memos-sentinel {
-    height: 1px;
-  }
-
-  .image-preview {
-    position: fixed;
-    inset: 0;
-    z-index: 999;
-    background: rgba(0, 0, 0, 0.84);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    width: 100vw;
-    height: 100dvh;
-    min-height: 100vh;
-  }
-
-  .image-preview img {
-    max-width: min(90vw, 960px);
-    max-height: 88dvh;
-    object-fit: contain;
-    border-radius: 0.52rem;
-  }
-
-  .preview-close {
-    position: absolute;
-    right: 1rem;
-    top: 1rem;
-    border: none;
-    background: transparent;
-    color: white;
-    font-size: 1.4rem;
-    cursor: pointer;
-    z-index: 1000;
-  }
+  .memos-wrap { padding-bottom: 4.5rem; }
+  .memos-list { display: flex; flex-direction: column; gap: 2.55rem; }
+  .memo-item { position: relative; padding-left: 2.04rem; }
+  .timeline-line { position: absolute; left: 0.36rem; top: 0; bottom: -2.55rem; width: 1px; background: color-mix(in oklab, var(--border) 92%, transparent); }
+  .timeline-dot { position: absolute; left: 0.15rem; top: 0.49rem; width: 0.43rem; height: 0.43rem; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 28%, transparent); }
+  .memo-meta { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.02em; color: color-mix(in oklab, var(--muted-foreground) 78%, transparent); margin-bottom: 0.62rem; line-height: 1.2; }
+  .memo-pinned { color: var(--foreground); font-weight: 500; font-size: 0.64rem; border: 1px solid color-mix(in oklab, var(--border) 92%, transparent); border-radius: 999px; padding: 0.04rem 0.34rem; }
+  .memo-content { font-family: var(--font-sans); font-size: 1.02rem; font-weight: 400; line-height: 1.82; color: color-mix(in oklab, var(--foreground) 95%, transparent); white-space: pre-wrap; word-break: break-word; max-width: 42rem; letter-spacing: 0.002em; }
+  .memo-body { padding-right: 0.25rem; }
+  .memo-item::after { content: ''; position: absolute; left: 2.04rem; right: 0; bottom: -1.24rem; height: 1px; background: color-mix(in oklab, var(--border) 66%, transparent); opacity: 0.4; }
+  .memo-item:last-child::after { display: none; }
+  .memo-images { --thumb-size: 5.25rem; margin-top: 0.72rem; display: grid; grid-template-columns: repeat(3, var(--thumb-size)); grid-auto-rows: var(--thumb-size); gap: 0.38rem; justify-content: flex-start; width: fit-content; }
+  .memo-images-1 { grid-template-columns: var(--thumb-size); }
+  .memo-images-2 { grid-template-columns: repeat(2, var(--thumb-size)); }
+  @media (min-width: 768px) { .memo-images { --thumb-size: 5.6rem; gap: 0.4rem; } }
+  .memo-img-btn { display: block; width: 100%; height: 100%; border: 1px solid color-mix(in oklab, var(--border) 88%, transparent); padding: 0; overflow: hidden; border-radius: 0.48rem; cursor: zoom-in; background: color-mix(in oklab, var(--muted) 96%, transparent); }
+  .memo-img-btn img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform var(--transition-base), opacity var(--transition-base); }
+  .memo-img-btn:hover img { transform: scale(1.04); opacity: 0.97; }
+  .memo-content img { max-width: min(11rem, 40vw); max-height: 8rem; width: auto; height: auto; border-radius: 0.45rem; display: block; margin-top: 0.5rem; }
+  .memo-files { margin-top: 0.68rem; display: flex; flex-direction: column; gap: 0.34rem; max-width: 26rem; }
+  .memo-file { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; border: 1px solid color-mix(in oklab, var(--border) 84%, transparent); border-radius: 0.44rem; padding: 0.34rem 0.52rem; background: color-mix(in oklab, var(--muted) 94%, white); transition: border-color var(--transition-base), background-color var(--transition-base); }
+  .memo-file:hover { border-color: color-mix(in oklab, var(--muted-foreground) 28%, var(--border)); background: color-mix(in oklab, var(--muted) 88%, white); }
+  .memo-file-name { font-size: 0.78rem; color: color-mix(in oklab, var(--foreground) 88%, transparent); line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .memo-file-type { flex-shrink: 0; font-family: var(--font-mono); font-size: 0.64rem; color: color-mix(in oklab, var(--muted-foreground) 74%, transparent); text-transform: uppercase; letter-spacing: 0.04em; }
+  .memo-tags { margin-top: 0.7rem; display: flex; flex-wrap: wrap; gap: 0.42rem; }
+  .memo-tags span { font-size: 0.71rem; color: color-mix(in oklab, var(--muted-foreground) 86%, transparent); background: color-mix(in oklab, var(--muted) 92%, white); border-radius: 999px; padding: 0.11rem 0.48rem; }
+  .memos-status { text-align: center; margin-top: 2.2rem; font-family: var(--font-mono); font-size: 0.72rem; color: color-mix(in oklab, var(--muted-foreground) 82%, transparent); letter-spacing: 0.08em; }
+  .memos-sentinel { height: 1px; }
+  .image-preview { position: fixed; inset: 0; z-index: 999; background: rgba(0, 0, 0, 0.84); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; padding: 1rem; width: 100vw; height: 100dvh; min-height: 100vh; }
+  .image-preview img { max-width: min(90vw, 960px); max-height: 88dvh; object-fit: contain; border-radius: 0.52rem; }
+  .preview-close { position: absolute; right: 1rem; top: 1rem; border: none; background: transparent; color: white; font-size: 1.4rem; cursor: pointer; z-index: 1000; }
 </style>
