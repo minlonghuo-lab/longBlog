@@ -115,6 +115,8 @@ const socialIcons = {
 
     if (!(toggle instanceof HTMLButtonElement) || !(panel instanceof HTMLElement) || !(input instanceof HTMLInputElement) || !(results instanceof HTMLElement)) return;
 
+    let searchTimer = 0;
+
     const escapeHtml = (value) => String(value)
       .replaceAll('&', '&amp;')
       .replaceAll('<', '&lt;')
@@ -137,6 +139,10 @@ const socialIcons = {
       }, 180);
     };
 
+    const renderIdle = () => {
+      results.innerHTML = '<div class="search-empty">输入关键词开始搜索文章。</div>';
+    };
+
     const renderResults = (items) => {
       if (!items.length) {
         results.innerHTML = '<div class="search-empty">没有找到匹配的文章。</div>';
@@ -146,8 +152,6 @@ const socialIcons = {
       results.innerHTML = items.map((post) => `
         <a class="search-result-item" href="/blog/${encodeURIComponent(post.slug)}">
           <div class="search-result-title">${escapeHtml(post.title)}</div>
-          ${post.summary ? `<div class="search-result-summary">${escapeHtml(post.summary)}</div>` : ''}
-          <div class="search-result-meta">${(post.tags || []).map((tag) => `#${escapeHtml(tag)}`).join(' ')}</div>
         </a>
       `).join('');
     };
@@ -155,7 +159,7 @@ const socialIcons = {
     const doSearch = (keyword) => {
       const q = keyword.trim().toLowerCase();
       if (!q) {
-        renderResults(posts.slice(0, 8));
+        renderIdle();
         return;
       }
       const matched = posts.filter((post) => {
@@ -165,17 +169,22 @@ const socialIcons = {
       renderResults(matched.slice(0, 20));
     };
 
+    const queueSearch = (keyword) => {
+      if (searchTimer) window.clearTimeout(searchTimer);
+      searchTimer = window.setTimeout(() => doSearch(keyword), 80);
+    };
+
     toggle.addEventListener('click', () => {
       if (panel.hidden) {
         openPanel();
-        doSearch('');
+        renderIdle();
       } else {
         closePanel();
       }
     });
 
     closeBtn?.addEventListener('click', closePanel);
-    input.addEventListener('input', () => doSearch(input.value));
+    input.addEventListener('input', () => queueSearch(input.value));
 
     panel.addEventListener('click', (event) => {
       if (event.target === panel) closePanel();
@@ -187,7 +196,11 @@ const socialIcons = {
         event.preventDefault();
         if (panel.hidden) {
           openPanel();
-          doSearch(input.value);
+          if (input.value.trim()) {
+            queueSearch(input.value);
+          } else {
+            renderIdle();
+          }
         } else {
           closePanel();
         }
@@ -388,19 +401,14 @@ const socialIcons = {
   .search-result-title {
     font-size: 0.95rem;
     color: var(--foreground);
+    line-height: 1.7;
   }
 
-  .search-result-summary {
-    font-size: 0.84rem;
-    color: var(--muted-foreground);
-    line-height: 1.75;
-  }
-
-  .search-result-meta,
   .search-empty {
     font-family: var(--font-mono);
-    font-size: 0.72rem;
+    font-size: 0.74rem;
     color: color-mix(in oklab, var(--muted-foreground) 80%, transparent);
+    padding: 0.95rem 1rem;
   }
 
 
