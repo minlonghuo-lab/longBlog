@@ -1,4 +1,12 @@
-import json, subprocess, sys
+import json
+import os
+import sys
+
+import requests
+
+API_BASE = os.environ.get('DEEPSEEK_API_BASE', 'https://api.deepseek.com').rstrip('/')
+API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')
+MODEL = os.environ.get('LONGBLOG_DEEPSEEK_MODEL', 'deepseek-chat')
 
 
 def extract_json_block(text: str):
@@ -11,6 +19,9 @@ def extract_json_block(text: str):
 
 
 def main():
+    if not API_KEY:
+        raise SystemExit('DEEPSEEK_API_KEY not set')
+
     payload = json.load(sys.stdin)
     system_prompt = (
         '你是中文技术博客元数据助手。请根据文章标题与正文，生成 summary、tags、slug。'
@@ -29,27 +40,32 @@ def main():
         'existing_summary': payload.get('summary', '')
     }
     req = {
+        'model': MODEL,
         'messages': [
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': json.dumps(user_prompt, ensure_ascii=False)}
         ],
         'temperature': 0.2,
-        'max_tokens': 800
+        'max_tokens': 800,
+        'stream': False,
     }
-    res = subprocess.run(
-        ['minis-model-use', 'run', '--model', 'MiniMax-M2.7'],
-        input=json.dumps(req, ensure_ascii=False),
-        capture_output=True,
-        text=True,
-        timeout=180
+    res = requests.post(
+        f'{API_BASE}/chat/completions',
+        headers={
+            'Authorization': f'Bearer {API_KEY}',
+            'Content-Type': 'application/json',
+        },
+        json=req,
+        timeout=180,
     )
-    if res.returncode != 0:
-        raise SystemExit('AI meta generation failed')
-    data = extract_json_block(res.stdout or '')
+    res.raise_for_status()
+    data = res.json()
+    content = (((data.get('choices') or [{}])[0].get('message') or {}).get('content') or '').strip()
+    parsed = extract_json_block(content)
     result = {
-        'summary': str(data.get('summary', '')).strip(),
-        'tags': [str(x).strip() for x in (data.get('tags') or []) if str(x).strip()],
-        'slug': str(data.get('slug', '')).strip(),
+        'summary': str(parsed.get('summary', '')).strip(),
+        'tags': [str(x).strip() for x in (parsed.get('tags') or []) if str(x).strip()],
+        'slug': str(parsed.get('slug', '')).strip(),
     }
     print(json.dumps(result, ensure_ascii=False))
 
