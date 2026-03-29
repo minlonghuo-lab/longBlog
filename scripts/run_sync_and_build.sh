@@ -12,7 +12,7 @@ printf '%s\n' "$SYNC_JSON" > "$REPORT_FILE"
 GIT_CHANGED=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; data=json.load(sys.stdin); print("true" if data.get("gitChanged") else "false")')
 UPDATED_COUNT=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; data=json.load(sys.stdin); print(len(data.get("updated") or []))')
 FAILED_COUNT=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; data=json.load(sys.stdin); print(len(data.get("failed") or []))')
-AI_COUNT=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; data=json.load(sys.stdin); print(len(data.get("aiUpdated") or []))')
+REMOVED_COUNT=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; data=json.load(sys.stdin); print(len(data.get("removed") or []))')
 BUILD_RAN=false
 INSTALL_RAN=false
 LOCK_HASH_FILE=/root/longblog-sync/package-lock.sha256
@@ -31,6 +31,6 @@ if [ "$GIT_CHANGED" = "true" ]; then
   BUILD_RAN=true
 fi
 TITLE="longBlog 自动发布"
-BODY=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); updated=len(d.get("updated") or []); unchanged=len(d.get("unchanged") or []); failed=len(d.get("failed") or []); ai=len(d.get("aiUpdated") or []); git_changed=d.get("gitChanged"); git_pushed=d.get("gitPushed"); msg=f"更新{updated}篇｜未变{unchanged}篇｜失败{failed}篇｜AI {ai}篇｜Git变更 {git_changed}｜已推送 {git_pushed}"; print(urllib.parse.quote(msg, safe=""))')
+BODY=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); updated=len(d.get("updated") or []); unchanged=len(d.get("unchanged") or []); removed=len(d.get("removed") or []); failed=len(d.get("failed") or []); ai=len(d.get("aiUpdated") or []); git_changed=d.get("gitChanged"); git_pushed=d.get("gitPushed"); msg=f"更新{updated}篇｜撤下{removed}篇｜未变{unchanged}篇｜失败{failed}篇｜AI {ai}篇｜Git变更 {git_changed}｜已推送 {git_pushed}"; print(urllib.parse.quote(msg, safe=""))')
 INFO=$(printf 'build=%s install=%s' "$BUILD_RAN" "$INSTALL_RAN" | $PYTHON_BIN -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip(), safe=""))')
 curl -fsS "$BARK_BASE_URL/$TITLE/$BODY?group=longBlog&url=&icon=https://ssaw.top/favicon.ico&level=active&copy=$INFO" >/dev/null 2>&1 || true

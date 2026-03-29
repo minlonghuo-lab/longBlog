@@ -393,6 +393,7 @@ def main():
         "unchanged": [],
         "failed": [],
         "aiUpdated": [],
+        "removed": [],
     }
 
     for note in all_notes:
@@ -406,7 +407,14 @@ def main():
 
         attrs = note.get("attributes", []) or []
         attr_map = label_attrs(attrs)
-        if first_label_value(attr_map, "publish", "false").lower() != "true":
+        publish_value = first_label_value(attr_map, "publish", "false").lower()
+        if publish_value != "true":
+            if first_label_value(attr_map, "syncStatus", "") == "published":
+                try:
+                    set_label(note["noteId"], attrs, "syncStatus", "removed")
+                    report["removed"].append({"id": note["noteId"], "title": note.get("title", "未命名")})
+                except Exception as e:
+                    report["failed"].append({"id": note.get("noteId"), "title": note.get("title"), "error": str(e)[:300]})
             continue
 
         candidates.append(note)
