@@ -1,11 +1,17 @@
-import json, subprocess, tempfile, os, sys
+import json, subprocess, sys
+
+
+def extract_json_block(text: str):
+    text = (text or '').strip()
+    start = text.find('{')
+    end = text.rfind('}')
+    if start == -1 or end == -1 or end <= start:
+        raise ValueError('No JSON object found in model output')
+    return json.loads(text[start:end + 1])
+
 
 def main():
-    if len(sys.argv) != 2:
-        print('usage: ai_generate_meta.py <input_json_path>', file=sys.stderr)
-        sys.exit(1)
-    input_path = sys.argv[1]
-    payload = json.load(open(input_path, 'r', encoding='utf-8'))
+    payload = json.load(sys.stdin)
     system_prompt = (
         '你是中文技术博客元数据助手。请根据文章标题与正文，生成 summary、tags、slug。'
         '要求：\n'
@@ -30,35 +36,23 @@ def main():
         'temperature': 0.2,
         'max_tokens': 800
     }
-    with tempfile.NamedTemporaryFile('w', delete=False, suffix='.json', encoding='utf-8') as f:
-        json.dump(req, f, ensure_ascii=False)
-        req_path = f.name
-    try:
-        res = subprocess.run(
-            ['minis-model-use', 'run', '--model', 'MiniMax-M2.7', '--input', req_path],
-            capture_output=True, text=True, timeout=180
-        )
-        if res.returncode != 0:
-            print(res.stderr or res.stdout, file=sys.stderr)
-            sys.exit(res.returncode or 1)
-        text = (res.stdout or '').strip()
-        start = text.find('{')
-        end = text.rfind('}')
-        if start == -1 or end == -1 or end <= start:
-            print(text, file=sys.stderr)
-            sys.exit(2)
-        data = json.loads(text[start:end+1])
-        result = {
-            'summary': str(data.get('summary', '')).strip(),
-            'tags': [str(x).strip() for x in (data.get('tags') or []) if str(x).strip()],
-            'slug': str(data.get('slug', '')).strip(),
-        }
-        print(json.dumps(result, ensure_ascii=False))
-    finally:
-        try:
-            os.unlink(req_path)
-        except OSError:
-            pass
+    res = subprocess.run(
+        ['minis-model-use', 'run', '--model', 'MiniMax-M2.7'],
+        input=json.dumps(req, ensure_ascii=False),
+        capture_output=True,
+        text=True,
+        timeout=180
+    )
+    if res.returncode != 0:
+        raise SystemExit('AI meta generation failed')
+    data = extract_json_block(res.stdout or '')
+    result = {
+        'summary': str(data.get('summary', '')).strip(),
+        'tags': [str(x).strip() for x in (data.get('tags') or []) if str(x).strip()],
+        'slug': str(data.get('slug', '')).strip(),
+    }
+    print(json.dumps(result, ensure_ascii=False))
+
 
 if __name__ == '__main__':
     main()

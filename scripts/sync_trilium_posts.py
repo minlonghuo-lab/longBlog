@@ -5,7 +5,6 @@ import json
 import hashlib
 import mimetypes
 import subprocess
-import tempfile
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Tuple
 
@@ -254,29 +253,21 @@ def generate_ai_meta(title: str, content_html: str, slug: str, tags: List[str], 
         "tags": tags,
         "summary": summary,
     }
-    with tempfile.NamedTemporaryFile("w", delete=False, suffix=".json", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False)
-        input_path = f.name
-    try:
-        res = subprocess.run(
-            ["python3", os.path.join(BASE_DIR, "scripts", "ai_generate_meta.py"), input_path],
-            capture_output=True,
-            text=True,
-            timeout=240,
-        )
-        if res.returncode != 0:
-            raise RuntimeError((res.stderr or res.stdout).strip() or "AI meta generation failed")
-        data = json.loads((res.stdout or "").strip())
-        return {
-            "summary": normalize_whitespace(data.get("summary", "")),
-            "tags": [normalize_whitespace(x) for x in (data.get("tags") or []) if normalize_whitespace(x)],
-            "slug": normalize_whitespace(data.get("slug", "")),
-        }
-    finally:
-        try:
-            os.unlink(input_path)
-        except OSError:
-            pass
+    res = subprocess.run(
+        ["python3", os.path.join(BASE_DIR, "scripts", "ai_generate_meta.py")],
+        input=json.dumps(payload, ensure_ascii=False),
+        capture_output=True,
+        text=True,
+        timeout=240,
+    )
+    if res.returncode != 0:
+        raise RuntimeError("AI meta generation failed")
+    data = json.loads((res.stdout or "").strip())
+    return {
+        "summary": normalize_whitespace(data.get("summary", "")),
+        "tags": [normalize_whitespace(x) for x in (data.get("tags") or []) if normalize_whitespace(x)],
+        "slug": normalize_whitespace(data.get("slug", "")),
+    }
 
 
 def build_post_record(note: dict) -> Tuple[dict, dict, List[dict]]:
