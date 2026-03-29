@@ -5,6 +5,7 @@ import json
 import hashlib
 import mimetypes
 import subprocess
+import tempfile
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Tuple
 
@@ -243,16 +244,70 @@ def compute_sync_hash(*, title: str, content_html: str, attachments: List[str], 
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
 
 
+def generate_ai_meta(title: str, content_html: str, slug: str, tags: List[str], summary: str) -> dict:
+    plain = re.sub(r"<[^>]+>", " ", content_html or "")
+    plain = normalize_whitespace(plain)
+    payload = {
+        "title": title,
+        "content": plain[:12000],
+        "slug": slug,
+        "tags": tags,
+        "summary": summary,
+    }
+    with tempfile.NamedTemporaryFile("w", delete=False, suffix=".json", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False)
+        input_path = f.name
+    try:
+        res = subprocess.run(
+            ["python3", os.path.join(BASE_DIR, "scripts", "ai_generate_meta.py"), input_path],
+            capture_output=True,
+            text=True,
+            timeout=240,
+        )
+        if res.returncode != 0:
+            raise RuntimeError((res.stderr or res.stdout).strip() or "AI meta generation failed")
+        data = json.loads((res.stdout or "").strip())
+        return {
+            "summary": normalize_whitespace(data.get("summary", "")),
+            "tags": [normalize_whitespace(x) for x in (data.get("tags") or []) if normalize_whitespace(x)],
+            "slug": normalize_whitespace(data.get("slug", "")),
+        }
+    finally:
+        try:
+            os.unlink(input_path)
+        except OSError:
+            pass
+
+
 def build_post_record(note: dict) -> Tuple[dict, dict, List[dict]]:
     attrs = note.get("attributes", []) or []
     attr_map = label_attrs(attrs)
     title = note.get("title", "未命名")
-    slug = first_label_value(attr_map, "slug", "").strip() or slugify(title, note["noteId"])
+    existing_slug = first_label_value(attr_map, "slug", "").strip()
+    slug = existing_slug or slugify(title, note["noteId"])
     tags_raw = first_label_value(attr_map, "tags", "")
     tags = [x.strip() for x in re.split(r"[,，]", tags_raw) if x.strip()]
     summary = first_label_value(attr_map, "summary", "").strip()
     html_raw = get_text(f"/etapi/notes/{note['noteId']}/content")
     html_localized, local_assets, assets_changed = localize_attachments(html_raw, note["noteId"])
+
+    ai_refresh = first_label_value(attr_map, "aiRefresh", "false").lower() == "true"
+    needs_ai = ai_refresh or not existing_slug or not tags or not summary
+    ai_generated = False
+    if needs_ai:
+        ai_meta = generate_ai_meta(title, html_localized, slug, tags, summary)
+        if (ai_refresh or not summary) and ai_meta.get("summary"):
+            summary = ai_meta["summary"]
+            ai_generated = True
+        if (ai_refresh or not tags) and ai_meta.get("tags"):
+            tags = ai_meta["tags"]
+            ai_generated = True
+        if (ai_refresh or not existing_slug) and ai_meta.get("slug"):
+            slug = ai_meta["slug"]
+            ai_generated = True
+        if not slug:
+            slug = slugify(title, note["noteId"])
+
     sync_hash = compute_sync_hash(
         title=title,
         content_html=html_localized,
@@ -282,7 +337,8 @@ def build_post_record(note: dict) -> Tuple[dict, dict, List[dict]]:
         "localAssets": local_assets,
         "computedSyncHash": sync_hash,
         "prevSyncHash": first_label_value(attr_map, "syncHash", ""),
-        "aiRefresh": first_label_value(attr_map, "aiRefresh", "false").lower() == "true",
+        "aiRefresh": ai_refresh,
+        "aiGenerated": ai_generated,
     }
     return post, meta, attrs
 
@@ -374,6 +430,10 @@ def main():
 
             if needs_publish:
                 ts = now_str()
+                if meta["aiGenerated"]:
+                    set_label(note["noteId"], attrs, "summary", post["summary"])
+                    set_label(note["noteId"], attrs, "tags", ",".join(post["tags"]))
+                    set_label(note["noteId"], attrs, "slug", post["slug"])
                 if not post["publishedAt"]:
                     post["publishedAt"] = ts
                     set_label(note["noteId"], attrs, "publishedAt", ts)
