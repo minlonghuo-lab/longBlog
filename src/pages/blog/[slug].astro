@@ -247,6 +247,7 @@ function formatDate(date: Date): string {
       const scrollToTop = (event) => {
         event?.preventDefault?.();
         event?.stopPropagation?.();
+        event?.stopImmediatePropagation?.();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       };
 
@@ -758,7 +759,7 @@ function formatDate(date: Date): string {
   .back-to-top {
     position: fixed;
     right: max(1.5rem, calc((100vw - 1160px) / 2 + 1.5rem));
-    bottom: 2rem;
+    bottom: max(5rem, env(safe-area-inset-bottom, 0px) + 5rem);
     width: 2.9rem;
     height: 2.9rem;
     border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
@@ -1000,7 +1001,7 @@ function formatDate(date: Date): string {
 
     .back-to-top {
       right: 1rem;
-      bottom: 5.8rem;
+      bottom: max(6.6rem, env(safe-area-inset-bottom, 0px) + 6.6rem);
       width: 3.05rem;
       height: 3.05rem;
       z-index: 120;
