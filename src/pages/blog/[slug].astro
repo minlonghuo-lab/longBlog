@@ -244,8 +244,14 @@ function formatDate(date: Date): string {
       mobileTocTrigger?.addEventListener('click', openMobileToc);
       mobileTocClose?.addEventListener('click', closeMobileToc);
       mobileTocBackdrop?.addEventListener('click', closeMobileToc);
-      backToTop?.addEventListener('click', () => {
+      const scrollToTop = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      backToTop?.addEventListener('click', scrollToTop);
+      backToTop?.addEventListener('pointerup', (event) => {
+        event.preventDefault();
+        scrollToTop();
       });
       lightboxClose?.addEventListener('click', closeLightbox);
       lightbox?.addEventListener('click', (event) => {
@@ -764,7 +770,9 @@ function formatDate(date: Date): string {
     transform: translateY(12px);
     pointer-events: none;
     transition: opacity var(--transition-base), transform var(--transition-base), background-color var(--transition-base);
-    z-index: 55;
+    z-index: 72;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .back-to-top.visible {
@@ -990,7 +998,10 @@ function formatDate(date: Date): string {
 
     .back-to-top {
       right: 1rem;
-      bottom: 4.9rem;
+      bottom: 5.6rem;
+      width: 3rem;
+      height: 3rem;
+      z-index: 86;
     }
   }
 
