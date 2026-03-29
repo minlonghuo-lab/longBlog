@@ -244,15 +244,15 @@ function formatDate(date: Date): string {
       mobileTocTrigger?.addEventListener('click', openMobileToc);
       mobileTocClose?.addEventListener('click', closeMobileToc);
       mobileTocBackdrop?.addEventListener('click', closeMobileToc);
-      const scrollToTop = () => {
+      const scrollToTop = (event) => {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       };
 
-      backToTop?.addEventListener('click', scrollToTop);
-      backToTop?.addEventListener('pointerup', (event) => {
-        event.preventDefault();
-        scrollToTop();
-      });
+      backToTop?.addEventListener('pointerdown', scrollToTop, { passive: false });
+      backToTop?.addEventListener('mousedown', scrollToTop, { passive: false });
+      backToTop?.addEventListener('click', scrollToTop, { passive: false });
       lightboxClose?.addEventListener('click', closeLightbox);
       lightbox?.addEventListener('click', (event) => {
         if (event.target === lightbox) closeLightbox();
@@ -757,10 +757,10 @@ function formatDate(date: Date): string {
 
   .back-to-top {
     position: fixed;
-    right: max(1.25rem, calc((100vw - 1160px) / 2 + 1.25rem));
+    right: max(1.5rem, calc((100vw - 1160px) / 2 + 1.5rem));
     bottom: 2rem;
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 2.9rem;
+    height: 2.9rem;
     border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
     border-radius: 999px;
     background: color-mix(in oklab, white 90%, var(--muted) 10%);
@@ -770,15 +770,17 @@ function formatDate(date: Date): string {
     transform: translateY(12px);
     pointer-events: none;
     transition: opacity var(--transition-base), transform var(--transition-base), background-color var(--transition-base);
-    z-index: 72;
+    z-index: 110;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    isolation: isolate;
   }
 
   .back-to-top.visible {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
+    cursor: pointer;
   }
 
   html[data-theme='dark'] .back-to-top {
@@ -998,10 +1000,10 @@ function formatDate(date: Date): string {
 
     .back-to-top {
       right: 1rem;
-      bottom: 5.6rem;
-      width: 3rem;
-      height: 3rem;
-      z-index: 86;
+      bottom: 5.8rem;
+      width: 3.05rem;
+      height: 3.05rem;
+      z-index: 120;
     }
   }
 
