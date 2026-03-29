@@ -9,10 +9,7 @@ SYNC_JSON=$($PYTHON_BIN scripts/sync_trilium_posts.py)
 printf '%s\n' "$SYNC_JSON" >> /root/longblog-sync/sync.log
 REPORT_FILE=/root/longblog-sync/last_report.json
 printf '%s\n' "$SYNC_JSON" > "$REPORT_FILE"
-GIT_CHANGED=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; data=json.load(sys.stdin); print("true" if data.get("gitChanged") else "false")')
-UPDATED_COUNT=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; data=json.load(sys.stdin); print(len(data.get("updated") or []))')
-FAILED_COUNT=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; data=json.load(sys.stdin); print(len(data.get("failed") or []))')
-REMOVED_COUNT=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; data=json.load(sys.stdin); print(len(data.get("removed") or []))')
+GIT_CHANGED=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); print("true" if d.get("gitChanged") else "false")')
 BUILD_RAN=false
 INSTALL_RAN=false
 LOCK_HASH_FILE=/root/longblog-sync/package-lock.sha256
@@ -30,7 +27,13 @@ if [ "$GIT_CHANGED" = "true" ]; then
   "$NPM_BIN" run build >> /root/longblog-sync/build.log 2>&1
   BUILD_RAN=true
 fi
-TITLE="longBlog 自动发布"
+TITLE=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); failed=len(d.get("failed") or []); title="longBlog 自动发布失败" if failed else "longBlog 自动发布"; print(urllib.parse.quote(title, safe=""))')
 BODY=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); updated=len(d.get("updated") or []); unchanged=len(d.get("unchanged") or []); removed=len(d.get("removed") or []); removed_assets=len(d.get("removedAssets") or []); failed=len(d.get("failed") or []); ai=len(d.get("aiUpdated") or []); git_changed=d.get("gitChanged"); git_pushed=d.get("gitPushed"); msg=f"更新{updated}篇｜撤下{removed}篇｜清理资源{removed_assets}个｜未变{unchanged}篇｜失败{failed}篇｜AI {ai}篇｜Git变更 {git_changed}｜已推送 {git_pushed}"; print(urllib.parse.quote(msg, safe=""))')
+ERROR_PART=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); failed=d.get("failed") or []; text="" if not failed else (failed[0].get("title","未知文章")+"："+failed[0].get("error",""))[:120]; print(urllib.parse.quote(text, safe=""))')
+LEVEL=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); print("timeSensitive" if (d.get("failed") or []) else "active")')
 INFO=$(printf 'build=%s install=%s' "$BUILD_RAN" "$INSTALL_RAN" | $PYTHON_BIN -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip(), safe=""))')
-curl -fsS "$BARK_BASE_URL/$TITLE/$BODY?group=longBlog&url=&icon=https://ssaw.top/favicon.ico&level=active&copy=$INFO" >/dev/null 2>&1 || true
+URL="$BARK_BASE_URL/$TITLE/$BODY?group=longBlog&icon=https://ssaw.top/favicon.ico&level=$LEVEL&copy=$INFO"
+if [ -n "$ERROR_PART" ]; then
+  URL="$URL&body=$ERROR_PART"
+fi
+curl -fsS "$URL" >/dev/null 2>&1 || true
