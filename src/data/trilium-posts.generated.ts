@@ -8,7 +8,7 @@ export const triliumPosts: TriliumPostRecord[] = [
     "id": "yAEdBzTrtiHe",
     "slug": "这是一个测试博客",
     "title": "这是一个测试博客",
-    "updatedAt": "2026-03-30 02:08:11.633+0800",
+    "updatedAt": "2026-03-30 02:15:41.265+0800",
     "publishedAt": "2026-03-29 22:38:03.613+0800",
     "tags": [
       "自动化",
