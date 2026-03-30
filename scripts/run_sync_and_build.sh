@@ -3,6 +3,7 @@ set -eu
 LOCK_DIR=/root/longblog-sync/run.lock
 PENDING_RERUN_FILE=/root/longblog-sync/pending_rerun
 REPORT_FILE=/root/longblog-sync/last_report.json
+WEBHOOK_CTX_FILE=/root/longblog-sync/last_webhook.json
 
 write_lock_report() {
   run_started_at="$1"
@@ -19,6 +20,35 @@ PY
 )
   printf '%s\n' "$LOCK_REPORT" >> /root/longblog-sync/sync.log
   printf '%s\n' "$LOCK_REPORT" > "$REPORT_FILE"
+}
+
+consume_webhook_args() {
+  if [ ! -f "$WEBHOOK_CTX_FILE" ]; then
+    echo ''
+    return 0
+  fi
+
+  TMP_CTX=$(mktemp)
+  cp "$WEBHOOK_CTX_FILE" "$TMP_CTX"
+  rm -f "$WEBHOOK_CTX_FILE"
+
+  python3 - <<PY
+import json
+p='$TMP_CTX'
+try:
+    data=json.load(open(p))
+except Exception:
+    print('')
+    raise SystemExit
+parts=[]
+for key in ('requestId','event','noteId'):
+    value=data.get(key)
+    if value:
+        escaped=str(value).replace('"', '\\"')
+        parts.append(f'--{key} "{escaped}"')
+print(' '.join(parts))
+PY
+  rm -f "$TMP_CTX"
 }
 
 run_once() {
@@ -41,7 +71,13 @@ run_once() {
   NPM_BIN=$(command -v npm)
   BARK_BASE_URL=${LONGBLOG_BARK_BASE_URL:-}
 
-  SYNC_JSON=$($PYTHON_BIN scripts/sync_trilium_posts.py)
+  SYNC_ARGS=$(consume_webhook_args)
+  if [ -n "$SYNC_ARGS" ]; then
+    SYNC_JSON=$(eval "$PYTHON_BIN scripts/sync_trilium_posts.py $SYNC_ARGS")
+  else
+    SYNC_JSON=$($PYTHON_BIN scripts/sync_trilium_posts.py)
+  fi
+
   run_finished_at=$(date '+%Y-%m-%d %H:%M:%S%z')
   SYNC_JSON=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); d["runStartedAt"] = sys.argv[1]; d["runFinishedAt"] = sys.argv[2]; d["lockSkipped"] = False; d["lockReason"] = ""; print(json.dumps(d, ensure_ascii=False, indent=2))' "$run_started_at" "$run_finished_at")
   printf '%s\n' "$SYNC_JSON" >> /root/longblog-sync/sync.log
@@ -68,15 +104,8 @@ run_once() {
 
   if [ -n "$BARK_BASE_URL" ]; then
     TITLE=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); failed=len(d.get("failed") or []); title="longBlog 自动发布失败" if failed else "longBlog 自动发布"; print(urllib.parse.quote(title, safe=""))')
-    BODY=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); updated=len(d.get("updated") or []); unchanged=len(d.get("unchanged") or []); removed=len(d.get("removed") or []); removed_assets=len(d.get("removedAssets") or []); failed=len(d.get("failed") or []); ai=len(d.get("aiUpdated") or []); git_changed=d.get("gitChanged"); git_pushed=d.get("gitPushed"); msg=f"更新{updated}篇｜撤下{removed}篇｜清理资源{removed_assets}个｜未变{unchanged}篇｜失败{failed}篇｜AI {ai}篇｜Git变更 {git_changed}｜已推送 {git_pushed}"; print(urllib.parse.quote(msg, safe=""))')
-    ERROR_PART=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); failed=d.get("failed") or []; text="" if not failed else (failed[0].get("title","未知文章")+"："+failed[0].get("error","") )[:120]; print(urllib.parse.quote(text, safe=""))')
-    LEVEL=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); print("timeSensitive" if (d.get("failed") or []) else "active")')
-    INFO=$(printf 'build=%s install=%s' "$BUILD_RAN" "$INSTALL_RAN" | $PYTHON_BIN -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip(), safe=""))')
-    URL="$BARK_BASE_URL/$TITLE/$BODY?group=longBlog&icon=https://ssaw.top/favicon.ico&level=$LEVEL&copy=$INFO"
-    if [ -n "$ERROR_PART" ]; then
-      URL="$URL&body=$ERROR_PART"
-    fi
-    curl -fsS "$URL" >/dev/null 2>&1 || true
+    BODY=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); updated=len(d.get("updated") or []); unchanged=len(d.get("unchanged") or []); removed=len(d.get("removed") or []); removed_assets=len(d.get("removedAssets") or []); failed=len(d.get("failed") or []); ai=len(d.get("aiUpdated") or []); git_changed=d.get("gitChanged"); git_pushed=d.get("gitPushed"); req=d.get("requestId") or "-"; evt=d.get("event") or "-"; msg=f"事件 {evt}｜请求 {req}｜更新{updated}篇｜撤下{removed}篇｜清理资源{removed_assets}个｜未变{unchanged}篇｜失败{failed}篇｜AI {ai}篇｜Git变更 {git_changed}｜已推送 {git_pushed}"; print(urllib.parse.quote(msg, safe=""))')
+    curl -fsS "$BARK_BASE_URL/$TITLE/$BODY?group=longBlog&icon=https://ssaw.top/favicon.ico&level=active" >/dev/null 2>&1 || true
   fi
 
   trap - EXIT INT TERM
