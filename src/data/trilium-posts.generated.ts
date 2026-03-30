@@ -28,17 +28,19 @@ export const triliumPosts: TriliumPostRecord[] = [
     "id": "yAEdBzTrtiHe",
     "slug": "这是一个测试博客",
     "title": "这是一个测试博客",
-    "updatedAt": "2026-03-30 12:44:43.499+0800",
+    "updatedAt": "2026-03-30 12:50:09.473+0800",
     "publishedAt": "2026-03-29 22:38:03.613+0800",
     "tags": [
       "自动化",
       "博客发布",
-      "longBlog"
+      "longBlog",
+      "兜底策略",
+      "流程优化"
     ],
     "summary": "自动化流程将内容发布到longBlog平台，简化博客发布流程。",
     "contentHtml": "<p>该帖子由自动化流发布到longBlog。确实挺不错的，加了好几层兜底策略。🥳</p>",
     "pinned": false,
-    "syncHash": "8f7fba2f565e11b87bc81b5a192cd158b51585580ead29c76a5874d6fa253ee0",
+    "syncHash": "b559edfc73e81ede4d2a3bc3640fd7a7cb73ecef189a7f2ed33efc022fe0a23b",
     "syncStatus": "published"
   },
   {
