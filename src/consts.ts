@@ -17,10 +17,9 @@ export const SOCIAL_LINKS = [
 ];
 
 // Public service URLs
-export const MEMOS_URL = (env.PUBLIC_MEMOS_URL || 'https://memos.ssaw.top').replace(/\/$/, '');
-export const TRILIUM_BASE_URL = (env.PUBLIC_TRILIUM_BASE_URL || 'https://blog.ssaw.top').replace(/\/$/, '');
+export const MEMOS_URL = (env.PUBLIC_MEMOS_URL || '').replace(/\/$/, '');
+export const TRILIUM_BASE_URL = (env.PUBLIC_TRILIUM_BASE_URL || '').replace(/\/$/, '');
 export const TRILIUM_TREE_API_URL = (env.PUBLIC_TRILIUM_TREE_API_URL || '').trim();
-export const SITE_HISTORY_IMAGE_URL = (env.PUBLIC_SITE_HISTORY_IMAGE_URL || '').trim();
 export const SITE_URL = (env.PUBLIC_SITE_URL || '').trim();
 
 // Footer / ICP / links
