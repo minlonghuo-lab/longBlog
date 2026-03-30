@@ -5,6 +5,20 @@ export interface TriliumPostMetaRecord {
 
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
+    "id": "4t7DdbbFdP02",
+    "slug": "我的保研之旅",
+    "updatedAt": "2026-03-30 14:50:44.744+0800",
+    "publishedAt": "2026-03-09 19:04:33.813+0800",
+    "tags": [
+      "保研",
+      "感悟",
+      "经验分享"
+    ],
+    "pinned": true,
+    "syncHash": "058164635fef0b14622ad3ad908ebe2bb46f6d6ec2ac485686c74f71e69cb5df",
+    "syncStatus": "published"
+  },
+  {
     "id": "VOsmZSt8PWpI",
     "slug": "关于对教程主义的思考",
     "updatedAt": "2026-03-30 13:45:35.111+0800",
@@ -64,20 +78,6 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
     ],
     "pinned": false,
     "syncHash": "5876d377053db57add49fccea7ecb20b51daffdf57a082bc2009dc8f60c74d1a",
-    "syncStatus": "published"
-  },
-  {
-    "id": "4t7DdbbFdP02",
-    "slug": "我的保研之旅",
-    "updatedAt": "2026-03-30 13:58:03.750+0800",
-    "publishedAt": "2026-03-09 19:04:33.813+0800",
-    "tags": [
-      "保研",
-      "感悟",
-      "经验分享"
-    ],
-    "pinned": false,
-    "syncHash": "058164635fef0b14622ad3ad908ebe2bb46f6d6ec2ac485686c74f71e69cb5df",
     "syncStatus": "published"
   },
   {
