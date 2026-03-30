@@ -3,49 +3,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { MEMOS_URL } from '../../consts';
 
 const memosApiBase = MEMOS_URL;
-const PAGE_SIZE = 10;
-
-async function fetchJson(url) {
-  const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  return await resp.json();
-}
-
-function memoKey(memo) {
-  return String(memo?.name || `${memo?.createTime || ''}-${memo?.updateTime || ''}-${memo?.content?.slice?.(0, 16) || ''}`);
-}
-
-let initialMemos = [];
-let initialNextPageToken = '';
-let initialError = '';
-
-try {
-  const data = await fetchJson(`${memosApiBase}/api/v1/memos?pageSize=${PAGE_SIZE}`);
-  let memos = Array.isArray(data?.memos) ? data.memos : [];
-
-  try {
-    const pinData = await fetchJson(`${memosApiBase}/api/v1/memos?pageSize=100`);
-    const pinMemos = Array.isArray(pinData?.memos) ? pinData.memos.filter((m) => m?.pinned) : [];
-    if (pinMemos.length) {
-      const mergeMap = new Map();
-      for (const m of [...pinMemos, ...memos]) {
-        mergeMap.set(memoKey(m), m);
-      }
-      memos = [...mergeMap.values()];
-    }
-  } catch {}
-
-  initialMemos = memos
-    .filter((m) => m?.visibility === 'PUBLIC')
-    .sort((a, b) => {
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
-      return new Date(b.createTime).getTime() - new Date(a.createTime).getTime();
-    });
-  initialNextPageToken = data?.nextPageToken || '';
-} catch (e) {
-  initialError = e instanceof Error ? e.message : '加载失败';
-}
 ---
 
 <BaseLayout title="说说" description="日常碎碎念">
@@ -57,10 +14,10 @@ try {
   <section class="memos-wrap">
     <div id="memos-list" class="memos-list"></div>
 
-    <div id="memos-loading" class="memos-status" style={initialError ? 'display:none;' : undefined}>加载中...</div>
+    <div id="memos-loading" class="memos-status">加载中...</div>
     <div id="memos-end" class="memos-status" style="display:none;">- END -</div>
     <div id="memos-empty" class="memos-status" style="display:none;">暂无内容</div>
-    <div id="memos-error" class="memos-status" style={initialError ? '' : 'display:none;'}>{initialError || '加载失败，请稍后刷新重试'}</div>
+    <div id="memos-error" class="memos-status" style="display:none;">加载失败，请稍后刷新重试</div>
 
     <div id="memos-sentinel" class="memos-sentinel"></div>
   </section>
@@ -71,7 +28,7 @@ try {
   </div>
 </BaseLayout>
 
-<script define:vars={{ memosApiBase, initialMemos, initialNextPageToken, initialError, PAGE_SIZE }}>
+<script define:vars={{ memosApiBase }}>
   const listEl = document.getElementById('memos-list');
   const loadingEl = document.getElementById('memos-loading');
   const endEl = document.getElementById('memos-end');
@@ -85,14 +42,18 @@ try {
   const previewImgEl = document.getElementById('preview-image');
   const closeBtn = document.getElementById('preview-close');
 
-  let pageToken = initialNextPageToken || '';
-  let hasMore = !!initialNextPageToken;
+  let pageToken = '';
+  let hasMore = true;
   let loading = false;
+  let pinnedReady = false;
   const seen = new Set();
   const memoStore = new Map();
 
+  const PAGE_SIZE = 10;
+  const CACHE_KEY = 'LONG_BLOG_MEMOS_CACHE_V2';
+  const CACHE_TTL = 30 * 1000;
   const MAX_SAME_TOKEN_HITS = 2;
-  let lastNextPageToken = initialNextPageToken || '';
+  let lastNextPageToken = '';
   let sameTokenHits = 0;
   let requestPageSize = PAGE_SIZE;
 
@@ -147,7 +108,11 @@ try {
       if ((att.type || '').startsWith('image/')) {
         images.push(fileUrl);
       } else {
-        files.push({ name: filename, url: fileUrl, type: att.type || 'file' });
+        files.push({
+          name: filename,
+          url: fileUrl,
+          type: att.type || 'file',
+        });
       }
     }
 
@@ -166,15 +131,21 @@ try {
     article.className = 'memo-item';
 
     const imageGridHTML = images.length
-      ? `<div class="memo-images memo-images-${Math.min(images.length, 9)}" style="--thumb-size:4.8rem;max-width:15.2rem;">${images.map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}" style="width:4.8rem;height:4.8rem;max-width:4.8rem;max-height:4.8rem;" aria-label="查看大图"><img src="${escapeHTML(img)}" loading="lazy" alt="图片缩略图" style="width:100%;height:100%;object-fit:cover;" /></button>`).join('')}</div>`
+      ? `<div class="memo-images memo-images-${Math.min(images.length, 9)}" style="--thumb-size:4.8rem;max-width:15.2rem;">${images
+          .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}" style="width:4.8rem;height:4.8rem;max-width:4.8rem;max-height:4.8rem;" aria-label="查看大图"><img src="${escapeHTML(img)}" loading="lazy" alt="图片缩略图" style="width:100%;height:100%;object-fit:cover;" /></button>`)
+          .join('')}</div>`
       : '';
 
     const filesHTML = files.length
-      ? `<div class="memo-files">${files.map((file) => `<a href="${escapeHTML(file.url)}" target="_blank" rel="noopener noreferrer" class="memo-file"><span class="memo-file-name">📎 ${escapeHTML(file.name)}</span><span class="memo-file-type">${escapeHTML(file.type)}</span></a>`).join('')}</div>`
+      ? `<div class="memo-files">${files
+          .map((file) => `<a href="${escapeHTML(file.url)}" target="_blank" rel="noopener noreferrer" class="memo-file"><span class="memo-file-name">📎 ${escapeHTML(file.name)}</span><span class="memo-file-type">${escapeHTML(file.type)}</span></a>`)
+          .join('')}</div>`
       : '';
 
     const tagsHTML = tags.length
-      ? `<div class="memo-tags">${tags.map((tag) => `<span>#${escapeHTML(String(tag))}</span>`).join('')}</div>`
+      ? `<div class="memo-tags">${tags
+          .map((tag) => `<span>#${escapeHTML(String(tag))}</span>`)
+          .join('')}</div>`
       : '';
 
     article.innerHTML = `
@@ -212,34 +183,75 @@ try {
     endEl.style.display = !hasMore && items.length ? 'block' : 'none';
   }
 
-  function addMemos(memos) {
+  function mergeMemos(memos) {
     for (const memo of memos) {
-      const key = String(memo.name || `${memo.createTime}-${memo.updateTime}-${memo.content?.slice(0, 16) || ''}`);
-      seen.add(key);
-      memoStore.set(key, memo);
+      const memoKey = String(memo.name || `${memo.createTime}-${memo.updateTime}-${memo.content?.slice(0, 16) || ''}`);
+      seen.add(memoKey);
+      memoStore.set(memoKey, memo);
     }
     renderAllMemos();
   }
 
+  function getCachedFirstPage() {
+    try {
+      const raw = sessionStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed?.ts || Date.now() - parsed.ts > CACHE_TTL) return null;
+      return parsed.data || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function setCachedFirstPage(data) {
+    try {
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+    } catch {}
+  }
+
+  async function fetchPage(pageTokenValue = '', pageSize = PAGE_SIZE) {
+    const qs = new URLSearchParams({ pageSize: String(pageSize) });
+    if (pageTokenValue) qs.set('pageToken', pageTokenValue);
+    const resp = await fetch(`${memosApiBase}/api/v1/memos?${qs.toString()}`, { cache: 'no-store' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return await resp.json();
+  }
+
   async function loadMore() {
-    if (!hasMore || loading || initialError) return;
+    if (!hasMore || loading) return;
     loading = true;
     loadingEl.style.display = 'block';
     errorEl.style.display = 'none';
 
     try {
-      const qs = new URLSearchParams({ pageSize: String(requestPageSize) });
-      if (pageToken) qs.set('pageToken', pageToken);
-
-      const resp = await fetch(`${memosApiBase}/api/v1/memos?${qs.toString()}`);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
+      const data = await fetchPage(pageToken, requestPageSize);
       let memos = Array.isArray(data.memos) ? data.memos : [];
-      const publicMemos = memos.filter((m) => m.visibility === 'PUBLIC');
 
+      if (!pinnedReady) {
+        try {
+          const pinData = await fetchPage('', 100);
+          const pinMemos = Array.isArray(pinData?.memos) ? pinData.memos.filter((m) => m?.pinned) : [];
+          if (pinMemos.length) {
+            const mergeMap = new Map();
+            for (const m of [...pinMemos, ...memos]) {
+              const key = String(m.name || `${m.createTime}-${m.updateTime}-${m.content?.slice(0, 16) || ''}`);
+              mergeMap.set(key, m);
+            }
+            memos = [...mergeMap.values()];
+          }
+        } catch {}
+        pinnedReady = true;
+      }
+
+      const publicMemos = memos.filter((m) => m.visibility === 'PUBLIC');
       const beforeCount = seen.size;
-      addMemos(publicMemos);
+      mergeMemos(publicMemos);
       const addedCount = seen.size - beforeCount;
+
+      if (!pageToken) {
+        setCachedFirstPage({ memos: publicMemos, nextPageToken: data.nextPageToken || '' });
+      }
 
       const nextToken = data.nextPageToken || '';
       if (nextToken) {
@@ -262,6 +274,7 @@ try {
         loadingEl.style.display = 'none';
         endEl.style.display = listEl.children.length ? 'block' : 'none';
       }
+      if (!listEl.children.length) emptyEl.style.display = 'block';
     } catch (err) {
       loadingEl.style.display = 'none';
       errorEl.textContent = '加载失败，请稍后刷新重试';
@@ -274,27 +287,51 @@ try {
     }
   }
 
-  if (Array.isArray(initialMemos) && initialMemos.length) {
-    addMemos(initialMemos);
-    loadingEl.style.display = hasMore ? 'none' : 'none';
-    endEl.style.display = !hasMore ? 'block' : 'none';
-    try {
-      sessionStorage.setItem('LONG_BLOG_MEMOS_CACHE', JSON.stringify({ ts: Date.now(), data: { memos: initialMemos, nextPageToken: initialNextPageToken } }));
-    } catch {}
-  } else if (!initialError) {
-    emptyEl.style.display = 'block';
-    loadingEl.style.display = 'none';
+  async function boot() {
+    const cached = getCachedFirstPage();
+    if (cached?.memos?.length) {
+      mergeMemos(cached.memos);
+      pageToken = cached.nextPageToken || '';
+      hasMore = !!pageToken;
+      loadingEl.style.display = 'none';
+      // 用最新第一页覆盖缓存，确保新说说刷新后能看到
+      try {
+        loading = true;
+        const data = await fetchPage('', PAGE_SIZE);
+        memoStore.clear();
+        seen.clear();
+        pageToken = '';
+        hasMore = true;
+        requestPageSize = PAGE_SIZE;
+        lastNextPageToken = '';
+        sameTokenHits = 0;
+        pinnedReady = false;
+        loading = false;
+        const memos = Array.isArray(data.memos) ? data.memos.filter((m) => m.visibility === 'PUBLIC') : [];
+        mergeMemos(memos);
+        setCachedFirstPage({ memos, nextPageToken: data.nextPageToken || '' });
+        pageToken = data.nextPageToken || '';
+        hasMore = !!pageToken;
+      } catch (e) {
+        loading = false;
+      }
+    } else {
+      await loadMore();
+    }
   }
 
-  const io = new IntersectionObserver((entries) => {
-    const entry = entries[0];
-    if (entry && entry.isIntersecting) loadMore();
-  }, { rootMargin: '360px 0px' });
+  const io = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0];
+      if (entry && entry.isIntersecting) loadMore();
+    },
+    { rootMargin: '360px 0px' },
+  );
 
   io.observe(sentinelEl);
 
   window.addEventListener('scroll', () => {
-    if (!hasMore || loading || initialError) return;
+    if (!hasMore || loading) return;
     const remain = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
     if (remain < 420) loadMore();
   }, { passive: true });
@@ -324,6 +361,8 @@ try {
     document.documentElement.classList.remove('memos-page');
     document.body.classList.remove('memos-page');
   });
+
+  boot();
 </script>
 
 <style is:global>
