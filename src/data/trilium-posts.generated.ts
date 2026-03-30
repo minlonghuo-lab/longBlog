@@ -79,6 +79,24 @@ export const triliumPosts: TriliumPostRecord[] = [
     "syncStatus": "published"
   },
   {
+    "id": "F2ea4malPi8x",
+    "slug": "远程访问nas心得",
+    "title": "远程访问NAS心得",
+    "updatedAt": "2026-03-30 13:56:10.111+0800",
+    "publishedAt": "2026-03-08T02:14:50.366611-08:00",
+    "tags": [
+      "NAS",
+      "安全性",
+      "远程访问",
+      "飞牛NAS"
+    ],
+    "summary": "作者讨论了如何减小NAS远程访问的安全风险。最初，作者使用fnconnect和DDNS访问NAS，但后来发现飞牛OS存在严重的路径穿越漏洞，导致隐私安全受损。为了尽可能保证隐私安全，作者采取了以下措施：使用VPN（虚拟专用网络）技术，特别是WireGuard协议，来加密和保护数据；更新防火墙配置，只保留必要的端口；以及其他小措施，如更新强密码、修改默认的https访问端口和启用双层验证。现在，作者主要使用WireGuard组网和fnconnect内网穿透来访问NAS，认为隐私安全是一个重要问题，需要重视。",
+    "contentHtml": "<p>在我看来，能够远程访问，才是一个 NAS 的核心。但也不可避免的会产生一定的安全隐患，我们该如何做，才能尽可能减小安全风险呢。这个帖子我将以我个人的心路历程来谈谈远程访问 NAS 。</p><h2>最开始</h2><p>1 月份购买的飞牛 EVO 送了我 5 年的 fnconnect 高级套餐，带宽 12mbps ，月均500G。我直接补了 99 元购买了 fnconnect 专业版的套餐，带宽提到了 40mbps，月均1000G，这个升级还是很划算的。通过 fnconnect ，成了我访问飞牛 nas 的一个手段。</p><figure class=\"image image_resized\" style=\"width:50%;\"><img style=\"aspect-ratio:2000/1158;\" src=\"/trilium-assets/F2ea4malPi8x/4254f1965f24ef39.png\" width=\"2000\" height=\"1158\"></figure><p>我的家庭宽带也提供了公网 ipv6 ，通过 DDNS 使用域名访问。</p><figure class=\"image image_resized\" style=\"width:50%;\"><img style=\"aspect-ratio:2000/1169;\" src=\"/trilium-assets/F2ea4malPi8x/fdde3cdfb73b54e2.png\" width=\"2000\" height=\"1169\"></figure><p>除此之外，我还购买了雨云服务器，搭建 frpc 和 frps 来进行内网穿透。下图是我当时用雨云服务器进行内网穿透的整体架构图。</p><figure class=\"image image_resized\" style=\"width:50%;\"><img style=\"aspect-ratio:2000/1346;\" src=\"/trilium-assets/F2ea4malPi8x/00fa0e4be9227562.png\" width=\"2000\" height=\"1346\"></figure><p>但那时候在家，大部分时间还是通过内网访问，外网一般用于测试、折腾。</p><h2>转折点</h2><p>2 月份的时候，飞牛 OS 被曝光有严重的路径穿越漏洞。<span>攻击者可以通过构造 URL ，在</span><strong>不登录的情况下读取 NAS 上的文件</strong>。当时我立马查看我的 NAS 并用相关脚本进行检测，所幸没有中招。但是看到那些中招的 NAS 直接可以通过公网甚至是 fnconnect 访问里面的任意文件，所谓的隐私安全不复存在，自己的隐私被人窥视，哪怕没有什么重要资料，但也让人非常膈应。从那时起，我开始着重关注远程访问的安全性。</p><h2>我做的一些工作</h2><h3>拥抱了 VPN</h3><p><span><strong>VPN</strong></span>（Virtual Private Network，<span><strong>虚拟专用网络</strong></span>）是一种通过互联网建立<span><strong>加密安全连接</strong></span>的技术。它可以让你的设备在访问网络时，看起来像是从另一个网络或地区连接，同时保护数据安全。常见的加密协议有：</p><ul><li data-list-item-id=\"e3dd4a6f96e100edd780284def25e10fd\">OpenVPN</li><li data-list-item-id=\"ef19c8332df5bee2267faa828520ba8f3\">WireGuard</li><li data-list-item-id=\"e3e53df1d8e4c689852bdfb167fad7fa9\">IKEv2/IPSec</li></ul><p>我选择的协议是 WireGuard ，速度延迟表现都不错，并且技术较新。市面上有许多基于 WireGuard 的软件比如 tailscale、easytier 等等。我使用的是原生的 WireGuard ，虽然方便性不如那些软件，但是灵活性较高，直连后速度理论上最快。因为我有ipv6，所以我通过 WireGuard 总是直连，下载速度基本上都能稳定在 15mb/s - 25mb/s。</p><figure class=\"image image_resized\" style=\"width:50%;\"><img style=\"aspect-ratio:1600/1016;\" src=\"/trilium-assets/F2ea4malPi8x/b8ad0c52c1c40111.png\" width=\"1600\" height=\"1016\"></figure><h3>更新了防火墙配置</h3><p>参照了<a href=\"https://mp.weixin.qq.com/s/1wdThPGzT4TFpD6LPi8VFA\">这篇文章</a>，我对防火墙进行了更新，只保留必要的端口。</p><figure class=\"image image_resized\" style=\"width:50%;\"><img style=\"aspect-ratio:2000/1371;\" src=\"/trilium-assets/F2ea4malPi8x/6063d8f7b82fd9fb.png\" width=\"2000\" height=\"1371\"></figure><h3>其它</h3><p>还有一些小的措施，比如更新了强密码、修改了默认的 https 访问端口并强制使用 https 访问 、修改了 ssh 默认端口、启用了双层验证等等。</p><h2>现在</h2><p>目前，我使用的远程访问就只有 WireGuard 组网和 fnconnect 内网穿透。后者主要是保险，由于国内互联网环境的复杂性，使用 UDP 传输的 WireGuard 有可能导致丢包限速甚至是断连，还是加上 fnconnect 这一保险层（才不是因为我的套餐还没过期🤪）。我相信飞牛团队在经历这次重大事件后会着重 fnconnect 和 fnOS 安全性。毕竟，隐私安全不是小事。</p>",
+    "pinned": false,
+    "syncHash": "5965c5d3ca6694b25f414e42289de2f6a7538432f11edcf486e2b731968b5d14",
+    "syncStatus": "published"
+  },
+  {
     "id": "wqP8s2pQuo0H",
     "slug": "分享一些docker项目",
     "title": "分享一些docker项目",
