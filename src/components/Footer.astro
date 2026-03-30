@@ -1,5 +1,5 @@
 ---
-import { AUTHOR } from '../consts';
+import { AUTHOR, ICP_URL, ICP_TEXT, FOOTER_TRILIUM_URL, FOOTER_ASTRO_URL } from '../consts';
 
 const year = new Date().getFullYear();
 const launchDate = new Date('2026-03-27T00:00:00+08:00');
@@ -12,12 +12,12 @@ const runningDays = Math.max(1, Math.floor((now.getTime() - launchDate.getTime()
     <p class="footer-line footer-main">
       <span>© {year} {AUTHOR}</span>
       <a
-        href="https://icp.gov.moe/?keyword=20260550"
+        href={ICP_URL}
         target="_blank"
         rel="noopener noreferrer"
         class="icp-link"
       >
-        萌ICP备20260550号
+        {ICP_TEXT}
       </a>
     </p>
 
@@ -29,9 +29,9 @@ const runningDays = Math.max(1, Math.floor((now.getTime() - launchDate.getTime()
         </svg>
         Powered by
       </span>
-      <a href="https://github.com/TriliumNext/Trilium" target="_blank" rel="noopener noreferrer">Trilium</a>
+      <a href={FOOTER_TRILIUM_URL} target="_blank" rel="noopener noreferrer">Trilium</a>
       <span>&amp;</span>
-      <a href="https://github.com/withastro/astro" target="_blank" rel="noopener noreferrer">Astro</a>
+      <a href={FOOTER_ASTRO_URL} target="_blank" rel="noopener noreferrer">Astro</a>
     </p>
 
     <p class="footer-line footer-runtime">

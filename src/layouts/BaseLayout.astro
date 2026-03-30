@@ -2,7 +2,7 @@
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { SITE_TITLE, SITE_DESCRIPTION, MEMOS_URL } from '../consts';
+import { SITE_TITLE, SITE_DESCRIPTION, MEMOS_URL, UMAMI_SCRIPT_URL, UMAMI_WEBSITE_ID } from '../consts';
 
 interface Props {
   title?: string;
@@ -45,7 +45,9 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
     })();
   </script>
 
-  <script defer src="https://cloud.umami.is/script.js" data-website-id="a6048160-1a40-41bb-93e5-361c47a998b3"></script>
+  {UMAMI_SCRIPT_URL && UMAMI_WEBSITE_ID && (
+    <script defer src={UMAMI_SCRIPT_URL} data-website-id={UMAMI_WEBSITE_ID}></script>
+  )}
 
   <title>{pageTitle}</title>
 </head>
@@ -224,15 +226,14 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
         });
       });
 
-      document.addEventListener('visibilitychange', () => {
+      document.addEventListener('scroll', updateHeaderState, { passive: true });
+      window.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           restorePageState();
           updateHeaderState();
           updateThemeToggleState();
         }
       });
-
-      window.addEventListener('scroll', updateHeaderState, { passive: true });
     })();
   </script>
 </body>
