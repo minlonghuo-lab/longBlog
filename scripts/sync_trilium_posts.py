@@ -15,11 +15,14 @@ BASE_URL = os.environ.get("TRILIUM_BASE_URL", "https://blog.ssaw.top").rstrip("/
 TOKEN = os.environ.get("TRILIUM_ETAPI_TOKEN", "")
 ROOT_NOTE_ID = os.environ.get("TRILIUM_BLOG_ROOT_NOTE_ID", "zB8WioyKlvOw")
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-OUT_TS = os.path.join(BASE_DIR, "src", "data", "trilium-posts.generated.ts")
+OUT_CONTENT_TS = os.path.join(BASE_DIR, "src", "data", "trilium-posts.content.generated.ts")
+OUT_META_TS = os.path.join(BASE_DIR, "src", "data", "trilium-posts.meta.generated.ts")
+LEGACY_OUT_TS = os.path.join(BASE_DIR, "src", "data", "trilium-posts.generated.ts")
 ASSET_DIR = os.path.join(BASE_DIR, "public", "trilium-assets")
 AUTO_PUSH = os.environ.get("LONGBLOG_AUTO_PUSH", "false").lower() == "true"
 GIT_REMOTE = os.environ.get("LONGBLOG_GIT_REMOTE", "origin")
 GIT_BRANCH = os.environ.get("LONGBLOG_GIT_BRANCH", "main")
+TEMPLATE_NOTE_ID = "MC7PtiChdF5S"
 
 if not TOKEN:
     raise SystemExit("TRILIUM_ETAPI_TOKEN not set")
@@ -130,9 +133,9 @@ def bool_label_value(attr_map: Dict[str, List[dict]], name: str, default: bool =
     if not items:
         return default
     values = [str(item.get("value") or "").strip().lower() for item in items]
-    if "true" in values or "1" in values or "yes" in values or "on" in values:
+    if any(v in {"true", "1", "yes", "on"} for v in values):
         return True
-    if "false" in values or "0" in values or "no" in values or "off" in values:
+    if any(v in {"false", "0", "no", "off"} for v in values):
         return False
     return default
 
@@ -166,7 +169,7 @@ def dedupe_state_labels(note_id: str):
 
 def is_template_note(note: dict) -> bool:
     note_id = note.get("noteId", "")
-    if note_id == "MC7PtiChdF5S":
+    if note_id == TEMPLATE_NOTE_ID:
         return True
     title = (note.get("title") or "").lower()
     if "template" in title or "模板" in title:
@@ -323,7 +326,8 @@ def build_post_record(note: dict, used_slugs: set, *, force_ai_refresh: bool = F
                 summary = ai_result.get("summary", summary).strip()
             tags = ai_result.get("tags", tags)
             ai_generated = True
-            ai_tags_only = bool(tags) and bool(attr_map.get("tags"))
+            ai_tagsOnly = bool(tags) and bool(attr_map.get("tags"))
+            ai_tags_only = ai_tagsOnly
         except Exception:
             pass
 
@@ -334,7 +338,6 @@ def build_post_record(note: dict, used_slugs: set, *, force_ai_refresh: bool = F
         "summary": summary,
         "tags": tags,
         "contentHtml": html_localized,
-        "pinned": pinned,
     }
     sync_hash = hashlib.sha256(json.dumps(payload_for_hash, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
     post = {
@@ -363,15 +366,131 @@ def build_post_record(note: dict, used_slugs: set, *, force_ai_refresh: bool = F
     return post, meta
 
 
-def write_generated(posts: List[dict]):
-    posts = sorted(posts, key=lambda x: (x.get("pinned", False), x.get("publishedAt", x.get("updatedAt", "")), x.get("id", "")), reverse=True)
-    content = "// Auto-generated from Trilium ETAPI\n"
-    content += "export interface TriliumPostRecord {\n"
-    content += "  id: string; slug: string; title: string; createdAt: string; updatedAt: string; tags: string[]; summary: string; contentHtml: string; pinned?: boolean; syncHash?: string; syncStatus?: string; publishedAt?: string;\n"
-    content += "}\n\n"
-    content += "export const triliumPosts: TriliumPostRecord[] = " + json.dumps(posts, ensure_ascii=False, indent=2) + ";\n"
-    with open(OUT_TS, "w", encoding="utf-8") as f:
-        f.write(content)
+def split_post_records(posts: List[dict]) -> Tuple[List[dict], List[dict]]:
+    contents = []
+    metas = []
+    for post in posts:
+        contents.append({
+            "id": post["id"],
+            "title": post["title"],
+            "summary": post["summary"],
+            "contentHtml": post["contentHtml"],
+        })
+        metas.append({
+            "id": post["id"],
+            "slug": post["slug"],
+            "updatedAt": post["updatedAt"],
+            "publishedAt": post.get("publishedAt", ""),
+            "tags": post.get("tags", []),
+            "pinned": bool(post.get("pinned")),
+            "syncHash": post.get("syncHash", ""),
+            "syncStatus": post.get("syncStatus", ""),
+        })
+    return contents, metas
+
+
+def sort_meta_records(metas: List[dict]) -> List[dict]:
+    return sorted(metas, key=lambda x: (x.get("pinned", False), x.get("publishedAt", x.get("updatedAt", "")), x.get("id", "")), reverse=True)
+
+
+def write_generated_files(posts: List[dict]):
+    contents, metas = split_post_records(posts)
+    metas = sort_meta_records(metas)
+
+    content_text = "// Auto-generated from Trilium ETAPI\n"
+    content_text += "export interface TriliumPostContentRecord {\n"
+    content_text += "  id: string; title: string; summary: string; contentHtml: string;\n"
+    content_text += "}\n\n"
+    content_text += "export const triliumPostContents: TriliumPostContentRecord[] = " + json.dumps(contents, ensure_ascii=False, indent=2) + ";\n"
+    with open(OUT_CONTENT_TS, "w", encoding="utf-8") as f:
+        f.write(content_text)
+
+    meta_text = "// Auto-generated from Trilium ETAPI\n"
+    meta_text += "export interface TriliumPostMetaRecord {\n"
+    meta_text += "  id: string; slug: string; updatedAt: string; publishedAt?: string; tags: string[]; pinned?: boolean; syncHash?: string; syncStatus?: string;\n"
+    meta_text += "}\n\n"
+    meta_text += "export const triliumPostMetas: TriliumPostMetaRecord[] = " + json.dumps(metas, ensure_ascii=False, indent=2) + ";\n"
+    with open(OUT_META_TS, "w", encoding="utf-8") as f:
+        f.write(meta_text)
+
+
+def load_existing_meta_records() -> List[dict]:
+    if not os.path.exists(OUT_META_TS):
+        return []
+    text = open(OUT_META_TS, "r", encoding="utf-8").read()
+    marker = "export const triliumPostMetas: TriliumPostMetaRecord[] = "
+    start = text.find(marker)
+    if start == -1:
+        return []
+    start += len(marker)
+    end = text.rfind(";")
+    if end == -1 or end <= start:
+        return []
+    raw = text[start:end].strip()
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return []
+    return data if isinstance(data, list) else []
+
+
+def write_meta_only(metas: List[dict]):
+    metas = sort_meta_records(metas)
+    meta_text = "// Auto-generated from Trilium ETAPI\n"
+    meta_text += "export interface TriliumPostMetaRecord {\n"
+    meta_text += "  id: string; slug: string; updatedAt: string; publishedAt?: string; tags: string[]; pinned?: boolean; syncHash?: string; syncStatus?: string;\n"
+    meta_text += "}\n\n"
+    meta_text += "export const triliumPostMetas: TriliumPostMetaRecord[] = " + json.dumps(metas, ensure_ascii=False, indent=2) + ";\n"
+    with open(OUT_META_TS, "w", encoding="utf-8") as f:
+        f.write(meta_text)
+
+
+def handle_pinned_only_update(args, report) -> bool:
+    if args.event != "pinned_changed" or not args.noteId:
+        return False
+    metas = load_existing_meta_records()
+    if not metas:
+        return False
+    note = get_json(f"/etapi/notes/{args.noteId}")
+    attr_map = label_attrs(note.get("attributes", []) or [])
+    pinned = bool_label_value(attr_map, "pinned", False)
+    updated_at = now_str()
+    found = False
+    changed = False
+    for meta in metas:
+        if meta.get("id") != args.noteId:
+            continue
+        found = True
+        old_pinned = bool(meta.get("pinned"))
+        if old_pinned != pinned:
+            meta["pinned"] = pinned
+            meta["updatedAt"] = updated_at
+            changed = True
+        meta["syncStatus"] = "published"
+        report[("updated" if changed else "unchanged")].append({
+            "id": args.noteId,
+            "title": note.get("title", "未命名"),
+            "pinned": bool(meta.get("pinned")),
+        })
+        break
+    if not found:
+        return False
+    set_label(args.noteId, "syncStatus", "published")
+    if changed:
+        set_label(args.noteId, "updatedAt", updated_at)
+    write_meta_only(metas)
+    report["gitChanged"] = git_has_changes()
+    report["autoPushEnabled"] = AUTO_PUSH
+    if AUTO_PUSH and report["gitChanged"]:
+        message = f"chore(trilium): {'pin' if pinned else 'unpin'} post - {note.get('title', '未命名')}"
+        ok, output = git_commit_and_push(message)
+        report["gitPushed"] = ok
+        report["gitMessage"] = message
+        report["gitOutput"] = output[-2000:]
+    else:
+        report["gitPushed"] = False
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return True
 
 
 def cleanup_removed_assets(note_ids: List[str]) -> List[str]:
@@ -385,12 +504,12 @@ def cleanup_removed_assets(note_ids: List[str]) -> List[str]:
 
 
 def git_has_changes() -> bool:
-    r = subprocess.run(["git", "status", "--porcelain", "src/data/trilium-posts.generated.ts", "public/trilium-assets"], cwd=BASE_DIR, capture_output=True, text=True)
+    r = subprocess.run(["git", "status", "--porcelain", "src/data/trilium-posts.content.generated.ts", "src/data/trilium-posts.meta.generated.ts", "public/trilium-assets"], cwd=BASE_DIR, capture_output=True, text=True)
     return bool(r.stdout.strip())
 
 
 def git_commit_and_push(message: str) -> Tuple[bool, str]:
-    add_res = subprocess.run(["git", "add", "src/data/trilium-posts.generated.ts", "public/trilium-assets"], cwd=BASE_DIR, capture_output=True, text=True)
+    add_res = subprocess.run(["git", "add", "src/data/trilium-posts.content.generated.ts", "src/data/trilium-posts.meta.generated.ts", "public/trilium-assets", "src/data/posts.ts"], cwd=BASE_DIR, capture_output=True, text=True)
     if add_res.returncode != 0:
         return False, (add_res.stderr or add_res.stdout).strip()
     commit_res = subprocess.run(["git", "commit", "-m", message], cwd=BASE_DIR, capture_output=True, text=True)
@@ -417,14 +536,6 @@ def parse_args():
 def main():
     args = parse_args()
     root = get_json(f"/etapi/notes/{ROOT_NOTE_ID}")
-    all_notes = walk_note_tree(ROOT_NOTE_ID)
-    notes_by_id = {n.get("noteId"): n for n in all_notes}
-    if args.noteId and args.noteId in notes_by_id:
-        ordered_notes = [notes_by_id[args.noteId]] + [n for n in all_notes if n.get("noteId") != args.noteId]
-    else:
-        ordered_notes = all_notes
-
-    candidates = []
     report = {
         "requestId": args.requestId,
         "event": args.event,
@@ -440,6 +551,17 @@ def main():
         "removedAssets": []
     }
 
+    if handle_pinned_only_update(args, report):
+        return
+
+    all_notes = walk_note_tree(ROOT_NOTE_ID)
+    notes_by_id = {n.get("noteId"): n for n in all_notes}
+    if args.noteId and args.noteId in notes_by_id:
+        ordered_notes = [notes_by_id[args.noteId]] + [n for n in all_notes if n.get("noteId") != args.noteId]
+    else:
+        ordered_notes = all_notes
+
+    candidates = []
     for note in ordered_notes:
         report["scanned"] += 1
         if note.get("noteId") == ROOT_NOTE_ID:
@@ -472,6 +594,12 @@ def main():
 
     posts: List[dict] = []
     used_slugs = set()
+    existing_meta = load_existing_meta_records()
+    for meta in existing_meta:
+        slug = str(meta.get("slug") or "").strip()
+        if slug:
+            used_slugs.add(slug)
+
     for note in candidates:
         report["publishedCandidates"] += 1
         try:
@@ -520,7 +648,7 @@ def main():
             report["failed"].append({"id": note.get("noteId"), "title": note.get("title"), "error": str(e)[:300]})
 
     report["removedAssets"] = cleanup_removed_assets([item["id"] for item in report["removed"]])
-    write_generated(posts)
+    write_generated_files(posts)
     report["gitChanged"] = git_has_changes()
     report["autoPushEnabled"] = AUTO_PUSH
     if AUTO_PUSH and report["gitChanged"]:
