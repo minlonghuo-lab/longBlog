@@ -151,7 +151,7 @@ export const triliumPosts: TriliumPostRecord[] = [
     "id": "2epdE8sgosX8",
     "slug": "使用-cryptomator为云存储提供零知识加密",
     "title": "使用 Cryptomator：为云存储提供零知识加密",
-    "updatedAt": "2026-03-30 13:18:10.684+0800",
+    "updatedAt": "2026-03-30 13:18:25.573+0800",
     "publishedAt": "2025-12-03 19:33:17.986+0800",
     "tags": [
       "云存储",
