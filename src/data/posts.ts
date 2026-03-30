@@ -19,6 +19,25 @@ function toDate(v?: string) {
   return Number.isNaN(d.getTime()) ? new Date() : d;
 }
 
+function comparePosts(a: Post, b: Post) {
+  const aPinned = !!a.pinned;
+  const bPinned = !!b.pinned;
+
+  if (aPinned !== bPinned) {
+    return aPinned ? -1 : 1;
+  }
+
+  if (aPinned && bPinned) {
+    const diff = a.publishedAt.getTime() - b.publishedAt.getTime();
+    if (diff !== 0) return diff;
+    return a.id.localeCompare(b.id, 'zh-CN');
+  }
+
+  const diff = b.publishedAt.getTime() - a.publishedAt.getTime();
+  if (diff !== 0) return diff;
+  return a.id.localeCompare(b.id, 'zh-CN');
+}
+
 export const posts: Post[] = triliumPosts.map((p) => ({
   id: p.id,
   slug: p.slug,
@@ -32,11 +51,11 @@ export const posts: Post[] = triliumPosts.map((p) => ({
 }));
 
 export function getSortedPosts(): Post[] {
-  return [...posts].sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+  return [...posts].sort(comparePosts);
 }
 
 export function getPinnedPosts(): Post[] {
-  return posts.filter((post) => post.pinned);
+  return posts.filter((post) => post.pinned).sort(comparePosts);
 }
 
 export function getAllTags(): { name: string; count: number }[] {
