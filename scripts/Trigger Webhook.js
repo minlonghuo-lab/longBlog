@@ -9,7 +9,7 @@ if (!["publish", "sync", "pinned", "aiRefresh"].includes(attr.name)) return;
 const note = api.getNote(attr.noteId);
 if (!note || note.isDeleted) return;
 
-const TEMPLATE_NOTE_IDS = new Set(["MC7PtiChdF5S"]);
+const TEMPLATE_NOTE_IDS = new Set(["YOUR_TEMPLATE_NOTE_ID"]);
 
 function isTemplateNote(note) {
     if (!note) return false;
@@ -23,8 +23,9 @@ function isTemplateNote(note) {
 
 if (isTemplateNote(note)) return;
 
-const WEBHOOK_URL = "https://blog.ssaw.top/trilium-sync-webhook";
-const WEBHOOK_SECRET = "bK9x_7QmP2vL8nR4sT6yZ1aW5cD3fH9J";
+// Replace these placeholders in Trilium private script note, do NOT commit real values.
+const WEBHOOK_URL = "YOUR_WEBHOOK_URL";
+const WEBHOOK_SECRET = "YOUR_WEBHOOK_SECRET";
 
 function setOrCreateLabel(note, name, value) {
     const existing = note.getLabel(name);
@@ -64,12 +65,10 @@ function sendWebhook(payload, noticePrefix) {
     try {
         if (attr.name === "publish") {
             const publishValue = (attr.value || "").toLowerCase();
-
             if (publishValue !== "true" && publishValue !== "false") {
                 setOrCreateLabel(note, "webhookNotice", `ignored:publish:${publishValue}`);
                 return;
             }
-
             const payload = {
                 event: "publish_changed",
                 requestId: `${note.noteId}-publish-${Date.now()}`,
@@ -78,18 +77,15 @@ function sendWebhook(payload, noticePrefix) {
                 publish: publishValue,
                 triggeredAt: new Date().toISOString()
             };
-
             await sendWebhook(payload, `publish:${publishValue}`);
             return;
         }
 
         if (attr.name === "sync") {
             const syncValue = (attr.value || "").toLowerCase();
-
             if (syncValue !== "true") {
                 return;
             }
-
             const payload = {
                 event: "sync_requested",
                 requestId: `${note.noteId}-sync-${Date.now()}`,
@@ -98,7 +94,6 @@ function sendWebhook(payload, noticePrefix) {
                 sync: syncValue,
                 triggeredAt: new Date().toISOString()
             };
-
             await sendWebhook(payload, `sync:${syncValue}`);
             setOrCreateLabel(note, "syncStatus", "queued");
             return;
@@ -106,12 +101,10 @@ function sendWebhook(payload, noticePrefix) {
 
         if (attr.name === "pinned") {
             const pinnedValue = (attr.value || "").toLowerCase();
-
             if (pinnedValue !== "true" && pinnedValue !== "false") {
                 setOrCreateLabel(note, "webhookNotice", `ignored:pinned:${pinnedValue}`);
                 return;
             }
-
             const payload = {
                 event: "pinned_changed",
                 requestId: `${note.noteId}-pinned-${Date.now()}`,
@@ -120,7 +113,6 @@ function sendWebhook(payload, noticePrefix) {
                 pinned: pinnedValue,
                 triggeredAt: new Date().toISOString()
             };
-
             await sendWebhook(payload, `pinned:${pinnedValue}`);
             setOrCreateLabel(note, "syncStatus", "queued");
             return;
@@ -128,11 +120,9 @@ function sendWebhook(payload, noticePrefix) {
 
         if (attr.name === "aiRefresh") {
             const aiRefreshValue = (attr.value || "").toLowerCase();
-
             if (aiRefreshValue !== "true") {
                 return;
             }
-
             const payload = {
                 event: "ai_refresh_requested",
                 requestId: `${note.noteId}-aiRefresh-${Date.now()}`,
@@ -141,7 +131,6 @@ function sendWebhook(payload, noticePrefix) {
                 aiRefresh: aiRefreshValue,
                 triggeredAt: new Date().toISOString()
             };
-
             await sendWebhook(payload, `aiRefresh:${aiRefreshValue}`);
             setOrCreateLabel(note, "syncStatus", "queued");
             return;
