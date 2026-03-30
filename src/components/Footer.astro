@@ -2,12 +2,15 @@
 import { AUTHOR } from '../consts';
 
 const year = new Date().getFullYear();
+const launchDate = new Date('2026-03-27T00:00:00+08:00');
+const now = new Date();
+const runningDays = Math.max(1, Math.floor((now.getTime() - launchDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 ---
 
 <footer class="site-footer">
   <div class="container footer-inner">
-    <p>
-      © {year} {AUTHOR}
+    <p class="footer-line footer-main">
+      <span>© {year} {AUTHOR}</span>
       <a
         href="https://icp.gov.moe/?keyword=20260550"
         target="_blank"
@@ -16,6 +19,29 @@ const year = new Date().getFullYear();
       >
         萌ICP备20260550号
       </a>
+    </p>
+
+    <p class="footer-line footer-powered">
+      <span class="footer-badge">
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="footer-icon">
+          <path d="M12 3l7 4v10l-7 4-7-4V7l7-4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+          <path d="M9 10.5l3-1.8 3 1.8v3L12 15.3 9 13.5v-3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+        Powered by
+      </span>
+      <a href="https://github.com/TriliumNext/Trilium" target="_blank" rel="noopener noreferrer">Trilium</a>
+      <span>&amp;</span>
+      <a href="https://github.com/withastro/astro" target="_blank" rel="noopener noreferrer">Astro</a>
+    </p>
+
+    <p class="footer-line footer-runtime">
+      <span class="footer-badge">
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="footer-icon">
+          <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M12 7.5v4.8l3.2 1.9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        该站已稳定运行 {runningDays} 天
+      </span>
     </p>
   </div>
 </footer>
@@ -30,9 +56,12 @@ const year = new Date().getFullYear();
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
+    gap: 0.6rem;
+    text-align: center;
   }
 
-  .footer-inner p {
+  .footer-line {
     margin: 0;
     font-family: var(--font-mono);
     font-size: 0.75rem;
@@ -40,16 +69,32 @@ const year = new Date().getFullYear();
     opacity: 0.72;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
     justify-content: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    width: 100%;
   }
 
-  .icp-link {
+  .footer-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.38rem;
+  }
+
+  .footer-icon {
+    width: 0.92rem;
+    height: 0.92rem;
+    flex: 0 0 auto;
+  }
+
+  .icp-link,
+  .footer-line a {
     transition: color var(--transition-base);
   }
 
-  .icp-link:hover {
+  .icp-link:hover,
+  .footer-line a:hover {
     color: var(--foreground);
   }
 </style>
