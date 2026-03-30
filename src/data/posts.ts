@@ -1,4 +1,5 @@
-import { triliumPosts } from './trilium-posts.generated';
+import { triliumPostContents } from './trilium-posts.content.generated';
+import { triliumPostMetas } from './trilium-posts.meta.generated';
 
 export interface Post {
   id: string;
@@ -38,17 +39,25 @@ function comparePosts(a: Post, b: Post) {
   return a.id.localeCompare(b.id, 'zh-CN');
 }
 
-export const posts: Post[] = triliumPosts.map((p) => ({
-  id: p.id,
-  slug: p.slug,
-  title: p.title,
-  publishedAt: toDate(p.publishedAt || p.updatedAt),
-  updatedAt: toDate(p.updatedAt),
-  tags: p.tags ?? [],
-  summary: p.summary ?? '',
-  contentHtml: p.contentHtml ?? '',
-  pinned: !!p.pinned,
-}));
+const contentMap = new Map(triliumPostContents.map((p) => [p.id, p]));
+
+export const posts: Post[] = triliumPostMetas
+  .map((meta) => {
+    const content = contentMap.get(meta.id);
+    if (!content) return null;
+    return {
+      id: meta.id,
+      slug: meta.slug,
+      title: content.title,
+      publishedAt: toDate(meta.publishedAt || meta.updatedAt),
+      updatedAt: toDate(meta.updatedAt),
+      tags: meta.tags ?? [],
+      summary: content.summary ?? '',
+      contentHtml: content.contentHtml ?? '',
+      pinned: !!meta.pinned,
+    } satisfies Post;
+  })
+  .filter((post): post is Post => post !== null);
 
 export function getSortedPosts(): Post[] {
   return [...posts].sort(comparePosts);
