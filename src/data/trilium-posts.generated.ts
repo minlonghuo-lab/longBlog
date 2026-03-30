@@ -27,7 +27,7 @@ export const triliumPosts: TriliumPostRecord[] = [
     "id": "dDI26xYqquzY",
     "slug": "基于tlock和cryptomator的时间胶囊",
     "title": "基于tlock和cryptomator的时间胶囊",
-    "updatedAt": "2026-03-30 13:41:33.915+0800",
+    "updatedAt": "2026-03-30 13:43:45.651+0800",
     "publishedAt": "2026-03-29T02:14:50.366611-08:00",
     "tags": [
       "时间胶囊",
