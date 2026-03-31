@@ -104,8 +104,8 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     const LARGE_CHILDREN_THRESHOLD = 30;
     const HUGE_CHILDREN_THRESHOLD = 60;
     const CHUNK_SIZE = 18;
-    const INITIAL_CHILD_LIMIT = 18;
-    const LOAD_MORE_STEP = 18;
+    const INITIAL_CHILD_LIMIT = 12;
+    const LOAD_MORE_STEP = 12;
     const LOAD_MORE_PREFIX = '__load_more__:';
 
     const normalizeTitle = (value) => String(value || '').replace(/\s+/g, '').trim();
@@ -322,8 +322,9 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         const childCount = Array.isArray(loaded.children) ? loaded.children.length : 0;
         const useIncrementalLoading = childCount >= LARGE_CHILDREN_THRESHOLD;
         const disableChildPhysics = childCount >= LARGE_CHILDREN_THRESHOLD;
-        const stabilizeIterations = childCount >= HUGE_CHILDREN_THRESHOLD ? 24 : childCount >= LARGE_CHILDREN_THRESHOLD ? 32 : 70;
+        const stabilizeIterations = childCount >= HUGE_CHILDREN_THRESHOLD ? 16 : childCount >= LARGE_CHILDREN_THRESHOLD ? 24 : 70;
         const initialLimit = useIncrementalLoading ? Math.min(childCount, INITIAL_CHILD_LIMIT) : childCount;
+        const chunkSize = childCount >= HUGE_CHILDREN_THRESHOLD ? 8 : childCount >= LARGE_CHILDREN_THRESHOLD ? 10 : CHUNK_SIZE;
 
         currentNode.loaded = true;
         currentNode.children = loaded.children || [];
@@ -331,12 +332,18 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         currentNode.loadedChildCount = 0;
         upsertGraphNode(currentNode, { physics: true });
 
-        await ingestChildrenInChunks(currentNode, currentNode.children, {
-          physics: !disableChildPhysics,
-          chunkSize: childCount >= HUGE_CHILDREN_THRESHOLD ? 12 : CHUNK_SIZE,
-          startIndex: 0,
-          endIndex: initialLimit,
-        });
+        try {
+          await ingestChildrenInChunks(currentNode, currentNode.children, {
+            physics: !disableChildPhysics,
+            chunkSize,
+            startIndex: 0,
+            endIndex: initialLimit,
+          });
+        } catch (chunkError) {
+          removeLoadMoreNode(currentNode.noteId);
+          currentNode.loadedChildCount = 0;
+          throw chunkError;
+        }
 
         currentNode.loadedChildCount = initialLimit;
         const remainingCount = Math.max(0, childCount - initialLimit);
@@ -356,6 +363,9 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
           degradedPhysics: disableChildPhysics,
         };
       } catch (error) {
+        currentNode.loaded = false;
+        currentNode.loadedChildCount = 0;
+        removeLoadMoreNode(id);
         throw new Error(error instanceof Error ? error.message : String(error || 'expand failed'));
       } finally {
         loadingNodes.delete(id);
@@ -481,8 +491,13 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
           setStatus(`「${currentNode.title}」当前没有新的子节点可展开`);
         }
       } catch (err) {
-        console.error('[about] graph children load failed', err);
-        setStatus(`展开「${currentNode.title}」失败：节点较多，请再次点击重试或稍后再试`);
+        console.error('[about] graph children load failed', {
+          noteId,
+          title: currentNode.title,
+          childCount: currentNode.childCount,
+          err,
+        });
+        setStatus(`展开「${currentNode.title}」失败：节点较多，已自动降载；请再次点击继续尝试`);
       }
     });
 
