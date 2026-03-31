@@ -129,6 +129,9 @@ const hiddenTags = tags.slice(7);
           requestAnimationFrame(() => {
             requestAnimationFrame(() => tagExtra.classList.add('is-visible'));
           });
+          requestAnimationFrame(() => {
+            tagExtra.scrollTop = 0;
+          });
         }
       });
     }
@@ -172,18 +175,27 @@ const hiddenTags = tags.slice(7);
   .tag-row {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.8rem 1.2rem;
   }
 
   .tag-extra {
     display: inline-flex;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-start;
+    align-content: flex-start;
     gap: 0.8rem 1.2rem;
+    width: 100%;
+    max-height: min(14rem, 36vh);
+    overflow: auto;
+    padding: 0.2rem 0.3rem 0.25rem 0;
+    margin-top: 0.15rem;
+    border-top: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
     opacity: 0;
     transform: translateY(4px);
     transition: opacity 0.18s ease, transform 0.18s ease;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--border) 85%, transparent) transparent;
   }
 
   .tag-extra.is-visible {
@@ -193,6 +205,10 @@ const hiddenTags = tags.slice(7);
 
   .tag-extra[hidden] {
     display: none !important;
+  }
+
+  html[data-theme='dark'] .tag-extra {
+    border-top-color: rgba(255, 255, 255, 0.08);
   }
 
   .tag-link {
