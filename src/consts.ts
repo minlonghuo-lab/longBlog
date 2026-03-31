@@ -27,6 +27,7 @@ export const ICP_URL = env.PUBLIC_ICP_URL || 'https://icp.gov.moe/?keyword=20260
 export const ICP_TEXT = env.PUBLIC_ICP_TEXT || '萌ICP备20260550号';
 export const FOOTER_TRILIUM_URL = env.PUBLIC_FOOTER_POWERED_TRILIUM_URL || 'https://github.com/TriliumNext/Trilium';
 export const FOOTER_ASTRO_URL = env.PUBLIC_FOOTER_POWERED_ASTRO_URL || 'https://github.com/withastro/astro';
+export const SITE_LAUNCH_DATE = env.PUBLIC_SITE_LAUNCH_DATE || '2026-03-27T00:00:00+08:00';
 
 // Analytics
 export const UMAMI_SCRIPT_URL = env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud.umami.is/script.js';

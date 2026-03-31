@@ -1,8 +1,8 @@
 ---
-import { AUTHOR, ICP_URL, ICP_TEXT, FOOTER_TRILIUM_URL, FOOTER_ASTRO_URL } from '../consts';
+import { AUTHOR, ICP_URL, ICP_TEXT, FOOTER_TRILIUM_URL, FOOTER_ASTRO_URL, SITE_LAUNCH_DATE } from '../consts';
 
 const year = new Date().getFullYear();
-const launchDateIso = '2026-03-27T00:00:00+08:00';
+const launchDateIso = SITE_LAUNCH_DATE;
 const launchDate = new Date(launchDateIso);
 const initialDiffMs = Math.max(0, Date.now() - launchDate.getTime());
 
