@@ -343,17 +343,23 @@ const memosApiBase = MEMOS_URL;
     if (!src) return;
     previewImgEl.setAttribute('src', src);
     previewEl.style.display = 'flex';
+    document.body.classList.add('lightbox-open');
+    document.body.style.overflow = 'hidden';
   });
 
   closeBtn.addEventListener('click', () => {
     previewEl.style.display = 'none';
     previewImgEl.setAttribute('src', '');
+    document.body.classList.remove('lightbox-open');
+    document.body.style.overflow = '';
   });
 
   previewEl.addEventListener('click', (e) => {
     if (e.target === previewEl) {
       previewEl.style.display = 'none';
       previewImgEl.setAttribute('src', '');
+      document.body.classList.remove('lightbox-open');
+      document.body.style.overflow = '';
     }
   });
 
@@ -417,6 +423,12 @@ const memosApiBase = MEMOS_URL;
   .memos-status { text-align: center; margin-top: 2.2rem; font-family: var(--font-mono); font-size: 0.72rem; color: color-mix(in oklab, var(--muted-foreground) 82%, transparent); letter-spacing: 0.08em; }
   .memos-sentinel { height: 1px; }
   .image-preview { position: fixed; inset: 0; z-index: 999; background: rgba(0, 0, 0, 0.84); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; padding: 1rem; width: 100vw; height: 100dvh; min-height: 100vh; }
+  body.lightbox-open .site-header,
+  body.lightbox-open .site-header-spacer {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translateY(-12px);
+  }
   .image-preview img { max-width: min(90vw, 960px); max-height: 88dvh; object-fit: contain; border-radius: 0.52rem; }
   .preview-close { position: absolute; right: 1rem; top: 1rem; border: none; background: transparent; color: white; font-size: 1.4rem; cursor: pointer; z-index: 1000; }
 </style>

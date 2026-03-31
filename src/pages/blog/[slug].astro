@@ -151,7 +151,7 @@ function formatDate(date: Date): string {
         const percent = Math.max(0, Math.min(100, Math.round((scrolled / max) * 100)));
         const isMobile = window.innerWidth < 1080;
         const shouldShowBackToTop = window.scrollY > start + 260;
-        const shouldHideBackToTopForMobileToc = isMobile;
+        const shouldHideBackToTopForMobileToc = isMobile && !(mobileTocSheet instanceof HTMLElement ? mobileTocSheet.classList.contains('open') : false);
 
         if (progressBar) progressBar.style.width = `${percent}%`;
         if (progressText) progressText.textContent = `${percent}%`;
@@ -1139,8 +1139,8 @@ function formatDate(date: Date): string {
     .content h3 { font-size: 1.12rem; }
 
     .back-to-top {
-      left: auto;
-      right: 0.9rem;
+      left: 0.9rem;
+      right: auto;
       bottom: max(5.4rem, env(safe-area-inset-bottom, 0px) + 5.4rem);
       width: 2.8rem;
       height: 2.8rem;
