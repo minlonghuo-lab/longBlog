@@ -104,8 +104,15 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     const LARGE_CHILDREN_THRESHOLD = 30;
     const HUGE_CHILDREN_THRESHOLD = 60;
     const CHUNK_SIZE = 18;
+    const INITIAL_CHILD_LIMIT = 24;
+    const LOAD_MORE_STEP = 24;
+    const LOAD_MORE_PREFIX = '__load_more__:';
 
     const normalizeTitle = (value) => String(value || '').replace(/\s+/g, '').trim();
+
+    const getLoadMoreNodeId = (parentId) => `${LOAD_MORE_PREFIX}${parentId}`;
+    const isLoadMoreNodeId = (nodeId) => String(nodeId || '').startsWith(LOAD_MORE_PREFIX);
+    const getParentIdFromLoadMore = (nodeId) => String(nodeId || '').slice(LOAD_MORE_PREFIX.length);
 
     const isBlogNode = (node) => {
       const title = normalizeTitle(node?.title);
@@ -190,6 +197,45 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     };
 
     const edgeId = (from, to) => `${from}-->${to}`;
+    const removeLoadMoreNode = (parentId) => {
+      const loadMoreId = getLoadMoreNodeId(parentId);
+      if (nodes.get(loadMoreId)) {
+        nodes.remove(loadMoreId);
+      }
+      const loadMoreEdgeId = edgeId(parentId, loadMoreId);
+      if (edges.get(loadMoreEdgeId)) {
+        edges.remove(loadMoreEdgeId);
+      }
+    };
+
+    const upsertLoadMoreNode = (parentNode, remainingCount) => {
+      if (!parentNode?.noteId) return;
+      const loadMoreId = getLoadMoreNodeId(parentNode.noteId);
+      if (remainingCount <= 0) {
+        removeLoadMoreNode(parentNode.noteId);
+        return;
+      }
+      const payload = {
+        id: loadMoreId,
+        label: `继续加载 ${remainingCount} 个子节点`,
+        title: `${parentNode.title}\n还有 ${remainingCount} 个子节点未显示`,
+        shape: 'box',
+        margin: 10,
+        borderWidth: 1,
+        color: {
+          background: 'rgba(255,255,255,0.92)',
+          border: 'rgba(148, 163, 184, 0.72)',
+          highlight: { background: '#eef2ff', border: '#6366f1' },
+          hover: { background: '#f8fafc', border: '#64748b' },
+        },
+        font: { color: '#475569', size: 12, face: 'Inter, system-ui, sans-serif', strokeWidth: 0 },
+        physics: false,
+      };
+      if (nodes.get(loadMoreId)) nodes.update(payload);
+      else nodes.add(payload);
+      upsertEdge(parentNode.noteId, loadMoreId);
+    };
+
     const upsertEdge = (from, to) => {
       const id = edgeId(from, to);
       if (edges.get(id)) return;
@@ -206,14 +252,16 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
 
     const ingestChildrenInChunks = async (parentNode, children, options = {}) => {
       const chunkSize = Math.max(1, options.chunkSize || CHUNK_SIZE);
-      for (let index = 0; index < children.length; index += chunkSize) {
-        const batch = children.slice(index, index + chunkSize);
+      const startIndex = Math.max(0, options.startIndex || 0);
+      const endIndex = Math.min(children.length, options.endIndex ?? children.length);
+      for (let index = startIndex; index < endIndex; index += chunkSize) {
+        const batch = children.slice(index, Math.min(index + chunkSize, endIndex));
         for (const child of batch) {
           child.parentId = parentNode.noteId;
           upsertGraphNode(child, options);
           upsertEdge(parentNode.noteId, child.noteId);
         }
-        if (children.length > chunkSize) {
+        if (endIndex - startIndex > chunkSize) {
           await nextFrame();
         }
       }
@@ -228,11 +276,40 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       return normalized;
     };
 
+    const loadMoreChildren = async (parentId) => {
+      const parentNode = nodeStore.get(String(parentId));
+      if (!parentNode || !Array.isArray(parentNode.children) || !parentNode.children.length) {
+        return { loadedCount: 0, remainingCount: 0 };
+      }
+
+      const currentOffset = Number(parentNode.loadedChildCount || 0);
+      const nextOffset = Math.min(parentNode.children.length, currentOffset + LOAD_MORE_STEP);
+      const chunkSize = parentNode.children.length >= HUGE_CHILDREN_THRESHOLD ? 12 : CHUNK_SIZE;
+      const disableChildPhysics = parentNode.children.length >= LARGE_CHILDREN_THRESHOLD;
+
+      removeLoadMoreNode(parentNode.noteId);
+      await ingestChildrenInChunks(parentNode, parentNode.children, {
+        physics: !disableChildPhysics,
+        chunkSize,
+        startIndex: currentOffset,
+        endIndex: nextOffset,
+      });
+
+      parentNode.loadedChildCount = nextOffset;
+      const remainingCount = Math.max(0, parentNode.children.length - nextOffset);
+      if (remainingCount > 0) {
+        upsertLoadMoreNode(parentNode, remainingCount);
+      }
+
+      safeStabilize(parentNode.children.length >= HUGE_CHILDREN_THRESHOLD ? 18 : 28);
+      return { loadedCount: nextOffset, remainingCount };
+    };
+
     const expandNode = async (noteId, version = renderVersion) => {
       const id = String(noteId);
       const currentNode = nodeStore.get(id);
       if (!currentNode?.hasChildren) return { node: currentNode, expanded: false, reason: 'no-children' };
-      if (loadedNodes.has(id)) return { node: currentNode, expanded: false, reason: 'already-loaded' };
+      if (loadedNodes.has(id)) return { node: currentNode, expanded: false, reason: 'already-loaded', childCount: currentNode.children?.length || 0 };
       if (loadingNodes.has(id)) return { node: currentNode, expanded: false, reason: 'loading' };
 
       loadingNodes.add(id);
@@ -245,15 +322,27 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         const childCount = Array.isArray(loaded.children) ? loaded.children.length : 0;
         const disableChildPhysics = childCount >= LARGE_CHILDREN_THRESHOLD;
         const stabilizeIterations = childCount >= HUGE_CHILDREN_THRESHOLD ? 24 : childCount >= LARGE_CHILDREN_THRESHOLD ? 38 : 70;
+        const initialLimit = childCount >= HUGE_CHILDREN_THRESHOLD ? INITIAL_CHILD_LIMIT : childCount;
 
         currentNode.loaded = true;
         currentNode.children = loaded.children || [];
         currentNode.childCount = loaded.childCount;
+        currentNode.loadedChildCount = 0;
         upsertGraphNode(currentNode, { physics: true });
+
         await ingestChildrenInChunks(currentNode, currentNode.children, {
           physics: !disableChildPhysics,
           chunkSize: childCount >= HUGE_CHILDREN_THRESHOLD ? 12 : CHUNK_SIZE,
+          startIndex: 0,
+          endIndex: initialLimit,
         });
+
+        currentNode.loadedChildCount = initialLimit;
+        const remainingCount = Math.max(0, childCount - initialLimit);
+        if (remainingCount > 0) {
+          upsertLoadMoreNode(currentNode, remainingCount);
+        }
+
         loadedNodes.add(id);
         safeStabilize(stabilizeIterations);
         return {
@@ -261,6 +350,8 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
           expanded: true,
           reason: 'expanded',
           childCount,
+          shownCount: initialLimit,
+          remainingCount,
           degradedPhysics: disableChildPhysics,
         };
       } catch (error) {
@@ -348,6 +439,26 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       if (isDragging || Date.now() - dragEndAt < 180) return;
       const noteId = params.nodes?.[0];
       if (!noteId) return;
+
+      if (isLoadMoreNodeId(noteId)) {
+        const parentId = getParentIdFromLoadMore(noteId);
+        const parentNode = nodeStore.get(parentId);
+        if (!parentNode) return;
+        setStatus(`正在继续加载「${parentNode.title}」的更多子节点…`);
+        try {
+          const result = await loadMoreChildren(parentId);
+          if (result.remainingCount > 0) {
+            setStatus(`已继续加载「${parentNode.title}」的子节点，剩余 ${result.remainingCount} 个可继续展开`);
+          } else {
+            setStatus(`已完整展开「${parentNode.title}」的全部 ${result.loadedCount} 个子节点`);
+          }
+        } catch (err) {
+          console.error('[about] graph load more failed', err);
+          setStatus('继续加载子节点失败，请稍后重试');
+        }
+        return;
+      }
+
       const currentNode = nodeStore.get(String(noteId));
       if (!currentNode?.hasChildren) return;
       if (loadedNodes.has(String(noteId))) return;
@@ -356,7 +467,9 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       try {
         const result = await expandNode(String(noteId));
         if (result?.expanded) {
-          if ((result.childCount || 0) >= LARGE_CHILDREN_THRESHOLD) {
+          if ((result.remainingCount || 0) > 0) {
+            setStatus(`已先展开「${currentNode.title}」的前 ${result.shownCount} 个子节点，剩余 ${result.remainingCount} 个可继续加载`);
+          } else if ((result.childCount || 0) >= LARGE_CHILDREN_THRESHOLD) {
             setStatus(`已展开「${currentNode.title}」的 ${result.childCount} 个子节点，并启用性能优化模式`);
           } else {
             setStatus(`已展开「${currentNode.title}」，继续点击其它节点可向下浏览`);
