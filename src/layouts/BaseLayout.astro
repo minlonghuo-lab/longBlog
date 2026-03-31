@@ -171,7 +171,7 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
             .then((r) => (r.ok ? r.json() : null))
             .then((data) => {
               if (data && Array.isArray(data.memos)) {
-                sessionStorage.setItem('LONG_BLOG_MEMOS_CACHE', JSON.stringify({
+                sessionStorage.setItem('LONG_BLOG_MEMOS_CACHE_V2', JSON.stringify({
                   ts: Date.now(),
                   data,
                 }));
