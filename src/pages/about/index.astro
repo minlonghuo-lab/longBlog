@@ -103,9 +103,9 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
 
     const LARGE_CHILDREN_THRESHOLD = 30;
     const HUGE_CHILDREN_THRESHOLD = 60;
-    const CHUNK_SIZE = 18;
-    const INITIAL_CHILD_LIMIT = 12;
-    const LOAD_MORE_STEP = 12;
+    const CHUNK_SIZE = 12;
+    const INITIAL_CHILD_LIMIT = 8;
+    const LOAD_MORE_STEP = 8;
     const LOAD_MORE_PREFIX = '__load_more__:';
 
     const normalizeTitle = (value) => String(value || '').replace(/\s+/g, '').trim();
@@ -284,12 +284,11 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
 
       const currentOffset = Number(parentNode.loadedChildCount || 0);
       const nextOffset = Math.min(parentNode.children.length, currentOffset + LOAD_MORE_STEP);
-      const chunkSize = parentNode.children.length >= HUGE_CHILDREN_THRESHOLD ? 12 : CHUNK_SIZE;
-      const disableChildPhysics = parentNode.children.length >= LARGE_CHILDREN_THRESHOLD;
+      const chunkSize = CHUNK_SIZE;
 
       removeLoadMoreNode(parentNode.noteId);
       await ingestChildrenInChunks(parentNode, parentNode.children, {
-        physics: !disableChildPhysics,
+        physics: false,
         chunkSize,
         startIndex: currentOffset,
         endIndex: nextOffset,
@@ -301,7 +300,6 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         upsertLoadMoreNode(parentNode, remainingCount);
       }
 
-      safeStabilize(parentNode.children.length >= HUGE_CHILDREN_THRESHOLD ? 18 : 28);
       return { loadedCount: nextOffset, remainingCount };
     };
 
@@ -322,9 +320,9 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         const childCount = Array.isArray(loaded.children) ? loaded.children.length : 0;
         const useIncrementalLoading = childCount >= LARGE_CHILDREN_THRESHOLD;
         const disableChildPhysics = childCount >= LARGE_CHILDREN_THRESHOLD;
-        const stabilizeIterations = childCount >= HUGE_CHILDREN_THRESHOLD ? 16 : childCount >= LARGE_CHILDREN_THRESHOLD ? 24 : 70;
+        const stabilizeIterations = childCount >= HUGE_CHILDREN_THRESHOLD ? 12 : childCount >= LARGE_CHILDREN_THRESHOLD ? 16 : 70;
         const initialLimit = useIncrementalLoading ? Math.min(childCount, INITIAL_CHILD_LIMIT) : childCount;
-        const chunkSize = childCount >= HUGE_CHILDREN_THRESHOLD ? 8 : childCount >= LARGE_CHILDREN_THRESHOLD ? 10 : CHUNK_SIZE;
+        const chunkSize = useIncrementalLoading ? CHUNK_SIZE : 18;
 
         currentNode.loaded = true;
         currentNode.children = loaded.children || [];
