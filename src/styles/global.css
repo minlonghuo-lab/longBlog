@@ -127,6 +127,14 @@ body::before {
   z-index: 1;
 }
 
+.post-sidebar {
+  z-index: 999 !important;
+}
+
+.back-to-top {
+  z-index: 998 !important;
+}
+
 .theme-transition {
   position: fixed;
   left: 0;

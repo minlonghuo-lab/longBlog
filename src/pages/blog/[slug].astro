@@ -287,16 +287,19 @@ function formatDate(date: Date): string {
     margin-left: calc(50% - 50vw);
     display: flex;
     justify-content: center;
+    position: static;
+    isolation: auto;
   }
 
   .post-reading-stage {
-    position: relative;
+    position: static;
     width: 100%;
     max-width: 100%;
   }
 
   .post-paper {
     position: relative;
+    z-index: 1;
     width: min(60rem, calc(100vw - (2 * clamp(1.25rem, 8vw, 15rem))));
     max-width: calc(100vw - 2rem);
     margin: 0 auto;
@@ -342,7 +345,8 @@ function formatDate(date: Date): string {
     right: max(1.5rem, calc((100vw - 1460px) / 2 + 1.5rem));
     width: clamp(15rem, 17vw, 18rem);
     max-height: calc(100vh - 10rem);
-    z-index: 140;
+    z-index: 999;
+    pointer-events: auto;
     transition: right var(--transition-base), width var(--transition-base), transform var(--transition-base), top var(--transition-base);
   }
 
@@ -878,7 +882,7 @@ function formatDate(date: Date): string {
     transform: translateY(12px);
     pointer-events: none;
     transition: opacity var(--transition-base), transform var(--transition-base), background-color var(--transition-base);
-    z-index: 110;
+    z-index: 998;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     isolation: isolate;
