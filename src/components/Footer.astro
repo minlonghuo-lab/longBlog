@@ -96,8 +96,18 @@ const initialRuntimeText = formatRuntime(initialDiffMs);
 
 <style>
   .site-footer {
+    position: relative;
+    z-index: 0;
     padding: 3rem 0;
     border-top: 1px solid var(--border);
+    pointer-events: auto;
+  }
+
+  .site-footer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
   }
 
   .footer-inner {
