@@ -205,6 +205,7 @@ function formatDate(date: Date): string {
         lightboxImg.alt = alt || '文章图片预览';
         lightbox.classList.add('open');
         lightbox.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('lightbox-open');
         document.body.style.overflow = 'hidden';
       };
 
@@ -213,6 +214,7 @@ function formatDate(date: Date): string {
         lightbox.classList.remove('open');
         lightbox.setAttribute('aria-hidden', 'true');
         lightboxImg.src = '';
+        document.body.classList.remove('lightbox-open');
         document.body.style.overflow = mobileTocSheet?.classList.contains('open') ? 'hidden' : '';
       };
 
@@ -932,6 +934,21 @@ function formatDate(date: Date): string {
 
   .mobile-toc-sheet {
     display: none;
+  }
+
+  body.lightbox-open .post-sidebar,
+  body.lightbox-open .back-to-top,
+  body.lightbox-open .mobile-toc-trigger {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  body.lightbox-open .post-sidebar {
+    transform: translateX(1rem);
+  }
+
+  body.lightbox-open .back-to-top {
+    transform: translateY(12px);
   }
 
   .image-lightbox {

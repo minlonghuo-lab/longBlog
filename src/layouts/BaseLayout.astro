@@ -106,15 +106,17 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
         void themeTransition.offsetWidth;
         themeTransition.classList.add(theme === 'dark' ? 'to-dark' : 'to-light', 'is-active');
 
-        window.setTimeout(() => {
-          applyTheme(theme);
-          updateThemeToggleState();
-        }, 240);
+        requestAnimationFrame(() => {
+          window.setTimeout(() => {
+            applyTheme(theme);
+            updateThemeToggleState();
+          }, 160);
+        });
 
         window.setTimeout(() => {
           themeTransition.classList.remove('is-active', 'to-dark', 'to-light');
           document.body.classList.remove('theme-animating');
-        }, 1480);
+        }, 1320);
       };
 
       const updateThemeToggleState = () => {
