@@ -4,7 +4,7 @@ import FriendCard from '../../components/FriendCard.astro';
 import { friendLinks } from '../../data/friends';
 import { CONTACT_EMAIL } from '../../consts';
 
-const emailIcon = '/social-icons/email.svg';
+const emailIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" class="social-icon"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5v10.5H3.75z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m4.5 7.5 7.5 6 7.5-6"/></svg>`;
 ---
 
 <BaseLayout title="友链" description="友情链接与站点推荐">
@@ -38,7 +38,7 @@ const emailIcon = '/social-icons/email.svg';
       <p>欢迎交换友链，可通过邮箱联系我。</p>
     </div>
     <a href={`mailto:${CONTACT_EMAIL}`} class="apply-link icon-action">
-      <img src={emailIcon} alt="" aria-hidden="true" />
+      <Fragment set:html={emailIcon} />
       <span>联系我</span>
     </a>
   </section>
@@ -118,17 +118,12 @@ const emailIcon = '/social-icons/email.svg';
     transition: color var(--transition-base), border-color var(--transition-base), transform var(--transition-base), background-color var(--transition-base), box-shadow var(--transition-base), opacity var(--transition-base);
   }
 
-  .apply-link img {
+  .apply-link .social-icon {
     width: 1rem;
     height: 1rem;
     display: block;
-    opacity: 1;
-    filter: brightness(0) saturate(100%) opacity(0.82);
-    transition: opacity var(--transition-base), filter var(--transition-base);
-  }
-
-  html[data-theme='dark'] .apply-link img {
-    filter: brightness(0) saturate(100%) invert(1) opacity(0.78);
+    color: currentColor;
+    transition: color var(--transition-base), opacity var(--transition-base);
   }
 
   .apply-link.icon-action:hover,
@@ -140,14 +135,9 @@ const emailIcon = '/social-icons/email.svg';
     transform: translateY(-1px);
   }
 
-  .apply-link.icon-action:hover img,
-  .apply-link.icon-action:focus-visible img {
+  .apply-link.icon-action:hover .social-icon,
+  .apply-link.icon-action:focus-visible .social-icon {
+    color: currentColor;
     opacity: 1;
-    filter: brightness(0) saturate(100%) opacity(1);
-  }
-
-  html[data-theme='dark'] .apply-link.icon-action:hover img,
-  html[data-theme='dark'] .apply-link.icon-action:focus-visible img {
-    filter: brightness(0) saturate(100%) invert(1) opacity(0.96);
   }
 </style>
