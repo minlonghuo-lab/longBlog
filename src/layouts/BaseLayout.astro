@@ -85,34 +85,60 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
       applyTheme(getPreferredTheme());
 
       const animateThemeTransition = (theme, sourceEl) => {
-        if (!(themeTransition instanceof HTMLElement) || !(sourceEl instanceof HTMLElement) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (!(sourceEl instanceof HTMLElement) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
           applyTheme(theme);
+          updateThemeToggleState();
+          return;
+        }
+
+        const startViewTransition = document.startViewTransition?.bind(document);
+        if (!startViewTransition) {
+          applyTheme(theme);
+          updateThemeToggleState();
           return;
         }
 
         const rect = sourceEl.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
         const maxRadius = Math.hypot(
-          Math.max(centerX, window.innerWidth - centerX),
-          Math.max(centerY, window.innerHeight - centerY)
+          Math.max(rect.left, window.innerWidth - rect.right),
+          Math.max(rect.top, window.innerHeight - rect.bottom)
         );
 
-        themeTransition.style.setProperty('--theme-origin-x', `${centerX}px`);
-        themeTransition.style.setProperty('--theme-origin-y', `${centerY}px`);
-        themeTransition.style.setProperty('--theme-target-scale', String(maxRadius / 24));
-        themeTransition.classList.remove('is-active', 'to-dark', 'to-light');
-        void themeTransition.offsetWidth;
-        themeTransition.classList.add(theme === 'dark' ? 'to-dark' : 'to-light', 'is-active');
+        document.documentElement.style.setProperty('--theme-transition-x', `${x}px`);
+        document.documentElement.style.setProperty('--theme-transition-y', `${y}px`);
+        document.documentElement.classList.add('theme-transitioning');
 
-        window.setTimeout(() => {
+        const transition = startViewTransition(() => {
           applyTheme(theme);
           updateThemeToggleState();
-        }, 110);
+        });
 
-        window.setTimeout(() => {
-          themeTransition.classList.remove('is-active', 'to-dark', 'to-light');
-        }, 1180);
+        transition.ready
+          .then(() => {
+            document.documentElement.animate(
+              {
+                clipPath: [
+                  `circle(0px at ${x}px ${y}px)`,
+                  `circle(${maxRadius}px at ${x}px ${y}px)`,
+                ],
+              },
+              {
+                duration: 560,
+                easing: 'ease-in-out',
+                pseudoElement: '::view-transition-new(root)',
+              },
+            );
+          })
+          .catch(() => {
+            applyTheme(theme);
+            updateThemeToggleState();
+          });
+
+        transition.finished.finally(() => {
+          document.documentElement.classList.remove('theme-transitioning');
+        });
       };
 
       const updateThemeToggleState = () => {
