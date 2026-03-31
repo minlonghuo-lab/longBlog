@@ -936,11 +936,18 @@ function formatDate(date: Date): string {
     display: none;
   }
 
+  body.lightbox-open .site-header,
+  body.lightbox-open .site-header-spacer,
   body.lightbox-open .post-sidebar,
   body.lightbox-open .back-to-top,
   body.lightbox-open .mobile-toc-trigger {
     opacity: 0 !important;
     pointer-events: none !important;
+  }
+
+  body.lightbox-open .site-header,
+  body.lightbox-open .site-header-spacer {
+    transform: translateY(-12px);
   }
 
   body.lightbox-open .post-sidebar {
