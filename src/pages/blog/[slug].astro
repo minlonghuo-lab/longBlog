@@ -342,7 +342,7 @@ function formatDate(date: Date): string {
     right: max(1.5rem, calc((100vw - 1460px) / 2 + 1.5rem));
     width: clamp(15rem, 17vw, 18rem);
     max-height: calc(100vh - 10rem);
-    z-index: 30;
+    z-index: 140;
     transition: right var(--transition-base), width var(--transition-base), transform var(--transition-base), top var(--transition-base);
   }
 
@@ -864,7 +864,8 @@ function formatDate(date: Date): string {
 
   .back-to-top {
     position: fixed;
-    right: max(1.5rem, calc((100vw - 1160px) / 2 + 1.5rem));
+    left: max(1.5rem, calc((100vw - 1160px) / 2 + 1.5rem));
+    right: auto;
     bottom: max(5rem, env(safe-area-inset-bottom, 0px) + 5rem);
     width: 2.9rem;
     height: 2.9rem;
@@ -1106,6 +1107,7 @@ function formatDate(date: Date): string {
     .content h3 { font-size: 1.12rem; }
 
     .back-to-top {
+      left: auto;
       right: 1rem;
       bottom: max(6.6rem, env(safe-area-inset-bottom, 0px) + 6.6rem);
       width: 3.05rem;
