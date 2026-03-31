@@ -37,6 +37,7 @@ const socialIcons = {
           rel={link.platform === 'email' ? undefined : 'noopener noreferrer'}
           aria-label={link.platform === 'github' ? 'GitHub' : 'Email'}
           title={link.platform === 'github' ? 'GitHub' : 'Email'}
+          class="icon-action"
         >
           <img src={socialIcons[link.platform as keyof typeof socialIcons]} alt="" aria-hidden="true" />
         </a>
@@ -44,7 +45,7 @@ const socialIcons = {
 
       <button
         id="theme-toggle"
-        class="theme-toggle"
+        class="theme-toggle icon-action"
         type="button"
         aria-label="切换深色 / 浅色模式"
         title="切换深色 / 浅色模式"
@@ -60,7 +61,7 @@ const socialIcons = {
 
       <button
         id="search-toggle"
-        class="theme-toggle"
+        class="theme-toggle icon-action"
         type="button"
         aria-label="搜索文章"
         title="搜索文章"
@@ -236,16 +237,7 @@ const socialIcons = {
     font-weight: 500;
   }
 
-  .hero-social {
-    margin-top: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    flex-wrap: wrap;
-  }
-
-  .hero-social a,
-  .theme-toggle {
+  .icon-action {
     width: 2.1rem;
     height: 2.1rem;
     display: inline-flex;
@@ -258,18 +250,49 @@ const socialIcons = {
     transition: color var(--transition-base), border-color var(--transition-base), transform var(--transition-base), background-color var(--transition-base), box-shadow var(--transition-base);
   }
 
-  .hero-social a:hover,
-  .theme-toggle:hover {
-    color: var(--foreground);
-    border-color: color-mix(in oklab, var(--foreground) 16%, transparent);
-    background: color-mix(in oklab, var(--muted) 82%, white);
-    transform: translateY(-1px);
-  }
-
-  .hero-social a img {
+  .hero-social .icon-action img,
+  .hero-social .icon-action svg {
     width: 1rem;
     height: 1rem;
     display: block;
+  }
+
+  .hero-social .icon-action img {
+    opacity: 1;
+    filter: brightness(0) saturate(100%) opacity(0.82);
+    transition: opacity var(--transition-base), filter var(--transition-base);
+  }
+
+  html[data-theme='dark'] .hero-social .icon-action img {
+    filter: brightness(0) saturate(100%) invert(1) opacity(0.78);
+  }
+
+  .hero-social .icon-action:hover,
+  .hero-social .icon-action:focus-visible {
+    color: var(--foreground);
+    border-color: color-mix(in oklab, var(--foreground) 22%, transparent);
+    background: color-mix(in oklab, var(--muted) 82%, white);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px color-mix(in oklab, black 8%, transparent);
+  }
+
+  .hero-social .icon-action:hover img,
+  .hero-social .icon-action:focus-visible img {
+    opacity: 1;
+    filter: brightness(0) saturate(100%) opacity(1);
+  }
+
+  html[data-theme='dark'] .hero-social .icon-action:hover img,
+  html[data-theme='dark'] .hero-social .icon-action:focus-visible img {
+    filter: brightness(0) saturate(100%) invert(1) opacity(0.96);
+  }
+
+  .hero-social {
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
   }
 
   .theme-toggle {
