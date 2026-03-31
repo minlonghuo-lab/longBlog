@@ -142,17 +142,21 @@ function formatDate(date: Date): string {
       const desktopTocLinks = Array.from(desktopToc.querySelectorAll('.toc-link'));
       const allTocLinks = () => Array.from(document.querySelectorAll('.toc-link'));
 
-      const updateReadingProgress = () => {
+      const updateFloatingActions = () => {
         const articleHeight = content.scrollHeight;
         const viewportHeight = window.innerHeight;
         const start = content.offsetTop;
         const max = Math.max(articleHeight - viewportHeight, 1);
         const scrolled = Math.min(Math.max(window.scrollY - start, 0), max);
         const percent = Math.max(0, Math.min(100, Math.round((scrolled / max) * 100)));
+        const isMobile = window.innerWidth < 1080;
+        const shouldShowBackToTop = window.scrollY > start + 260;
+        const shouldHideBackToTopForMobileToc = isMobile;
+
         if (progressBar) progressBar.style.width = `${percent}%`;
         if (progressText) progressText.textContent = `${percent}%`;
         if (progressTextMobile) progressTextMobile.textContent = `${percent}%`;
-        if (backToTop) backToTop.classList.toggle('visible', window.scrollY > start + 260);
+        if (backToTop) backToTop.classList.toggle('visible', shouldShowBackToTop && !shouldHideBackToTopForMobileToc);
       };
 
       const updateActiveHeading = () => {
@@ -271,7 +275,7 @@ function formatDate(date: Date): string {
       });
 
       const onScroll = () => {
-        updateReadingProgress();
+        updateFloatingActions();
         updateActiveHeading();
       };
 
