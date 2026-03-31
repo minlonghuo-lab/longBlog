@@ -69,6 +69,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     let isDragging = false;
     let dragEndAt = 0;
     let fitTimer = 0;
+    let renderVersion = 0;
 
     const nodes = new DataSet();
     const edges = new DataSet();
@@ -100,6 +101,14 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       edges: { selectionWidth: 0 },
     });
 
+    const normalizeTitle = (value) => String(value || '').replace(/\s+/g, '').trim();
+
+    const isBlogNode = (node) => {
+      const title = normalizeTitle(node?.title);
+      const path = normalizeTitle(node?.path);
+      return title === '我的博客' || title.includes('博客') || path.includes('我的博客') || path.includes('/longBlog');
+    };
+
     const setStatus = (text) => {
       if (status) status.textContent = text;
     };
@@ -111,8 +120,10 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     const safeFit = (duration = 420) => {
       if (fitTimer) window.clearTimeout(fitTimer);
       fitTimer = window.setTimeout(() => {
-        network.fit({ animation: { duration, easingFunction: 'easeInOutQuad' } });
-      }, 36);
+        requestAnimationFrame(() => {
+          network.fit({ animation: { duration, easingFunction: 'easeInOutQuad' } });
+        });
+      }, 60);
     };
 
     const safeStabilize = (iterations = 80) => {
@@ -195,16 +206,19 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       return normalized;
     };
 
-    const expandNode = async (noteId) => {
+    const expandNode = async (noteId, version = renderVersion) => {
       const id = String(noteId);
       const currentNode = nodeStore.get(id);
-      if (!currentNode?.hasChildren) return currentNode;
-      if (loadedNodes.has(id)) return currentNode;
-      if (loadingNodes.has(id)) return currentNode;
+      if (!currentNode?.hasChildren) return { node: currentNode, expanded: false, reason: 'no-children' };
+      if (loadedNodes.has(id)) return { node: currentNode, expanded: false, reason: 'already-loaded' };
+      if (loadingNodes.has(id)) return { node: currentNode, expanded: false, reason: 'loading' };
 
       loadingNodes.add(id);
       try {
         const loaded = await loadChildren(id);
+        if (version !== renderVersion) {
+          return { node: currentNode, expanded: false, reason: 'stale-render' };
+        }
         currentNode.loaded = true;
         currentNode.children = loaded.children || [];
         currentNode.childCount = loaded.childCount;
@@ -215,26 +229,44 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         });
         loadedNodes.add(id);
         safeStabilize(70);
-        return currentNode;
+        return { node: currentNode, expanded: true, reason: 'expanded' };
       } finally {
         loadingNodes.delete(id);
       }
     };
 
-    const expandDefaultPath = async () => {
+    const expandDefaultPath = async (version = renderVersion) => {
       const rootChildren = Array.from(nodeStore.values()).filter((node) => node.parentId === 'root');
-      const blogNode = rootChildren.find((node) => node.title === '我的博客');
+      const blogNode = rootChildren.find((node) => isBlogNode(node));
 
-      if (blogNode) {
-        setStatus('正在展开「我的博客」…');
-        await expandNode(blogNode.noteId);
+      if (!blogNode) {
+        safeFit(520);
+        setStatus('知识地图已加载：未找到「我的博客」节点，当前展示全图。');
+        return;
       }
 
-      safeFit(520);
-      setStatus('已默认展开「我的博客」，并适配当前视图。');
+      setStatus(`正在展开「${blogNode.title}」…`);
+      try {
+        const result = await expandNode(blogNode.noteId, version);
+        if (version !== renderVersion) return;
+
+        if (result?.expanded) {
+          safeFit(520);
+          setStatus(`已默认展开「${blogNode.title}」，并适配当前视图。`);
+        } else {
+          safeFit(520);
+          setStatus(`已定位到「${blogNode.title}」，当前节点无需额外展开。`);
+        }
+      } catch (err) {
+        console.error('[about] default blog path expand failed', err);
+        safeFit(520);
+        setStatus(`默认展开「${blogNode.title}」失败，已回退为全图视角。`);
+      }
     };
 
     const renderGraph = async (data) => {
+      renderVersion += 1;
+      const currentVersion = renderVersion;
       const root = normalizeNode(data?.root, 0, '');
       if (!root) {
         show(loading, false);
@@ -247,6 +279,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
       edges.clear();
       nodeStore.clear();
       loadedNodes.clear();
+      loadingNodes.clear();
 
       ingestNode(root);
       root.children.forEach((child) => {
@@ -262,7 +295,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         safeFit(420);
       });
       setStatus('知识地图已加载：拖动画布、滚轮缩放，点击节点可继续展开。');
-      await expandDefaultPath();
+      await expandDefaultPath(currentVersion);
     };
 
     network.on('dragStart', () => {
@@ -286,8 +319,14 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
 
       setStatus(`正在加载「${currentNode.title}」的子节点…`);
       try {
-        await expandNode(String(noteId));
-        setStatus(`已展开「${currentNode.title}」，继续点击其它节点可向下浏览`);
+        const result = await expandNode(String(noteId));
+        if (result?.expanded) {
+          setStatus(`已展开「${currentNode.title}」，继续点击其它节点可向下浏览`);
+        } else if (result?.reason === 'already-loaded') {
+          setStatus(`「${currentNode.title}」已展开，可继续浏览其它节点`);
+        } else {
+          setStatus(`「${currentNode.title}」当前没有新的子节点可展开`);
+        }
       } catch (err) {
         console.error('[about] graph children load failed', err);
         setStatus('图谱子节点加载失败，请稍后重试');
