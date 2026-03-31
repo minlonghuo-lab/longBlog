@@ -8,7 +8,7 @@ export interface FriendLink {
 
 export const friendLinks: FriendLink[] = [
   {
-    name: 'Minis助手',
+    name: 'Open Minis',
     url: 'https://apps.apple.com/cn/app/open-minis/id6759188481',
     description: '我的AI助手',
     avatar: '/friend-icons/minis.png',
