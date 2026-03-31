@@ -3,8 +3,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import FriendCard from '../../components/FriendCard.astro';
 import { friendLinks } from '../../data/friends';
 import { CONTACT_EMAIL } from '../../consts';
-
-const emailIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" class="social-icon"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5v10.5H3.75z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m4.5 7.5 7.5 6 7.5-6"/></svg>`;
 ---
 
 <BaseLayout title="友链" description="友情链接与站点推荐">
@@ -38,7 +36,10 @@ const emailIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" class="social-ico
       <p>欢迎交换友链，可通过邮箱联系我。</p>
     </div>
     <a href={`mailto:${CONTACT_EMAIL}`} class="apply-link icon-action">
-      <Fragment set:html={emailIcon} />
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="social-icon">
+        <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5v10.5H3.75z"/>
+        <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m4.5 7.5 7.5 6 7.5-6"/>
+      </svg>
       <span>联系我</span>
     </a>
   </section>
