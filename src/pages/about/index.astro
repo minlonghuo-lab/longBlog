@@ -104,8 +104,8 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
     const LARGE_CHILDREN_THRESHOLD = 30;
     const HUGE_CHILDREN_THRESHOLD = 60;
     const CHUNK_SIZE = 18;
-    const INITIAL_CHILD_LIMIT = 24;
-    const LOAD_MORE_STEP = 24;
+    const INITIAL_CHILD_LIMIT = 18;
+    const LOAD_MORE_STEP = 18;
     const LOAD_MORE_PREFIX = '__load_more__:';
 
     const normalizeTitle = (value) => String(value || '').replace(/\s+/g, '').trim();
@@ -320,9 +320,10 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         }
 
         const childCount = Array.isArray(loaded.children) ? loaded.children.length : 0;
+        const useIncrementalLoading = childCount >= LARGE_CHILDREN_THRESHOLD;
         const disableChildPhysics = childCount >= LARGE_CHILDREN_THRESHOLD;
-        const stabilizeIterations = childCount >= HUGE_CHILDREN_THRESHOLD ? 24 : childCount >= LARGE_CHILDREN_THRESHOLD ? 38 : 70;
-        const initialLimit = childCount >= HUGE_CHILDREN_THRESHOLD ? INITIAL_CHILD_LIMIT : childCount;
+        const stabilizeIterations = childCount >= HUGE_CHILDREN_THRESHOLD ? 24 : childCount >= LARGE_CHILDREN_THRESHOLD ? 32 : 70;
+        const initialLimit = useIncrementalLoading ? Math.min(childCount, INITIAL_CHILD_LIMIT) : childCount;
 
         currentNode.loaded = true;
         currentNode.children = loaded.children || [];
@@ -339,7 +340,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
 
         currentNode.loadedChildCount = initialLimit;
         const remainingCount = Math.max(0, childCount - initialLimit);
-        if (remainingCount > 0) {
+        if (useIncrementalLoading && remainingCount > 0) {
           upsertLoadMoreNode(currentNode, remainingCount);
         }
 
@@ -481,7 +482,7 @@ const triliumBaseUrl = TRILIUM_BASE_URL || 'https://blog.ssaw.top';
         }
       } catch (err) {
         console.error('[about] graph children load failed', err);
-        setStatus('子节点较多，已触发性能保护；若仍未展开，请稍后重试');
+        setStatus(`展开「${currentNode.title}」失败：节点较多，请再次点击重试或稍后再试`);
       }
     });
 
