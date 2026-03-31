@@ -102,15 +102,18 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
         themeTransition.style.setProperty('--theme-origin-y', `${centerY}px`);
         themeTransition.style.setProperty('--theme-target-scale', String(maxRadius / 24));
         themeTransition.classList.remove('is-active', 'to-dark', 'to-light');
+        document.body.classList.add('theme-animating');
         void themeTransition.offsetWidth;
         themeTransition.classList.add(theme === 'dark' ? 'to-dark' : 'to-light', 'is-active');
 
-        requestAnimationFrame(() => {
+        window.setTimeout(() => {
           applyTheme(theme);
-        });
+          updateThemeToggleState();
+        }, 240);
 
         window.setTimeout(() => {
           themeTransition.classList.remove('is-active', 'to-dark', 'to-light');
+          document.body.classList.remove('theme-animating');
         }, 1480);
       };
 

@@ -146,13 +146,21 @@ body::before {
   height: 48px;
   border-radius: 999px;
   pointer-events: none;
-  z-index: -1;
+  z-index: 2000;
   opacity: 0;
   mix-blend-mode: normal;
   filter: saturate(112%) blur(0.8px);
   transform: translate(calc(var(--theme-origin-x, 50vw) - 24px), calc(var(--theme-origin-y, 50vh) - 24px)) scale(0.06);
   transform-origin: center;
   will-change: transform, opacity;
+}
+
+body.theme-animating {
+  overflow: hidden;
+}
+
+body.theme-animating .theme-transition {
+  opacity: 1;
 }
 
 .theme-transition.to-light {
