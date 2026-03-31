@@ -76,5 +76,9 @@ export function getAllTags(): { name: string; count: number }[] {
   }
   return [...tagMap.entries()]
     .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+    .sort((a, b) => {
+      const countDiff = b.count - a.count;
+      if (countDiff !== 0) return countDiff;
+      return a.name.localeCompare(b.name, 'zh-CN');
+    });
 }
