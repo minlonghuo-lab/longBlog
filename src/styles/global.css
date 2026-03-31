@@ -292,13 +292,13 @@ a {
 
 /* ===== 页面标题区 ===== */
 .page-header {
-  padding-top: 3rem;
+  padding-top: 2rem;
   padding-bottom: 1.5rem;
 }
 
 @media (min-width: 768px) {
   .page-header {
-    padding-top: 5rem;
+    padding-top: 3rem;
   }
 }
 
