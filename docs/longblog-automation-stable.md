@@ -1,7 +1,7 @@
 # longBlog 自动化发布流（稳定方案）
 
 ## 概览
-当前 longBlog 采用 **Trilium → Webhook → 雨云 Runner → 同步脚本 → Git Push → Astro Build** 的自动化流。
+当前 longBlog 采用 **Trilium → Webhook → 新 webhook 入口（ops） → 新 runtime 运行态 → Runner → 同步脚本 → Git Push → Astro Build** 的自动化流。
 
 核心目标：
 - 每篇文章独立控制发布状态，不受模板 note 污染。
@@ -65,7 +65,7 @@
   - `sync_requested`
   - `pinned_changed`
   - `ai_refresh_requested`
-- 将上下文写入 `/root/longblog-sync/last_webhook.json`
+- 将上下文写入 `/root/longBlog/runtime/state/last_webhook.json`
 - 拉起 runner：`/root/longBlog/scripts/run_sync_and_build.sh`
 
 ### 5. Runner
@@ -76,7 +76,7 @@
 - 消费 webhook 上下文
 - 调用 `scripts/sync_trilium_posts.py`
 - 有 Git 变化时执行 `npm run build`
-- 写入 `/root/longblog-sync/last_report.json`
+- 写入 `/root/longBlog/runtime/reports/last_report.json`
 
 ### 6. 同步脚本
 文件：`scripts/sync_trilium_posts.py`
@@ -217,7 +217,7 @@
 1. ETAPI 实际返回值
 2. Trilium 内部脚本 note `HZjySYFoNUAN`
 3. `/root/trilium_sync_webhook.log`
-4. `/root/longblog-sync/last_report.json`
+4. `/root/longBlog/runtime/reports/last_report.json`
 5. `src/data/trilium-posts.generated.ts`
 
 ### 4. 避免再次使用临时修复脚本直接改大范围状态
@@ -237,7 +237,7 @@
 - `/root/longBlog/scripts/sync_trilium_posts.py`
 - `/root/longBlog/scripts/run_sync_and_build.sh`
 - `/root/longBlog/ops/trilium_sync_webhook.py`
-- `/root/longblog-sync/env.sh`
+- `/root/longBlog/runtime/env.sh`
 
 Trilium：
 - 根节点：`zB8WioyKlvOw`

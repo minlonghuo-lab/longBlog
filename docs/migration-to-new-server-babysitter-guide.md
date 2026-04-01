@@ -187,7 +187,7 @@ chmod 700 /root/longblog-sync
 
 创建文件：
 
-- `/root/longblog-sync/env.sh`
+- `/root/longBlog/runtime/env.sh`
 
 内容模板如下（把值换成你自己的）：
 
@@ -204,12 +204,12 @@ export TRILIUM_PUBLISH_WEBHOOK_SECRET='你的 webhook secret'
 写完以后设置权限：
 
 ```bash
-chmod 600 /root/longblog-sync/env.sh
+chmod 600 /root/longBlog/runtime/env.sh
 ```
 
 ### 验证 env.sh 可加载
 ```bash
-. /root/longblog-sync/env.sh
+. /root/longBlog/runtime/env.sh
 [ -n "$TRILIUM_ETAPI_TOKEN" ] && echo ok || echo fail
 ```
 
@@ -258,7 +258,7 @@ chmod +x /root/longBlog/scripts/sync_trilium_posts.py
 ### 1）加载环境变量
 ```bash
 cd /root/longBlog
-. /root/longblog-sync/env.sh
+. /root/longBlog/runtime/env.sh
 ```
 
 ### 2）先直接跑同步脚本
@@ -340,9 +340,9 @@ cd /root/longBlog
 
 ### 你要检查这些文件
 ```bash
-cat /root/longblog-sync/last_report.json
-tail -n 50 /root/longblog-sync/sync.log
-tail -n 50 /root/longblog-sync/build.log
+cat /root/longBlog/runtime/reports/last_report.json
+tail -n 50 /root/longBlog/runtime/logs/sync.log
+tail -n 50 /root/longBlog/runtime/logs/build.log
 ```
 
 ### 正常表现
@@ -383,7 +383,7 @@ nginx -s reload
 
 ### 临时启动方式（先验证）
 ```bash
-nohup /bin/sh -c '. /root/longblog-sync/env.sh && python3 /root/longBlog/ops/trilium_sync_webhook.py' >/dev/null 2>&1 &
+nohup /bin/sh -c '. /root/longBlog/runtime/env.sh && python3 /root/longBlog/ops/trilium_sync_webhook.py' >/dev/null 2>&1 &
 ```
 
 ### 验证进程
@@ -451,7 +451,7 @@ curl -i https://你的域名/trilium-sync-webhook \
 ### 5）然后马上看日志
 ```bash
 tail -n 50 /root/trilium_sync_webhook.log
-cat /root/longblog-sync/last_report.json
+cat /root/longBlog/runtime/reports/last_report.json
 ```
 
 如果这一步不通，不要切正式流量。
@@ -477,8 +477,8 @@ cat /root/longblog-sync/last_report.json
 
 ```bash
 tail -n 100 /root/trilium_sync_webhook.log
-cat /root/longblog-sync/last_report.json
-tail -n 100 /root/longblog-sync/sync.log
+cat /root/longBlog/runtime/reports/last_report.json
+tail -n 100 /root/longBlog/runtime/logs/sync.log
 ```
 
 ---
@@ -522,13 +522,13 @@ tail -n 100 /root/longblog-sync/sync.log
 
 ### 必须全部满足
 - [ ] `/root/longBlog` 仓库存在且能 `git status`
-- [ ] `/root/longblog-sync/env.sh` 已配置
+- [ ] `/root/longBlog/runtime/env.sh` 已配置
 - [ ] `/root/longBlog/ops/trilium_sync_webhook.py` 能启动
 - [ ] `127.0.0.1:8787` 正在监听
 - [ ] Nginx 的 `/trilium-sync-webhook` 反代生效
 - [ ] 手动 `curl` webhook 返回 200
 - [ ] `python3 scripts/sync_trilium_posts.py` 能跑
-- [ ] `/root/longblog-sync/last_report.json` 能生成
+- [ ] `/root/longBlog/runtime/reports/last_report.json` 能生成
 - [ ] GitHub 能自动 push
 - [ ] `npm run build` 能成功
 

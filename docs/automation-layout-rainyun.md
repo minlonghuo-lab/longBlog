@@ -52,7 +52,7 @@
 职责：
 - 校验 `X-Trilium-Signature`
 - 校验请求体事件格式
-- 写入 `/root/longblog-sync/last_webhook.json`
+- 写入 `/root/longBlog/runtime/state/last_webhook.json`
 - 启动 `/root/longBlog/scripts/run_sync_and_build.sh`
 
 这是当前**生产 webhook 入口**。
@@ -63,7 +63,7 @@
 职责：
 - 加并发锁
 - 消费 webhook 上下文
-- 加载 `/root/longblog-sync/env.sh`
+- 加载 `/root/longBlog/runtime/env.sh`
 - 执行 `sync_trilium_posts.py`
 - 写入 `last_report.json`
 - 根据 Git 改动决定是否 build
@@ -151,7 +151,7 @@ Nginx 转发到 127.0.0.1:8787
   ↓
 /root/longBlog/ops/trilium_sync_webhook.py
   ↓
-/root/longblog-sync/last_webhook.json
+/root/longBlog/runtime/state/last_webhook.json
   ↓
 /root/longBlog/scripts/run_sync_and_build.sh
   ↓
@@ -174,13 +174,13 @@ npm run build
 - `/root/longBlog/ops/trilium_sync_webhook.py`
 - `/root/longBlog/scripts/run_sync_and_build.sh`
 - `/root/longBlog/scripts/sync_trilium_posts.py`
-- `/root/longblog-sync/env.sh`
+- `/root/longBlog/runtime/env.sh`
 
 ### 2. 排障优先顺序
 1. `/root/trilium_sync_webhook.log`
-2. `/root/longblog-sync/last_report.json`
-3. `/root/longblog-sync/sync.log`
-4. `/root/longblog-sync/build.log`
+2. `/root/longBlog/runtime/reports/last_report.json`
+3. `/root/longBlog/runtime/logs/sync.log`
+4. `/root/longBlog/runtime/logs/build.log`
 5. `src/data/trilium-posts.meta.generated.ts`
 
 ### 3. 不建议直接删除
