@@ -57,11 +57,5 @@ export const triliumPostContents: TriliumPostContentRecord[] = [
     "title": "这是一个测试博客",
     "summary": "自动化流程将内容发布到longBlog平台，简化博客发布流程。",
     "contentHtml": "<p>该帖子由自动化流发布到longBlog。确实挺不错的，加了好几层兜底策略。🥳</p>"
-  },
-  {
-    "id": "oLufWfCyY5CR",
-    "title": "新建笔记",
-    "summary": "这是一篇新建笔记，内容包含简单的问候语，可能用于测试或初始记录。",
-    "contentHtml": "<p>你好！</p>"
   }
 ];
