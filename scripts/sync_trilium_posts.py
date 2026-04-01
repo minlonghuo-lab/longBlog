@@ -508,21 +508,91 @@ def git_has_changes() -> bool:
     return bool(r.stdout.strip())
 
 
+def git_sync_remote() -> Tuple[bool, str]:
+    fetch_res = subprocess.run(["git", "fetch", GIT_REMOTE, GIT_BRANCH], cwd=BASE_DIR, capture_output=True, text=True)
+    fetch_text = (fetch_res.stdout or "") + (fetch_res.stderr or "")
+    if fetch_res.returncode != 0:
+        return False, fetch_text.strip()
+
+    local_head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=BASE_DIR, capture_output=True, text=True)
+    remote_head = subprocess.run(["git", "rev-parse", f"{GIT_REMOTE}/{GIT_BRANCH}"], cwd=BASE_DIR, capture_output=True, text=True)
+    if local_head.returncode != 0 or remote_head.returncode != 0:
+        details = []
+        if fetch_text.strip():
+            details.append(fetch_text.strip())
+        if local_head.returncode != 0:
+            details.append((local_head.stderr or local_head.stdout).strip())
+        if remote_head.returncode != 0:
+            details.append((remote_head.stderr or remote_head.stdout).strip())
+        return False, "\n".join([x for x in details if x])
+
+    if local_head.stdout.strip() == remote_head.stdout.strip():
+        return True, fetch_text.strip()
+
+    rebase_res = subprocess.run(["git", "rebase", f"{GIT_REMOTE}/{GIT_BRANCH}"], cwd=BASE_DIR, capture_output=True, text=True)
+    rebase_text = (rebase_res.stdout or "") + (rebase_res.stderr or "")
+    if rebase_res.returncode != 0:
+        subprocess.run(["git", "rebase", "--abort"], cwd=BASE_DIR, capture_output=True, text=True)
+        details = []
+        if fetch_text.strip():
+            details.append(fetch_text.strip())
+        if rebase_text.strip():
+            details.append(rebase_text.strip())
+        return False, "\n".join(details)
+
+    details = []
+    if fetch_text.strip():
+        details.append(fetch_text.strip())
+    if rebase_text.strip():
+        details.append(rebase_text.strip())
+    return True, "\n".join(details)
+
+
 def git_commit_and_push(message: str) -> Tuple[bool, str]:
+    sync_ok, sync_text = git_sync_remote()
+    if not sync_ok:
+        return False, sync_text
+
     add_res = subprocess.run(["git", "add", "src/data/trilium-posts.content.generated.ts", "src/data/trilium-posts.meta.generated.ts", "public/trilium-assets", "src/data/posts.ts"], cwd=BASE_DIR, capture_output=True, text=True)
     if add_res.returncode != 0:
-        return False, (add_res.stderr or add_res.stdout).strip()
+        details = []
+        if sync_text.strip():
+            details.append(sync_text.strip())
+        details.append((add_res.stderr or add_res.stdout).strip())
+        return False, "\n".join([x for x in details if x])
     commit_res = subprocess.run(["git", "commit", "-m", message], cwd=BASE_DIR, capture_output=True, text=True)
     commit_text = (commit_res.stdout or "") + (commit_res.stderr or "")
     if commit_res.returncode != 0:
         if "nothing to commit" in commit_text.lower():
-            return True, "nothing to commit"
-        return False, commit_text.strip()
+            details = []
+            if sync_text.strip():
+                details.append(sync_text.strip())
+            details.append("nothing to commit")
+            return True, "\n".join(details)
+        details = []
+        if sync_text.strip():
+            details.append(sync_text.strip())
+        details.append(commit_text.strip())
+        return False, "\n".join([x for x in details if x])
     push_res = subprocess.run(["git", "push", GIT_REMOTE, GIT_BRANCH], cwd=BASE_DIR, capture_output=True, text=True)
     push_text = (push_res.stdout or "") + (push_res.stderr or "")
     if push_res.returncode != 0:
-        return False, push_text.strip()
-    return True, (commit_text + "\n" + push_text).strip()
+        details = []
+        if sync_text.strip():
+            details.append(sync_text.strip())
+        if commit_text.strip():
+            details.append(commit_text.strip())
+        if push_text.strip():
+            details.append(push_text.strip())
+        return False, "\n".join(details)
+    details = []
+    if sync_text.strip():
+        details.append(sync_text.strip())
+    if commit_text.strip():
+        details.append(commit_text.strip())
+    if push_text.strip():
+        details.append(push_text.strip())
+    return True, "\n".join(details)
 
 
 def parse_args():
