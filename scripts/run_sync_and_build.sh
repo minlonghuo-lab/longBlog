@@ -6,17 +6,17 @@ if [ -f "$BOOTSTRAP_ENV" ]; then
   . "$BOOTSTRAP_ENV"
 fi
 RUNTIME_DIR=${LONGBLOG_RUNTIME_DIR:-$DEFAULT_RUNTIME_DIR}
-LOCK_DIR=$RUNTIME_DIR/run.lock
-PENDING_RERUN_FILE=$RUNTIME_DIR/pending_rerun
-REPORT_FILE=$RUNTIME_DIR/last_report.json
-WEBHOOK_CTX_FILE=$RUNTIME_DIR/last_webhook.json
+LOCK_DIR=$RUNTIME_DIR/state/run.lock
+PENDING_RERUN_FILE=$RUNTIME_DIR/state/pending_rerun
+REPORT_FILE=$RUNTIME_DIR/reports/last_report.json
+WEBHOOK_CTX_FILE=$RUNTIME_DIR/state/last_webhook.json
 
 refresh_runtime_paths() {
   RUNTIME_DIR=${LONGBLOG_RUNTIME_DIR:-$DEFAULT_RUNTIME_DIR}
-  LOCK_DIR=$RUNTIME_DIR/run.lock
-  PENDING_RERUN_FILE=$RUNTIME_DIR/pending_rerun
-  REPORT_FILE=$RUNTIME_DIR/last_report.json
-  WEBHOOK_CTX_FILE=$RUNTIME_DIR/last_webhook.json
+  LOCK_DIR=$RUNTIME_DIR/state/run.lock
+  PENDING_RERUN_FILE=$RUNTIME_DIR/state/pending_rerun
+  REPORT_FILE=$RUNTIME_DIR/reports/last_report.json
+  WEBHOOK_CTX_FILE=$RUNTIME_DIR/state/last_webhook.json
 }
 
 write_lock_report() {
@@ -32,7 +32,7 @@ print(json.dumps({
 }, ensure_ascii=False, indent=2))
 PY
 )
-  printf '%s\n' "$LOCK_REPORT" >> $RUNTIME_DIR/sync.log
+  printf '%s\n' "$LOCK_REPORT" >> $RUNTIME_DIR/logs/sync.log
   printf '%s\n' "$LOCK_REPORT" > "$REPORT_FILE"
 }
 
@@ -79,8 +79,26 @@ run_once() {
   }
   trap cleanup EXIT INT TERM
 
-  . $RUNTIME_DIR/env.sh
+  ENV_FILE=$RUNTIME_DIR/env.sh
+  . $ENV_FILE
   refresh_runtime_paths
+  mkdir -p "$RUNTIME_DIR/logs" "$RUNTIME_DIR/reports" "$RUNTIME_DIR/state"
+  {
+    printf '[runner-debug] ENV_FILE=%s\n' "$ENV_FILE"
+    printf '[runner-debug] RUNTIME_DIR=%s\n' "$RUNTIME_DIR"
+    printf '[runner-debug] REPORT_FILE=%s\n' "$REPORT_FILE"
+    printf '[runner-debug] WEBHOOK_CTX_FILE=%s\n' "$WEBHOOK_CTX_FILE"
+    printf '[runner-debug] SYNC_LOG=%s\n' "$RUNTIME_DIR/logs/sync.log"
+    printf '[runner-debug] BUILD_LOG=%s\n' "$RUNTIME_DIR/logs/build.log"
+  } >> $RUNTIME_DIR/logs/sync.log
+  {
+    printf '[runner-probe] ENV_FILE=%s\n' "$ENV_FILE"
+    printf '[runner-probe] RUNTIME_DIR=%s\n' "$RUNTIME_DIR"
+    printf '[runner-probe] REPORT_FILE=%s\n' "$REPORT_FILE"
+    printf '[runner-probe] WEBHOOK_CTX_FILE=%s\n' "$WEBHOOK_CTX_FILE"
+    printf '[runner-probe] SYNC_LOG=%s\n' "$RUNTIME_DIR/logs/sync.log"
+    printf '[runner-probe] BUILD_LOG=%s\n' "$RUNTIME_DIR/logs/build.log"
+  } >> /tmp/runner_path_probe.log
   cd /root/longBlog
   PYTHON_BIN=$(command -v python3)
   NPM_BIN=$(command -v npm)
@@ -95,13 +113,13 @@ run_once() {
 
   run_finished_at=$(date '+%Y-%m-%d %H:%M:%S%z')
   SYNC_JSON=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); d["runStartedAt"] = sys.argv[1]; d["runFinishedAt"] = sys.argv[2]; d["lockSkipped"] = False; d["lockReason"] = ""; print(json.dumps(d, ensure_ascii=False, indent=2))' "$run_started_at" "$run_finished_at")
-  printf '%s\n' "$SYNC_JSON" >> $RUNTIME_DIR/sync.log
+  printf '%s\n' "$SYNC_JSON" >> $RUNTIME_DIR/logs/sync.log
   printf '%s\n' "$SYNC_JSON" > "$REPORT_FILE"
 
   GIT_CHANGED=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); print("true" if d.get("gitChanged") else "false")')
   BUILD_RAN=false
   INSTALL_RAN=false
-  LOCK_HASH_FILE=$RUNTIME_DIR/package-lock.sha256
+  LOCK_HASH_FILE=$RUNTIME_DIR/state/package-lock.sha256
   CURRENT_HASH=$(sha256sum package-lock.json 2>/dev/null | awk '{print $1}')
   PREV_HASH=""
   if [ -f "$LOCK_HASH_FILE" ]; then
@@ -109,11 +127,11 @@ run_once() {
   fi
   if [ "$GIT_CHANGED" = "true" ]; then
     if [ ! -d node_modules ] || [ "$CURRENT_HASH" != "$PREV_HASH" ]; then
-      "$NPM_BIN" install >> $RUNTIME_DIR/build.log 2>&1
+      "$NPM_BIN" install >> $RUNTIME_DIR/logs/build.log 2>&1
       printf '%s' "$CURRENT_HASH" > "$LOCK_HASH_FILE"
       INSTALL_RAN=true
     fi
-    "$NPM_BIN" run build >> $RUNTIME_DIR/build.log 2>&1
+    "$NPM_BIN" run build >> $RUNTIME_DIR/logs/build.log 2>&1
     BUILD_RAN=true
   fi
 
