@@ -66,6 +66,7 @@
   - `pinned_changed`
   - `ai_refresh_requested`
 - 将上下文写入 `/root/longBlog/runtime/state/last_webhook.json`
+- 记录 webhook 日志到 `/root/longBlog/runtime/logs/trilium_sync_webhook.log`
 - 拉起 runner：`/root/longBlog/scripts/run_sync_and_build.sh`
 
 ### 5. Runner
@@ -77,6 +78,7 @@
 - 调用 `scripts/sync_trilium_posts.py`
 - 有 Git 变化时执行 `npm run build`
 - 写入 `/root/longBlog/runtime/reports/last_report.json`
+- 写入 `/root/longBlog/runtime/logs/sync.log` 与 `/root/longBlog/runtime/logs/build.log`
 
 ### 6. 同步脚本
 文件：`scripts/sync_trilium_posts.py`
@@ -216,7 +218,7 @@
 如果以后再出问题，按这个顺序查：
 1. ETAPI 实际返回值
 2. Trilium 内部脚本 note `HZjySYFoNUAN`
-3. `/root/trilium_sync_webhook.log`
+3. `/root/longBlog/runtime/logs/trilium_sync_webhook.log`
 4. `/root/longBlog/runtime/reports/last_report.json`
 5. `src/data/trilium-posts.generated.ts`
 
@@ -238,6 +240,9 @@
 - `/root/longBlog/scripts/run_sync_and_build.sh`
 - `/root/longBlog/ops/trilium_sync_webhook.py`
 - `/root/longBlog/runtime/env.sh`
+- `/root/longBlog/runtime/reports/last_report.json`
+- `/root/longBlog/runtime/logs/sync.log`
+- `/root/longBlog/runtime/logs/build.log`
 
 Trilium：
 - 根节点：`zB8WioyKlvOw`

@@ -1,9 +1,6 @@
 # About 页面环境变量说明
 
-新增了 `/about` 页面，包含两个模块：
-
-1. **TriliumNext 知识地图（动态树形交互）**
-2. **建站历史图片展示**
+当前 `/about` 页面主要用于展示 **TriliumNext 知识地图（动态树形交互）**。
 
 ## 推荐环境变量
 
@@ -30,20 +27,6 @@ PUBLIC_TRILIUM_TREE_API_URL=https://your-domain.com/api/trilium-tree
 > - `TRILIUM_ETAPI_TOKEN`（或你的 ETAPI 环境变量）
 >
 > 然后由服务端代理请求 Trilium ETAPI，再把整理后的树结构返回给前端。
-
-### 3) 建站历史图片地址
-```env
-PUBLIC_SITE_HISTORY_IMAGE_URL=https://picture.ssaw.top/20260321183505675.png
-```
-
-用于：
-- 在 `/about` 页面右侧卡片中展示一张建站历史长图/时间线图
-- 点击图片后可在新窗口查看原图
-
-推荐放：
-- 图床中的长图时间线
-- 拼接版版本演进图
-- 建站历史截图合集长图
 
 ## 推荐的树接口返回格式
 

@@ -91,7 +91,7 @@
 ### 你自己日常改自动化/同步/AI 密钥
 直接改：
 - Pages 环境变量
-- 雨云 `/root/longblog-sync/env.sh`
+- 雨云 `/root/longBlog/runtime/env.sh`
 
 ---
 

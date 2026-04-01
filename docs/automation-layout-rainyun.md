@@ -19,17 +19,20 @@
 ---
 
 ### 2. 自动化运行态目录
-- 路径：`/root/longblog-sync`
-- 作用：存放自动化链路运行时状态、环境变量、日志与报告
+- 路径：`/root/longBlog/runtime`
+- 作用：存放当前自动化链路的主运行态、日志、报告与状态文件。
 
-关键文件：
+当前主结构：
 - `env.sh`：运行环境变量（Trilium、DeepSeek、Webhook Secret、Bark 等）
-- `last_report.json`：最近一次同步结果
-- `sync.log`：同步日志
-- `build.log`：构建日志
-- `last_webhook.json`：webhook 上下文临时文件（被 runner 消费后会删除）
+- `logs/trilium_sync_webhook.log`：webhook 接收日志
+- `logs/sync.log`：同步日志
+- `logs/build.log`：构建日志
+- `reports/last_report.json`：最近一次同步结果
+- `state/last_webhook.json`：webhook 上下文临时文件（被 runner 消费后会删除）
+- `state/package-lock.sha256`：依赖锁文件哈希缓存
+- `state/run.lock` / `state/pending_rerun`：运行锁与补跑标记
 
-> 注意：这是运行态目录，不属于 Git 仓库主代码区。
+> 注意：这是当前主运行态目录，不属于 Git 仓库主代码区。
 
 ---
 
@@ -121,8 +124,8 @@
 
 ### 当前保留原因：
 #### 1. 运行日志 / 运行态
-- `/root/trilium_sync_webhook.log`
-- `/root/longblog-sync/*`
+- `/root/longBlog/runtime/*`
+- `/root/longblog-sync/*`（旧运行态，观察退役期）
 
 #### 2. 敏感/凭证文件
 - `/root/trilium_webhook_secret.env`
@@ -177,7 +180,7 @@ npm run build
 - `/root/longBlog/runtime/env.sh`
 
 ### 2. 排障优先顺序
-1. `/root/trilium_sync_webhook.log`
+1. `/root/longBlog/runtime/logs/trilium_sync_webhook.log`
 2. `/root/longBlog/runtime/reports/last_report.json`
 3. `/root/longBlog/runtime/logs/sync.log`
 4. `/root/longBlog/runtime/logs/build.log`
@@ -198,8 +201,9 @@ npm run build
 
 当前雨云 longBlog 自动化链路已经整理为：
 - **主代码在 `/root/longBlog`**
-- **运行态在 `/root/longblog-sync`**
+- **主运行态在 `/root/longBlog/runtime`**
 - **生产 webhook 入口在 `/root/longBlog/ops/trilium_sync_webhook.py`**
+- **旧 `/root/longblog-sync` 仅保留少量兼容残留并进入观察退役期**
 - **历史杂项已归档到 `/root/longBlog/ops/archive/2026-04-01-root-cleanup/`**
 
 这样后续维护会比之前清晰很多。

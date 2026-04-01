@@ -22,14 +22,16 @@
 
 ### 2. 运行态目录
 路径：
-- `/root/longblog-sync`
+- `/root/longBlog/runtime`
 
 作用：
 - 存环境变量
+- 存 webhook 日志
 - 存同步日志
 - 存构建日志
 - 存最近一次同步报告
 - 存 webhook 上下文临时文件
+- 存运行锁和哈希缓存
 
 ### 3. Webhook 入口脚本
 当前路径：
@@ -175,11 +177,11 @@ git branch -vv
 在新服务器上创建：
 
 ```bash
-mkdir -p /root/longblog-sync
-chmod 700 /root/longblog-sync
+mkdir -p /root/longBlog/runtime/logs /root/longBlog/runtime/reports /root/longBlog/runtime/state
+chmod 700 /root/longBlog/runtime
 ```
 
-这个目录是自动化运行时要用的，不在 Git 仓库里。
+这个目录是自动化运行时要用的，不在 Git 仓库里。建议按 `logs / reports / state` 分层创建。
 
 ---
 
@@ -485,7 +487,7 @@ tail -n 100 /root/longBlog/runtime/logs/sync.log
 
 ## 十七、迁移后你最容易踩的坑
 
-### 坑 1：只 clone 仓库，不创建 `/root/longblog-sync`
+### 坑 1：只 clone 仓库，不创建 `/root/longBlog/runtime` 及其子目录
 结果：
 - env 找不到
 - 日志路径不存在
@@ -552,12 +554,12 @@ tail -n 100 /root/longBlog/runtime/logs/sync.log
 │   ├── src/
 │   ├── public/
 │   └── dist/
-├── longblog-sync/                    # 运行态目录
-│   ├── env.sh
-│   ├── last_report.json
-│   ├── sync.log
-│   ├── build.log
-│   └── last_webhook.json
+├── longBlog/
+│   ├── runtime/
+│   │   ├── env.sh
+│   │   ├── logs/
+│   │   ├── reports/
+│   │   └── state/
 └── .ssh/
     └── id_ed25519_longblog
 ```
