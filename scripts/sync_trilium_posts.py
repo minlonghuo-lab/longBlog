@@ -468,13 +468,21 @@ def handle_pinned_only_update(args, report) -> bool:
     note = None
     attr_map = {}
     pinned = False
-    for attempt in range(4):
+    pinned_stable = target_pinned is None
+    for attempt in range(8):
         note = get_json(f"/etapi/notes/{args.noteId}")
         attr_map = label_attrs(note.get("attributes", []) or [])
         pinned = bool_label_value(attr_map, "pinned", False)
         if target_pinned is None or pinned == target_pinned:
+            pinned_stable = True
             break
-        time.sleep(0.6)
+        time.sleep(0.8)
+
+    if target_pinned is not None and not pinned_stable:
+        report["pinnedFallbackToFullSync"] = True
+        report["pinnedTarget"] = target_pinned
+        report["pinnedObserved"] = pinned
+        return False
 
     updated_at = now_str()
     found = False
