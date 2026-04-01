@@ -6,7 +6,7 @@ export interface TriliumPostMetaRecord {
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "VOsmZSt8PWpI",
-    "slug": "关于对教程主义的思考",
+    "slug": "关于对教程主义的思考-vosmzs",
     "updatedAt": "2026-03-30 13:45:35.111+0800",
     "publishedAt": "2025-03-05T02:14:50.366611-08:00",
     "tags": [
@@ -14,12 +14,12 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "经验分享"
     ],
     "pinned": true,
-    "syncHash": "4c4fe7d971cd25ed2cb4cc32ad2f11b4faa9d1aa8c6a9a265ee6945df1897781",
+    "syncHash": "c52e231d36891ea574b7ba280ca26861d15f822b90a0c79d9e82c64376a31c07",
     "syncStatus": "published"
   },
   {
     "id": "dDI26xYqquzY",
-    "slug": "基于tlock和cryptomator的时间胶囊",
+    "slug": "基于tlock和cryptomator的时间胶囊-ddi26x",
     "updatedAt": "2026-03-30 13:43:45.651+0800",
     "publishedAt": "2026-03-29T02:14:50.366611-08:00",
     "tags": [
@@ -31,28 +31,31 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "drand"
     ],
     "pinned": false,
-    "syncHash": "69094d17520fb7a695e95349f04743a6acff5bac9c27ceb6bbdd6e62e1e91956",
+    "syncHash": "940cbb5fb88d4aba5c76a485bb0e7fe0cc840821cac1d727655c871b0af7f244",
     "syncStatus": "published"
   },
   {
     "id": "yAEdBzTrtiHe",
-    "slug": "这是一个测试博客",
-    "updatedAt": "2026-04-01 16:54:27.827+0800",
+    "slug": "这是一个测试博客-yaedbz",
+    "updatedAt": "2026-04-01 17:33:14.649+0800",
     "publishedAt": "2026-03-29 22:38:03.613+0800",
     "tags": [
       "自动化",
       "博客发布",
       "longBlog",
       "兜底策略",
-      "流程优化"
+      "流程优化",
+      "自动化测试",
+      "发布流程",
+      "系统设计"
     ],
     "pinned": false,
-    "syncHash": "6c0afc1a5e183323212eb92f923041fad525cc3c90364acbe3320ae30e9f8dc7",
+    "syncHash": "83638e5c7ae89e3ed0883cefe3c2e56a663d38fdc9c053b61313c021168a477a",
     "syncStatus": "published"
   },
   {
     "id": "KyFrU3uItyRq",
-    "slug": "近期让我眼前一亮的软件",
+    "slug": "近期让我眼前一亮的软件-kyfru3",
     "updatedAt": "2026-03-30 13:48:09.698+0800",
     "publishedAt": "2026-03-11 19:00:21.893+0800",
     "tags": [
@@ -63,12 +66,12 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "隐私保护"
     ],
     "pinned": false,
-    "syncHash": "5876d377053db57add49fccea7ecb20b51daffdf57a082bc2009dc8f60c74d1a",
+    "syncHash": "82991ef828567815b763dc6cc04ee3e268d1b6abbbac5f776a2d33e72b225fa0",
     "syncStatus": "published"
   },
   {
     "id": "4t7DdbbFdP02",
-    "slug": "我的保研之旅",
+    "slug": "我的保研之旅-4t7ddb",
     "updatedAt": "2026-03-30 14:52:43.394+0800",
     "publishedAt": "2026-03-09 19:04:33.813+0800",
     "tags": [
@@ -77,12 +80,12 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "经验分享"
     ],
     "pinned": false,
-    "syncHash": "058164635fef0b14622ad3ad908ebe2bb46f6d6ec2ac485686c74f71e69cb5df",
+    "syncHash": "b0112c1c497b70331e45bdcc5cbcde8b0b95f86b77ea2cb93a14580bffba49b4",
     "syncStatus": "published"
   },
   {
     "id": "F2ea4malPi8x",
-    "slug": "远程访问nas心得",
+    "slug": "远程访问nas心得-f2ea4m",
     "updatedAt": "2026-03-30 14:42:43.411+0800",
     "publishedAt": "2026-03-08T02:14:50.366611-08:00",
     "tags": [
@@ -92,12 +95,12 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "飞牛NAS"
     ],
     "pinned": false,
-    "syncHash": "67a73f344f4791016aeb327ba43ff9ddb13e984d5798e0ca89a5967488f8e416",
+    "syncHash": "60b0758eb9d4e570f42b7620768a329fcd61749f055336f346d75a30a4296adc",
     "syncStatus": "published"
   },
   {
     "id": "wqP8s2pQuo0H",
-    "slug": "分享一些docker项目",
+    "slug": "分享一些docker项目-wqp8s2",
     "updatedAt": "2026-03-30 13:51:51.700+0800",
     "publishedAt": "2026-03-07T02:14:50.366611-08:00",
     "tags": [
@@ -106,12 +109,12 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "飞牛NAS"
     ],
     "pinned": false,
-    "syncHash": "dd86b881aff97095561722e3b9b0e7515ab9d986265858fb7e1d955aec053a92",
+    "syncHash": "83cc6c43927e94c558b5e31855d4ac2f6df160c1cf2c98a4d3b7c0a9727c729d",
     "syncStatus": "published"
   },
   {
     "id": "4o1kCT4CizAt",
-    "slug": "飞牛nas部署matrix",
+    "slug": "飞牛nas部署matrix-4o1kct",
     "updatedAt": "2026-03-30 13:20:08.926+0800",
     "publishedAt": "2026-02-19T02:14:50.366611-08:00",
     "tags": [
@@ -120,12 +123,12 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "飞牛NAS"
     ],
     "pinned": false,
-    "syncHash": "7fc2516a0451a5909da38510ebf1d8f2453ff952990c56b87c2872fb4dac37bc",
+    "syncHash": "c10e22d41265dd82f0f7d7be4112e60b5e1134dec46015397cfe0442de9f879b",
     "syncStatus": "published"
   },
   {
     "id": "2epdE8sgosX8",
-    "slug": "使用-cryptomator为云存储提供零知识加密",
+    "slug": "使用-cryptomator为云存储提供零知识加密-2epde8",
     "updatedAt": "2026-03-30 13:49:55.858+0800",
     "publishedAt": "2025-12-03 19:33:17.986+0800",
     "tags": [
@@ -134,7 +137,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "安全性"
     ],
     "pinned": false,
-    "syncHash": "fb683c073a70e54d5d77dc4491b86a2162cecebab71d6a38eddae48785dd63bc",
+    "syncHash": "169626f8f8f76738d8220990f9dc30312cde6c2c197a37c68e8df88ad9fd299d",
     "syncStatus": "published"
   }
 ];
