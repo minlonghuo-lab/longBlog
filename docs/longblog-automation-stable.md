@@ -56,7 +56,7 @@
 - 按事件类型向 `https://blog.ssaw.top/trilium-sync-webhook` 发送签名 webhook。
 
 ### 4. 雨云 Webhook 服务
-文件：`/root/trilium_sync_webhook.py`
+文件：`/root/longBlog/ops/trilium_sync_webhook.py`
 
 职责：
 - 校验 `X-Trilium-Signature`
@@ -236,7 +236,7 @@
 雨云：
 - `/root/longBlog/scripts/sync_trilium_posts.py`
 - `/root/longBlog/scripts/run_sync_and_build.sh`
-- `/root/trilium_sync_webhook.py`
+- `/root/longBlog/ops/trilium_sync_webhook.py`
 - `/root/longblog-sync/env.sh`
 
 Trilium：

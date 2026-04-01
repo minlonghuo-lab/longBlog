@@ -130,11 +130,10 @@
 - `/root/.ssh/id_ed25519_longblog.pub`
 
 #### 3. 旧 webhook 文件（暂未删除）
-- `/root/trilium_sync_webhook.py`
+- `/root/longBlog/ops/trilium_sync_webhook.py`
 
 说明：
 - 当前生产进程已切换到 `/root/longBlog/ops/trilium_sync_webhook.py`
-- `/root/trilium_sync_webhook.py` 现在仅保留作回滚保险
 - 确认稳定运行一段时间后可再决定是否删除
 
 ---
@@ -191,7 +190,6 @@ npm run build
 
 ### 4. 后续可进一步优化
 - 将 webhook 服务改为 systemd 管理
-- 把 `/root/trilium_sync_webhook.py` 最终删除
 - 将 `trilium_sync_webhook.log` 也迁入更规范的日志目录
 
 ---
