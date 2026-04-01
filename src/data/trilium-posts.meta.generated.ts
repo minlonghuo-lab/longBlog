@@ -5,6 +5,21 @@ export interface TriliumPostMetaRecord {
 
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
+    "id": "F2ea4malPi8x",
+    "slug": "远程访问nas心得-f2ea4m",
+    "updatedAt": "2026-04-01 17:46:40.798+0800",
+    "publishedAt": "2026-03-08T02:14:50.366611-08:00",
+    "tags": [
+      "NAS",
+      "安全性",
+      "远程访问",
+      "飞牛NAS"
+    ],
+    "pinned": true,
+    "syncHash": "60b0758eb9d4e570f42b7620768a329fcd61749f055336f346d75a30a4296adc",
+    "syncStatus": "published"
+  },
+  {
     "id": "VOsmZSt8PWpI",
     "slug": "关于对教程主义的思考-vosmzs",
     "updatedAt": "2026-03-30 13:45:35.111+0800",
@@ -81,21 +96,6 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
     ],
     "pinned": false,
     "syncHash": "b0112c1c497b70331e45bdcc5cbcde8b0b95f86b77ea2cb93a14580bffba49b4",
-    "syncStatus": "published"
-  },
-  {
-    "id": "F2ea4malPi8x",
-    "slug": "远程访问nas心得-f2ea4m",
-    "updatedAt": "2026-03-30 14:42:43.411+0800",
-    "publishedAt": "2026-03-08T02:14:50.366611-08:00",
-    "tags": [
-      "NAS",
-      "安全性",
-      "远程访问",
-      "飞牛NAS"
-    ],
-    "pinned": false,
-    "syncHash": "60b0758eb9d4e570f42b7620768a329fcd61749f055336f346d75a30a4296adc",
     "syncStatus": "published"
   },
   {
