@@ -1,9 +1,10 @@
 #!/bin/sh
 set -eu
-LOCK_DIR=/root/longblog-sync/run.lock
-PENDING_RERUN_FILE=/root/longblog-sync/pending_rerun
-REPORT_FILE=/root/longblog-sync/last_report.json
-WEBHOOK_CTX_FILE=/root/longblog-sync/last_webhook.json
+RUNTIME_DIR=${LONGBLOG_RUNTIME_DIR:-/root/longblog-sync}
+LOCK_DIR=$RUNTIME_DIR/run.lock
+PENDING_RERUN_FILE=$RUNTIME_DIR/pending_rerun
+REPORT_FILE=$RUNTIME_DIR/last_report.json
+WEBHOOK_CTX_FILE=$RUNTIME_DIR/last_webhook.json
 
 write_lock_report() {
   run_started_at="$1"
@@ -18,7 +19,7 @@ print(json.dumps({
 }, ensure_ascii=False, indent=2))
 PY
 )
-  printf '%s\n' "$LOCK_REPORT" >> /root/longblog-sync/sync.log
+  printf '%s\n' "$LOCK_REPORT" >> $RUNTIME_DIR/sync.log
   printf '%s\n' "$LOCK_REPORT" > "$REPORT_FILE"
 }
 
@@ -65,7 +66,7 @@ run_once() {
   }
   trap cleanup EXIT INT TERM
 
-  . /root/longblog-sync/env.sh
+  . $RUNTIME_DIR/env.sh
   cd /root/longBlog
   PYTHON_BIN=$(command -v python3)
   NPM_BIN=$(command -v npm)
@@ -80,13 +81,13 @@ run_once() {
 
   run_finished_at=$(date '+%Y-%m-%d %H:%M:%S%z')
   SYNC_JSON=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); d["runStartedAt"] = sys.argv[1]; d["runFinishedAt"] = sys.argv[2]; d["lockSkipped"] = False; d["lockReason"] = ""; print(json.dumps(d, ensure_ascii=False, indent=2))' "$run_started_at" "$run_finished_at")
-  printf '%s\n' "$SYNC_JSON" >> /root/longblog-sync/sync.log
+  printf '%s\n' "$SYNC_JSON" >> $RUNTIME_DIR/sync.log
   printf '%s\n' "$SYNC_JSON" > "$REPORT_FILE"
 
   GIT_CHANGED=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); print("true" if d.get("gitChanged") else "false")')
   BUILD_RAN=false
   INSTALL_RAN=false
-  LOCK_HASH_FILE=/root/longblog-sync/package-lock.sha256
+  LOCK_HASH_FILE=$RUNTIME_DIR/package-lock.sha256
   CURRENT_HASH=$(sha256sum package-lock.json 2>/dev/null | awk '{print $1}')
   PREV_HASH=""
   if [ -f "$LOCK_HASH_FILE" ]; then
@@ -94,11 +95,11 @@ run_once() {
   fi
   if [ "$GIT_CHANGED" = "true" ]; then
     if [ ! -d node_modules ] || [ "$CURRENT_HASH" != "$PREV_HASH" ]; then
-      "$NPM_BIN" install >> /root/longblog-sync/build.log 2>&1
+      "$NPM_BIN" install >> $RUNTIME_DIR/build.log 2>&1
       printf '%s' "$CURRENT_HASH" > "$LOCK_HASH_FILE"
       INSTALL_RAN=true
     fi
-    "$NPM_BIN" run build >> /root/longblog-sync/build.log 2>&1
+    "$NPM_BIN" run build >> $RUNTIME_DIR/build.log 2>&1
     BUILD_RAN=true
   fi
 
