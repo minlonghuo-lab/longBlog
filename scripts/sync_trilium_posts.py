@@ -549,50 +549,20 @@ def git_sync_remote() -> Tuple[bool, str]:
 
 
 def git_commit_and_push(message: str) -> Tuple[bool, str]:
-    sync_ok, sync_text = git_sync_remote()
-    if not sync_ok:
-        return False, sync_text
-
     add_res = subprocess.run(["git", "add", "src/data/trilium-posts.content.generated.ts", "src/data/trilium-posts.meta.generated.ts", "public/trilium-assets", "src/data/posts.ts"], cwd=BASE_DIR, capture_output=True, text=True)
     if add_res.returncode != 0:
-        details = []
-        if sync_text.strip():
-            details.append(sync_text.strip())
-        details.append((add_res.stderr or add_res.stdout).strip())
-        return False, "\n".join([x for x in details if x])
+        return False, (add_res.stderr or add_res.stdout).strip()
     commit_res = subprocess.run(["git", "commit", "-m", message], cwd=BASE_DIR, capture_output=True, text=True)
     commit_text = (commit_res.stdout or "") + (commit_res.stderr or "")
     if commit_res.returncode != 0:
         if "nothing to commit" in commit_text.lower():
-            details = []
-            if sync_text.strip():
-                details.append(sync_text.strip())
-            details.append("nothing to commit")
-            return True, "\n".join(details)
-        details = []
-        if sync_text.strip():
-            details.append(sync_text.strip())
-        details.append(commit_text.strip())
-        return False, "\n".join([x for x in details if x])
+            return True, "nothing to commit"
+        return False, commit_text.strip()
     push_res = subprocess.run(["git", "push", GIT_REMOTE, GIT_BRANCH], cwd=BASE_DIR, capture_output=True, text=True)
     push_text = (push_res.stdout or "") + (push_res.stderr or "")
     if push_res.returncode != 0:
-        details = []
-        if sync_text.strip():
-            details.append(sync_text.strip())
-        if commit_text.strip():
-            details.append(commit_text.strip())
-        if push_text.strip():
-            details.append(push_text.strip())
-        return False, "\n".join(details)
-    details = []
-    if sync_text.strip():
-        details.append(sync_text.strip())
-    if commit_text.strip():
-        details.append(commit_text.strip())
-    if push_text.strip():
-        details.append(push_text.strip())
-    return True, "\n".join(details)
+        return False, push_text.strip()
+    return True, (commit_text + "\n" + push_text).strip()
 
 
 def parse_args():
@@ -623,6 +593,18 @@ def main():
 
     if handle_pinned_only_update(args, report):
         return
+
+    if AUTO_PUSH:
+        sync_ok, sync_text = git_sync_remote()
+        report["gitRemoteSynced"] = sync_ok
+        if sync_text.strip():
+            report["gitSyncOutput"] = sync_text[-2000:]
+        if not sync_ok:
+            report["gitChanged"] = False
+            report["autoPushEnabled"] = AUTO_PUSH
+            report["gitPushed"] = False
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+            return
 
     all_notes = walk_note_tree(ROOT_NOTE_ID)
     notes_by_id = {n.get("noteId"): n for n in all_notes}
