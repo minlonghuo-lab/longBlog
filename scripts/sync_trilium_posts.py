@@ -78,20 +78,24 @@ def slugify(title: str) -> str:
     return t or "post"
 
 
-def ensure_unique_slug(base_slug: str, note_id: str, used_slugs: set) -> str:
+def ensure_unique_slug(base_slug: str, note_id: str, used_slugs: set, previous_slug_map: Dict[str, str]) -> str:
     slug = base_slug or "post"
+    previous_slug = (previous_slug_map.get(note_id) or "").strip()
+    if previous_slug and slug == previous_slug:
+        used_slugs.add(slug)
+        return slug
     if slug not in used_slugs:
         used_slugs.add(slug)
         return slug
     suffix = note_id[:6].lower()
     candidate = f"{slug}-{suffix}"
-    if candidate not in used_slugs:
+    if candidate == previous_slug or candidate not in used_slugs:
         used_slugs.add(candidate)
         return candidate
     index = 2
     while True:
         candidate = f"{slug}-{suffix}-{index}"
-        if candidate not in used_slugs:
+        if candidate == previous_slug or candidate not in used_slugs:
             used_slugs.add(candidate)
             return candidate
         index += 1
@@ -304,7 +308,7 @@ def generate_ai_meta(title: str, content_html: str, existing_summary: str, exist
     return {"summary": summary, "tags": tags}
 
 
-def build_post_record(note: dict, used_slugs: set, *, force_ai_refresh: bool = False) -> Tuple[dict, dict]:
+def build_post_record(note: dict, used_slugs: set, previous_slug_map: Dict[str, str], *, force_ai_refresh: bool = False) -> Tuple[dict, dict]:
     note_id = note["noteId"]
     attr_map = label_attrs(note.get("attributes", []) or [])
     title = (note.get("title") or "未命名").strip()
@@ -312,7 +316,7 @@ def build_post_record(note: dict, used_slugs: set, *, force_ai_refresh: bool = F
     html_localized, local_assets, assets_changed = localize_attachments(html, note_id)
     explicit_slug = last_label_value(attr_map, "slug", "").strip()
     base_slug = explicit_slug or slugify(title)
-    slug = ensure_unique_slug(base_slug, note_id, used_slugs)
+    slug = ensure_unique_slug(base_slug, note_id, used_slugs, previous_slug_map)
     ai_refresh = force_ai_refresh or bool_label_value(attr_map, "aiRefresh", False)
     summary = last_label_value(attr_map, "summary", "").strip()
     tags = parse_tags(attr_map)
@@ -645,19 +649,16 @@ def main():
         candidates.append(note)
 
     posts: List[dict] = []
-    used_slugs = set()
     existing_meta = load_existing_meta_records()
-    for meta in existing_meta:
-        slug = str(meta.get("slug") or "").strip()
-        if slug:
-            used_slugs.add(slug)
+    previous_slug_map = {str(meta.get("id") or "").strip(): str(meta.get("slug") or "").strip() for meta in existing_meta if str(meta.get("id") or "").strip()}
+    used_slugs = {slug for slug in previous_slug_map.values() if slug}
 
     for note in candidates:
         report["publishedCandidates"] += 1
         try:
             targeted_note = bool(args.noteId and note.get("noteId") == args.noteId)
             force_ai_refresh = targeted_note and args.event == "ai_refresh_requested"
-            post, meta = build_post_record(note, used_slugs, force_ai_refresh=force_ai_refresh)
+            post, meta = build_post_record(note, used_slugs, previous_slug_map, force_ai_refresh=force_ai_refresh)
             first_publish = not post["publishedAt"]
             targeted_event_for_note = targeted_note and args.event in {"publish_changed", "sync_requested", "pinned_changed", "ai_refresh_requested"}
             needs_publish = first_publish or meta["syncRequested"] or meta["aiRefresh"] or targeted_event_for_note
