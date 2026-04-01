@@ -7,14 +7,14 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "VOsmZSt8PWpI",
     "slug": "关于对教程主义的思考",
-    "updatedAt": "2026-04-01 21:24:59.584+0800",
+    "updatedAt": "2026-04-01 21:39:42.386+0800",
     "publishedAt": "2025-03-05T02:14:50.366611-08:00",
     "tags": [
       "感悟",
       "经验分享"
     ],
     "pinned": true,
-    "syncHash": "4fca7101bb513076d0b873d30044224f12462842aad77458eb3f2df518bda902",
+    "syncHash": "2e20a32b64f79773441fec525c9f87fc257470d3b4e673dcec0a25f62f520d24",
     "syncStatus": "published"
   },
   {
