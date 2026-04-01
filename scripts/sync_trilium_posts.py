@@ -6,6 +6,7 @@ import json
 import hashlib
 import mimetypes
 import subprocess
+import time
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Tuple
 
@@ -455,9 +456,26 @@ def handle_pinned_only_update(args, report) -> bool:
     metas = load_existing_meta_records()
     if not metas:
         return False
-    note = get_json(f"/etapi/notes/{args.noteId}")
-    attr_map = label_attrs(note.get("attributes", []) or [])
-    pinned = bool_label_value(attr_map, "pinned", False)
+
+    target_pinned = None
+    if getattr(args, "pinned", ""):
+        raw = str(args.pinned).strip().lower()
+        if raw in {"true", "1", "yes", "on"}:
+            target_pinned = True
+        elif raw in {"false", "0", "no", "off"}:
+            target_pinned = False
+
+    note = None
+    attr_map = {}
+    pinned = False
+    for attempt in range(4):
+        note = get_json(f"/etapi/notes/{args.noteId}")
+        attr_map = label_attrs(note.get("attributes", []) or [])
+        pinned = bool_label_value(attr_map, "pinned", False)
+        if target_pinned is None or pinned == target_pinned:
+            break
+        time.sleep(0.6)
+
     updated_at = now_str()
     found = False
     changed = False
@@ -574,6 +592,7 @@ def parse_args():
     p.add_argument("--requestId", default="")
     p.add_argument("--event", default="")
     p.add_argument("--noteId", default="")
+    p.add_argument("--pinned", default="")
     return p.parse_args()
 
 
