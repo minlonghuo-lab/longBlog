@@ -1,10 +1,23 @@
 #!/bin/sh
 set -eu
-RUNTIME_DIR=${LONGBLOG_RUNTIME_DIR:-/root/longblog-sync}
+BOOTSTRAP_ENV=/root/longBlog/ops/runtime-bootstrap.env
+DEFAULT_RUNTIME_DIR=/root/longblog-sync
+if [ -f "$BOOTSTRAP_ENV" ]; then
+  . "$BOOTSTRAP_ENV"
+fi
+RUNTIME_DIR=${LONGBLOG_RUNTIME_DIR:-$DEFAULT_RUNTIME_DIR}
 LOCK_DIR=$RUNTIME_DIR/run.lock
 PENDING_RERUN_FILE=$RUNTIME_DIR/pending_rerun
 REPORT_FILE=$RUNTIME_DIR/last_report.json
 WEBHOOK_CTX_FILE=$RUNTIME_DIR/last_webhook.json
+
+refresh_runtime_paths() {
+  RUNTIME_DIR=${LONGBLOG_RUNTIME_DIR:-$DEFAULT_RUNTIME_DIR}
+  LOCK_DIR=$RUNTIME_DIR/run.lock
+  PENDING_RERUN_FILE=$RUNTIME_DIR/pending_rerun
+  REPORT_FILE=$RUNTIME_DIR/last_report.json
+  WEBHOOK_CTX_FILE=$RUNTIME_DIR/last_webhook.json
+}
 
 write_lock_report() {
   run_started_at="$1"
@@ -67,6 +80,7 @@ run_once() {
   trap cleanup EXIT INT TERM
 
   . $RUNTIME_DIR/env.sh
+  refresh_runtime_paths
   cd /root/longBlog
   PYTHON_BIN=$(command -v python3)
   NPM_BIN=$(command -v npm)
