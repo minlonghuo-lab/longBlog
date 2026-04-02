@@ -18,6 +18,21 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
     "syncStatus": "published"
   },
   {
+    "id": "vvEmuVooTDii",
+    "slug": "我的建站史",
+    "updatedAt": "2026-04-02 17:34:02.331+0800",
+    "publishedAt": "2026-04-02 17:34:02.331+0800",
+    "tags": [
+      "Astro",
+      "博客搭建",
+      "静态站点生成器",
+      "技术选型"
+    ],
+    "pinned": false,
+    "syncHash": "9031a04f429bbfc8af4251484dd47a0c765392355ce1898f99406d4a3b15f406",
+    "syncStatus": "published"
+  },
+  {
     "id": "dDI26xYqquzY",
     "slug": "基于tlock和cryptomator的时间胶囊",
     "updatedAt": "2026-03-30 13:43:45.651+0800",
