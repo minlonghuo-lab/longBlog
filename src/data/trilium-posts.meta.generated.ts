@@ -29,7 +29,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "技术选型"
     ],
     "pinned": false,
-    "syncHash": "9031a04f429bbfc8af4251484dd47a0c765392355ce1898f99406d4a3b15f406",
+    "syncHash": "1b22df3a5a70b0a9a318bb7ff41a8884341b931960594c165d75e1278a76f75c",
     "syncStatus": "published"
   },
   {
