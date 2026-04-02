@@ -18,6 +18,22 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
     "syncStatus": "published"
   },
   {
+    "id": "HuEZ8IbXjuPl",
+    "slug": "详细拆解longblog自动化流程",
+    "updatedAt": "2026-04-03 00:01:47.102+0800",
+    "publishedAt": "2026-04-03 00:01:47.102+0800",
+    "tags": [
+      "AI生成",
+      "自动化",
+      "Trilium",
+      "博客部署",
+      "Webhook"
+    ],
+    "pinned": false,
+    "syncHash": "db7b934750fffb406f8a763f5f746a3f2d362c02bad6481a1967a9e7a325b9be",
+    "syncStatus": "published"
+  },
+  {
     "id": "dpIN2qR0Q8lb",
     "slug": "个人博客longblog介绍",
     "updatedAt": "2026-04-02 23:50:47.479+0800",
