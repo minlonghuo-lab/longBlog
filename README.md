@@ -437,6 +437,7 @@ npm run build（仅验证）
 | `/root/longblog-automation/service` | 自动化服务脚本目录 |
 | `/root/longblog-automation/runtime` | 运行态目录（env / logs / reports / state） |
 | `/root/longblog-automation/workspace/current` | 独立项目工作区 |
+| `/root/longblog-automation/check.sh` | 一键巡检脚本 |
 
 推荐结构：
 
@@ -451,9 +452,18 @@ npm run build（仅验证）
 │   ├── logs/
 │   ├── reports/
 │   └── state/
-└── workspace/
-    └── current/
+├── workspace/
+│   └── current/
+├── check.sh
+└── README.md
 ```
+
+当前推荐使用 `systemd` 托管 webhook 服务：
+
+- 服务名：`longblog-webhook.service`
+- 查看状态：`systemctl status longblog-webhook.service`
+- 重启服务：`systemctl restart longblog-webhook.service`
+- 查看日志：`journalctl -u longblog-webhook.service -n 50 --no-pager`
 
 这种结构的意义是：
 
@@ -461,6 +471,8 @@ npm run build（仅验证）
 - **工作区**单独存在，便于验证、排障和后续清理
 - 服务器上的构建结果只作为验证，不作为正式部署源
 - 正式部署由 GitHub 仓库变更后触发外部平台自动发布
+- 可以通过 `check.sh` 快速完成日常巡检
+- 旧目录 `/root/longBlog` 和 `/root/longblog-sync` 已退役；其中旧 `/root/longBlog` 已打包备份到 `/root/backups/longBlog_legacy_20260402_211138.tar.gz`
 
 ---
 
@@ -574,6 +586,20 @@ cat /root/longblog-automation/runtime/logs/sync.log
 cat /root/longblog-automation/runtime/logs/build.log
 cat /root/longblog-automation/runtime/reports/last_report.json
 ```
+
+### 4. 使用一键巡检脚本
+
+```bash
+/root/longblog-automation/check.sh
+```
+
+这个脚本可以快速输出：
+- systemd 服务状态
+- 8787 端口监听情况
+- 当前主进程
+- 最近一次运行报告摘要
+- 工作区 git 状态
+- webhook / sync / build 日志尾部
 
 ---
 

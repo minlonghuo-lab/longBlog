@@ -38,6 +38,20 @@
   - 执行 `npm run build` 验证
   - Git commit / push
 
+### 4. 服务托管方式
+当前推荐使用 `systemd` 托管 webhook 服务：
+
+- 服务名：`longblog-webhook.service`
+- 查看状态：`systemctl status longblog-webhook.service`
+- 重启服务：`systemctl restart longblog-webhook.service`
+- 查看日志：`journalctl -u longblog-webhook.service -n 50 --no-pager`
+
+### 5. 巡检脚本
+推荐在服务器上保留一键巡检脚本：
+
+- 路径：`/root/longblog-automation/check.sh`
+- 作用：汇总输出服务状态、监听端口、运行报告、工作区状态和关键日志尾部
+
 > 注意：工作区和服务目录分离后，服务器上的构建结果只承担“验证”职责，不作为正式部署源。
 
 ---

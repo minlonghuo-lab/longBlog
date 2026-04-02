@@ -108,6 +108,9 @@
 - runner 使用独立工作区
 - 实际业务流验证通过
 - 无意义重建与无意义 push 已被抑制
+- webhook 服务已切换为 `systemd` 托管（`longblog-webhook.service`）
+- 已提供一键巡检脚本 `/root/longblog-automation/check.sh`
+- 旧目录 `/root/longBlog` 已备份后删除
 
 ### 后续可选项
 - 是否彻底删除旧目录
