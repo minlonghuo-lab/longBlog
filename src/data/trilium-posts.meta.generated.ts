@@ -20,20 +20,17 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "dpIN2qR0Q8lb",
     "slug": "个人博客longblog介绍",
-    "updatedAt": "2026-04-02 23:47:34.109+0800",
+    "updatedAt": "2026-04-02 23:50:47.479+0800",
     "publishedAt": "2026-04-02 23:28:06.320+0800",
     "tags": [
       "AI生成",
       "个人博客",
       "Astro",
       "知识库",
-      "静态站点",
-      "Trilium",
-      "自动化",
-      "Memos"
+      "静态站点"
     ],
     "pinned": false,
-    "syncHash": "8f8fde2ee5984ab78a26ec3f4ef43e9cbdaa1374a55afd13075ec2da9bc01f79",
+    "syncHash": "0cac0f5fdae26f0c152d9ed3f76fd98b60f30c463e6d6524bb3f84e536f99782",
     "syncStatus": "published"
   },
   {
