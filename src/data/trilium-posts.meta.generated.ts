@@ -20,7 +20,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "vvEmuVooTDii",
     "slug": "我的建站史",
-    "updatedAt": "2026-04-02 17:34:02.331+0800",
+    "updatedAt": "2026-04-02 20:40:14.800+0800",
     "publishedAt": "2026-04-02 17:34:02.331+0800",
     "tags": [
       "Astro",
