@@ -50,25 +50,6 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
     "syncStatus": "published"
   },
   {
-    "id": "yAEdBzTrtiHe",
-    "slug": "这是一个测试博客-yaedbz",
-    "updatedAt": "2026-04-01 17:33:14.649+0800",
-    "publishedAt": "2026-03-29 22:38:03.613+0800",
-    "tags": [
-      "自动化",
-      "博客发布",
-      "longBlog",
-      "兜底策略",
-      "流程优化",
-      "自动化测试",
-      "发布流程",
-      "系统设计"
-    ],
-    "pinned": false,
-    "syncHash": "83638e5c7ae89e3ed0883cefe3c2e56a663d38fdc9c053b61313c021168a477a",
-    "syncStatus": "published"
-  },
-  {
     "id": "KyFrU3uItyRq",
     "slug": "近期让我眼前一亮的软件",
     "updatedAt": "2026-03-30 13:48:09.698+0800",
