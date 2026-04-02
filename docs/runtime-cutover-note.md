@@ -1,36 +1,22 @@
-# 雨云 longBlog 自动化运行态迁移收尾说明
+# longBlog 自动化运行态迁移收尾说明
 
-本文档说明当前 longBlog 自动化链路在雨云服务器上的**最终运行结构**，以及旧运行态目录的退役策略。
+本文档说明当前 longBlog 自动化链路的推荐目录结构，以及旧运行态目录的退役思路。
 
 ---
 
-## 一、当前已生效的结构
+## 一、当前推荐结构
 
-### 1. 主 Git 仓库
-- 路径：`/root/longBlog`
-- 作用：博客源码、同步脚本、构建产物、文档
+### 1. 自动化服务目录
+- 路径：`/root/longblog-automation/service`
+- 作用：存放 webhook 服务、runner 和同步脚本
 
-### 2. Webhook 正式入口
-- 路径：`/root/longBlog/ops/trilium_sync_webhook.py`
-- 当前已生效
-- 当前监听：`127.0.0.1:8787`
+### 2. 自动化运行态目录
+- 路径：`/root/longblog-automation/runtime`
+- 作用：存放环境变量、日志、报告、状态文件
 
-### 3. Webhook 启动级引导配置
-- 路径：`/root/longBlog/ops/runtime-bootstrap.env`
-- 作用：告诉 webhook / runner 当前真正使用的 runtime 目录与 webhook 日志路径
-
-当前内容核心为：
-```bash
-export LONGBLOG_RUNTIME_DIR=/root/longBlog/runtime
-export LONGBLOG_WEBHOOK_LOG=/root/longBlog/runtime/logs/trilium_sync_webhook.log
-```
-
-### 4. 新运行态目录（当前主运行态）
-- 路径：`/root/longBlog/runtime`
-
-当前已生效的分层结构：
+推荐结构：
 ```text
-/root/longBlog/runtime/
+/root/longblog-automation/runtime/
 ├── env.sh
 ├── logs/
 │   ├── trilium_sync_webhook.log
@@ -45,45 +31,45 @@ export LONGBLOG_WEBHOOK_LOG=/root/longBlog/runtime/logs/trilium_sync_webhook.log
     └── pending_rerun
 ```
 
+### 3. 项目工作区
+- 路径：`/root/longblog-automation/workspace/current`
+- 作用：存放独立的仓库工作区，用于同步、生成、验证与 Git push
+
 ---
 
-## 二、当前已验证成功的链路
+## 二、已经验证成功的链路
 
-已经通过真实 webhook 事件验证：
+已经通过实际运行验证：
 
 1. Trilium 内部脚本发送 webhook
 2. Nginx 转发到 `127.0.0.1:8787`
-3. `/root/longBlog/ops/trilium_sync_webhook.py` 接收并验签
-4. runner 真正使用新 runtime 路径：
-   - `runtime/reports/last_report.json`
-   - `runtime/logs/sync.log`
-   - `runtime/logs/build.log`
-   - `runtime/state/last_webhook.json`
+3. `service/trilium_sync_webhook.py` 接收并验签
+4. runner 真正使用新的 runtime 和 workspace 路径
 5. 自动 Git push 成功
-6. Astro build 成功
+6. Astro build 能在独立工作区完成验证
+7. 无请求同步时可稳定达到：
+   - `gitChanged=false`
+   - `gitPushed=false`
+   - `buildRan=false`
 
 结论：
-> 新 runtime 目录已经接管自动化运行态。
+> 新的自动化目录结构已经能够稳定接管自动化运行态。
 
 ---
 
-## 三、旧目录 `/root/longblog-sync` 现在是什么角色？
+## 三、旧目录现在是什么角色？
 
-旧目录：
-- `/root/longblog-sync`
+如果你有旧目录，例如：
+- `/root/longBlog`
+- 旧的 runtime 兼容目录
 
-当前状态：
-- **不再作为主运行态目录使用**
-- 当前保留的作用主要是：
-  1. 历史日志和历史报告
-  2. 迁移观察期的兼容保留
-  3. 旧环境残留留档
+建议将其理解为：
 
-所以你现在应当把它理解为：
-
-> **旧运行态目录（观察退役期）**
+> **历史工作区 / 兼容残留 / 回滚参考目录**
 
 而不是当前主运行目录。
+
+也就是说，新的服务入口、运行态与工作区应当以 `/root/longblog-automation` 为中心，而不是继续把旧仓库目录同时当服务目录使用。
 
 ---
 
@@ -91,23 +77,25 @@ export LONGBLOG_WEBHOOK_LOG=/root/longBlog/runtime/logs/trilium_sync_webhook.log
 
 ### 1. 以后主要看这几个位置
 #### 主入口
-- `/root/longBlog/ops/trilium_sync_webhook.py`
+- `/root/longblog-automation/service/trilium_sync_webhook.py`
 
 #### 主运行态
-- `/root/longBlog/runtime/logs/trilium_sync_webhook.log`
-- `/root/longBlog/runtime/logs/sync.log`
-- `/root/longBlog/runtime/logs/build.log`
-- `/root/longBlog/runtime/reports/last_report.json`
+- `/root/longblog-automation/runtime/logs/trilium_sync_webhook.log`
+- `/root/longblog-automation/runtime/logs/sync.log`
+- `/root/longblog-automation/runtime/logs/build.log`
+- `/root/longblog-automation/runtime/reports/last_report.json`
 
 #### 主业务脚本
-- `/root/longBlog/scripts/run_sync_and_build.sh`
-- `/root/longBlog/scripts/sync_trilium_posts.py`
+- `/root/longblog-automation/service/run_sync_and_build.sh`
+- `/root/longblog-automation/service/sync_trilium_posts.py`
 
-### 2. 不要再把新逻辑改回 `/root/longblog-sync`
-如果以后要继续调自动化，优先使用：
-- `/root/longBlog/runtime`
+### 2. 不要把新逻辑再改回旧目录
+如果以后继续调自动化，优先使用：
+- `/root/longblog-automation/service`
+- `/root/longblog-automation/runtime`
+- `/root/longblog-automation/workspace/current`
 
-### 3. 旧目录先保留，不急着删
+### 3. 旧目录可以先保留，不急着删
 建议先观察一段时间，确认连续多次 webhook 都正常写入新 runtime，再决定是否彻底清理旧目录。
 
 ---
@@ -115,20 +103,23 @@ export LONGBLOG_WEBHOOK_LOG=/root/longBlog/runtime/logs/trilium_sync_webhook.log
 ## 五、当前迁移完成状态总结
 
 ### 已完成
-- webhook 入口迁移到 `ops/`
-- webhook 日志迁移到新 runtime
-- runner 运行态迁移到新 runtime 分层目录
-- 真实业务流验证通过
+- webhook 入口已切换到独立服务目录
+- webhook 日志、同步日志、构建日志已写入统一 runtime
+- runner 使用独立工作区
+- 实际业务流验证通过
+- 无意义重建与无意义 push 已被抑制
 
-### 未完成（可选后续）
-- 是否彻底删除 `/root/longblog-sync`
-- 是否把旧日志/旧报告进一步归档
-- 是否引入 systemd 托管
+### 后续可选项
+- 是否彻底删除旧目录
+- 是否把旧日志与旧报告进一步归档
+- 是否引入 systemd 托管 webhook 服务
 
 ---
 
 ## 六、一句话总结
 
-当前 longBlog 自动化链路在雨云上已经进入新的稳定结构：
+当前 longBlog 自动化链路推荐使用如下结构：
 
-> **入口在 `/root/longBlog/ops/`，运行态在 `/root/longBlog/runtime/`，旧 `/root/longblog-sync` 仅作为观察退役期保留。**
+> **入口在 `/root/longblog-automation/service/`，运行态在 `/root/longblog-automation/runtime/`，工作区在 `/root/longblog-automation/workspace/current/`。**
+
+这样的结构可以把自动化服务与项目工作区分开，后续维护会更清晰、可控。
