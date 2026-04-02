@@ -20,7 +20,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "vvEmuVooTDii",
     "slug": "我的建站史",
-    "updatedAt": "2026-04-02 20:40:14.800+0800",
+    "updatedAt": "2026-04-02 20:40:34.017+0800",
     "publishedAt": "2026-04-02 17:34:02.331+0800",
     "tags": [
       "Astro",
@@ -29,7 +29,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "技术选型"
     ],
     "pinned": false,
-    "syncHash": "1b22df3a5a70b0a9a318bb7ff41a8884341b931960594c165d75e1278a76f75c",
+    "syncHash": "375003f5924c838bea292a1d3a074250ce9e6ae8259aad70948a314eb61e0d2c",
     "syncStatus": "published"
   },
   {
