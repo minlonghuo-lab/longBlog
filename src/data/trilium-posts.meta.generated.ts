@@ -67,18 +67,15 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "dDI26xYqquzY",
     "slug": "基于tlock和cryptomator的时间胶囊",
-    "updatedAt": "2026-03-30 13:43:45.651+0800",
+    "updatedAt": "2026-04-03 00:25:19.169+0800",
     "publishedAt": "2026-03-29T02:14:50.366611-08:00",
     "tags": [
       "时间胶囊",
-      "tlock",
-      "Cryptomator",
       "加密",
-      "安全性",
-      "drand"
+      "安全性"
     ],
     "pinned": false,
-    "syncHash": "69094d17520fb7a695e95349f04743a6acff5bac9c27ceb6bbdd6e62e1e91956",
+    "syncHash": "6af7a5a413aceecd326e54309be0b96b8d30a63588240ed0c8f08eaac6adeb6c",
     "syncStatus": "published"
   },
   {
