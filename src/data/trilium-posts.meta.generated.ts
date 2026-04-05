@@ -20,7 +20,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "HuEZ8IbXjuPl",
     "slug": "详细拆解longblog自动化流程",
-    "updatedAt": "2026-04-05 12:45:02.400+0800",
+    "updatedAt": "2026-04-05 12:46:40.705+0800",
     "publishedAt": "2026-04-03 00:01:47.102+0800",
     "tags": [
       "AI生成",
@@ -30,7 +30,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "Webhook"
     ],
     "pinned": false,
-    "syncHash": "2dd010b65edcca6384faf3c135a1ed4ad85a2dd26abf0c4ded147ef84e34659b",
+    "syncHash": "28b2e81a60c72dba656d54469ea3fb693632aafe6117df183ddf08d4c106c94a",
     "syncStatus": "published"
   },
   {
