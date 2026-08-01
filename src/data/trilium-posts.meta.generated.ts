@@ -5,6 +5,20 @@ export interface TriliumPostMetaRecord {
 
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
+    "id": "4t7DdbbFdP02",
+    "slug": "我的保研之旅",
+    "updatedAt": "2026-03-30 14:52:43.394+0800",
+    "publishedAt": "2026-03-09 19:04:33.813+0800",
+    "tags": [
+      "保研",
+      "感悟",
+      "经验分享"
+    ],
+    "pinned": true,
+    "syncHash": "058164635fef0b14622ad3ad908ebe2bb46f6d6ec2ac485686c74f71e69cb5df",
+    "syncStatus": "published"
+  },
+  {
     "id": "HuEZ8IbXjuPl",
     "slug": "详细拆解longblog自动化流程",
     "updatedAt": "2026-04-05 12:46:40.705+0800",
@@ -80,20 +94,6 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
     ],
     "pinned": false,
     "syncHash": "00d6964335e376bbb46983bbd7e86261a3d008f2f294708a0f1ceb5c2321c18d",
-    "syncStatus": "published"
-  },
-  {
-    "id": "4t7DdbbFdP02",
-    "slug": "我的保研之旅",
-    "updatedAt": "2026-03-30 14:52:43.394+0800",
-    "publishedAt": "2026-03-09 19:04:33.813+0800",
-    "tags": [
-      "保研",
-      "感悟",
-      "经验分享"
-    ],
-    "pinned": false,
-    "syncHash": "058164635fef0b14622ad3ad908ebe2bb46f6d6ec2ac485686c74f71e69cb5df",
     "syncStatus": "published"
   },
   {
