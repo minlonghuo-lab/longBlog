@@ -21,7 +21,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "ykDuL5tkBQnG",
     "slug": "从数位板到inkscape零基础ui图标全流程",
-    "updatedAt": "2026-08-01 16:00:53.480+0800",
+    "updatedAt": "2026-08-01 16:12:06.241+0800",
     "publishedAt": "2026-08-01 16:00:53.480+0800",
     "tags": [
       "数位板",
@@ -31,7 +31,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "SVG"
     ],
     "pinned": false,
-    "syncHash": "f80c34aee505c21b43e2bfa40654a11b1703f1d73fbe6f0ea5c065f4aa8a5e86",
+    "syncHash": "7823875ad610426578e77fd191dd491d40d0fde220902e5050f1fe1cd7f679b3",
     "syncStatus": "published"
   },
   {
