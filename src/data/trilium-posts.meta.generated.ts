@@ -5,19 +5,6 @@ export interface TriliumPostMetaRecord {
 
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
-    "id": "VOsmZSt8PWpI",
-    "slug": "关于对教程主义的思考",
-    "updatedAt": "2026-07-22 02:06:16.993+0800",
-    "publishedAt": "2026-07-22 02:06:16.993+0800",
-    "tags": [
-      "感悟",
-      "经验分享"
-    ],
-    "pinned": false,
-    "syncHash": "2e20a32b64f79773441fec525c9f87fc257470d3b4e673dcec0a25f62f520d24",
-    "syncStatus": "published"
-  },
-  {
     "id": "HuEZ8IbXjuPl",
     "slug": "详细拆解longblog自动化流程",
     "updatedAt": "2026-04-05 12:46:40.705+0800",
@@ -164,6 +151,19 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
     ],
     "pinned": false,
     "syncHash": "fb683c073a70e54d5d77dc4491b86a2162cecebab71d6a38eddae48785dd63bc",
+    "syncStatus": "published"
+  },
+  {
+    "id": "VOsmZSt8PWpI",
+    "slug": "关于对教程主义的思考",
+    "updatedAt": "2026-08-01 15:21:33.867+0800",
+    "publishedAt": "2025-03-05T02:14:50.366611-08:00",
+    "tags": [
+      "感悟",
+      "经验分享"
+    ],
+    "pinned": false,
+    "syncHash": "46ba2cfe1bcc0c02aa3193c19278a1e68fd1a1a72cdf901c5abff1ff43a4ade9",
     "syncStatus": "published"
   }
 ];
