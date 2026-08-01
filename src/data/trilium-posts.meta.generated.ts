@@ -5,23 +5,9 @@ export interface TriliumPostMetaRecord {
 
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
-    "id": "4t7DdbbFdP02",
-    "slug": "我的保研之旅",
-    "updatedAt": "2026-03-30 14:52:43.394+0800",
-    "publishedAt": "2026-03-09 19:04:33.813+0800",
-    "tags": [
-      "保研",
-      "感悟",
-      "经验分享"
-    ],
-    "pinned": true,
-    "syncHash": "058164635fef0b14622ad3ad908ebe2bb46f6d6ec2ac485686c74f71e69cb5df",
-    "syncStatus": "published"
-  },
-  {
     "id": "ykDuL5tkBQnG",
     "slug": "从数位板到inkscape零基础ui图标全流程",
-    "updatedAt": "2026-08-01 16:12:06.241+0800",
+    "updatedAt": "2026-08-01 16:16:11.521+0800",
     "publishedAt": "2026-08-01 16:00:53.480+0800",
     "tags": [
       "数位板",
@@ -31,7 +17,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "SVG"
     ],
     "pinned": false,
-    "syncHash": "7823875ad610426578e77fd191dd491d40d0fde220902e5050f1fe1cd7f679b3",
+    "syncHash": "65ef23a0860b2ca87294bfd583df580a0339fd3c6378377fbc34d5051115d4aa",
     "syncStatus": "published"
   },
   {
@@ -110,6 +96,20 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
     ],
     "pinned": false,
     "syncHash": "00d6964335e376bbb46983bbd7e86261a3d008f2f294708a0f1ceb5c2321c18d",
+    "syncStatus": "published"
+  },
+  {
+    "id": "4t7DdbbFdP02",
+    "slug": "我的保研之旅",
+    "updatedAt": "2026-03-30 14:52:43.394+0800",
+    "publishedAt": "2026-03-09 19:04:33.813+0800",
+    "tags": [
+      "保研",
+      "感悟",
+      "经验分享"
+    ],
+    "pinned": false,
+    "syncHash": "058164635fef0b14622ad3ad908ebe2bb46f6d6ec2ac485686c74f71e69cb5df",
     "syncStatus": "published"
   },
   {
