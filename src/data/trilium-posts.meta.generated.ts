@@ -19,6 +19,22 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
     "syncStatus": "published"
   },
   {
+    "id": "ykDuL5tkBQnG",
+    "slug": "从数位板到inkscape零基础ui图标全流程",
+    "updatedAt": "2026-08-01 16:00:53.480+0800",
+    "publishedAt": "2026-08-01 16:00:53.480+0800",
+    "tags": [
+      "数位板",
+      "Wacom",
+      "Inkscape",
+      "UI图标",
+      "SVG"
+    ],
+    "pinned": false,
+    "syncHash": "f80c34aee505c21b43e2bfa40654a11b1703f1d73fbe6f0ea5c065f4aa8a5e86",
+    "syncStatus": "published"
+  },
+  {
     "id": "HuEZ8IbXjuPl",
     "slug": "详细拆解longblog自动化流程",
     "updatedAt": "2026-04-05 12:46:40.705+0800",
