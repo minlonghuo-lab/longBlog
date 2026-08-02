@@ -5,6 +5,22 @@ export interface TriliumPostMetaRecord {
 
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
+    "id": "n3ke85XE28js",
+    "slug": "擂辣椒烧排骨初尝",
+    "updatedAt": "2026-08-02 14:22:00.035+0800",
+    "publishedAt": "2026-08-02 14:22:00.035+0800",
+    "tags": [
+      "擂辣椒烧排骨",
+      "家常菜谱",
+      "烹饪技巧",
+      "下饭菜",
+      "新手做菜"
+    ],
+    "pinned": false,
+    "syncHash": "d5df97fb1a2e15656bf3d37484d6531363334f8d13a598b65afa393bedd287f8",
+    "syncStatus": "published"
+  },
+  {
     "id": "ykDuL5tkBQnG",
     "slug": "从数位板到inkscape零基础ui图标全流程",
     "updatedAt": "2026-08-01 16:16:11.521+0800",
