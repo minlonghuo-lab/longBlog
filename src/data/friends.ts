@@ -8,6 +8,12 @@ export interface FriendLink {
 
 export const friendLinks: FriendLink[] = [
   {
+    name: 'skqfly',
+    url: 'https://mmdskq.top',
+    description: '个人网站主要记录个人学习、科研、编程实践以及生活中的一些思考。',
+    avatar: 'https://img.mmdskq.top/file/1784280888930_skqfly.webp',
+  },
+  {
     name: 'Open Minis',
     url: 'https://openminis.app',
     description: '我的AI助手',
