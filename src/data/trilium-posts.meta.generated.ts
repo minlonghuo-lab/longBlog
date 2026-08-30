@@ -5,6 +5,22 @@ export interface TriliumPostMetaRecord {
 
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
+    "id": "KgAdONn6xKlf",
+    "slug": "overleaf部署实战指南",
+    "updatedAt": "2026-08-30 17:37:19.626+0800",
+    "publishedAt": "2026-08-30 17:37:19.626+0800",
+    "tags": [
+      "Overleaf",
+      "NAS",
+      "LaTeX",
+      "Docker",
+      "反向代理"
+    ],
+    "pinned": false,
+    "syncHash": "ea6b258ce9708b64cf2e769993cdb2138c7063bb4693291c26698448a1034192",
+    "syncStatus": "published"
+  },
+  {
     "id": "n3ke85XE28js",
     "slug": "擂辣椒烧排骨初尝",
     "updatedAt": "2026-08-02 14:22:00.035+0800",
