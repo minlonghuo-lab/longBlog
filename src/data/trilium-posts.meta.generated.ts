@@ -7,7 +7,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "y6WtEPfNytSp",
     "slug": "从微信对话到线上博客",
-    "updatedAt": "2026-09-01 00:08:30.589+0800",
+    "updatedAt": "2026-09-01 00:15:40.464+0800",
     "publishedAt": "2026-08-31 22:12:58.470+0800",
     "tags": [
       "Trilium",
@@ -18,7 +18,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "AI"
     ],
     "pinned": false,
-    "syncHash": "5f8a1830d0fd0f8cef5527628b78077cf0cc19c1e83b2ead2ea7eab7091404a9",
+    "syncHash": "91b3ac86b82be45e6e96d31d7f87477301d427ae2366a5430f0c8d14e2d495d6",
     "syncStatus": "published"
   },
   {
