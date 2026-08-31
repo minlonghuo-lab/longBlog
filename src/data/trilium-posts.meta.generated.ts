@@ -5,6 +5,23 @@ export interface TriliumPostMetaRecord {
 
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
+    "id": "y6WtEPfNytSp",
+    "slug": "从微信对话到线上博客",
+    "updatedAt": "2026-08-31 22:12:58.470+0800",
+    "publishedAt": "2026-08-31 22:12:58.470+0800",
+    "tags": [
+      "Trilium",
+      "Hermes",
+      "MCP",
+      "自动化",
+      "博客",
+      "AI"
+    ],
+    "pinned": false,
+    "syncHash": "f156c9d817ca83420cd496583e27098a3bd3d5d8dbf722d9f1063b4a3d3147ab",
+    "syncStatus": "published"
+  },
+  {
     "id": "KgAdONn6xKlf",
     "slug": "overleaf部署实战指南",
     "updatedAt": "2026-08-30 17:37:19.626+0800",
