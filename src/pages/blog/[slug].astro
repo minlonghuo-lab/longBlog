@@ -723,6 +723,9 @@ function formatDate(date: Date): string {
     line-height: 2;
     color: var(--foreground);
     font-size: 1rem;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    hyphens: auto;
   }
 
   .content p {
@@ -782,6 +785,11 @@ function formatDate(date: Date): string {
     text-align: center;
   }
 
+  .content figure.table {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
   .content img {
     display: block;
     max-width: min(100%, 760px);
@@ -812,12 +820,15 @@ function formatDate(date: Date): string {
   }
 
   .content table {
-    width: 100%;
+    width: max-content;
+    max-width: 100%;
     border-collapse: collapse;
-    margin: 1rem 0;
+    margin: 1rem auto;
     font-size: 0.92rem;
-    display: block;
-    overflow-x: auto;
+  }
+
+  .content figure.table table {
+    margin: 0 auto;
   }
 
   .content th,
@@ -842,6 +853,12 @@ function formatDate(date: Date): string {
     background: color-mix(in oklab, var(--muted) 92%, white);
     padding: 0.1em 0.3em;
     border-radius: 0.25rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+    line-break: anywhere;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
 
   .content pre {
