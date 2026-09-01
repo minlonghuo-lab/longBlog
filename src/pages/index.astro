@@ -1,11 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostItem from '../components/PostItem.astro';
-import { getSortedPosts } from '../data/posts';
+import { getHomePosts, getSortedPosts } from '../data/posts';
 import { AUTHOR, AUTHOR_INTRO, SOCIAL_LINKS, SITE_TITLE } from '../consts';
 
-const displayPosts = getSortedPosts();
-const searchPosts = displayPosts.map((post) => ({
+const allPosts = getSortedPosts();
+const displayPosts = getHomePosts(10);
+const searchPosts = allPosts.map((post) => ({
   slug: post.slug,
   title: post.title,
   summary: post.summary,

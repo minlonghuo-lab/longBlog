@@ -28,7 +28,9 @@ function formatDate(date: Date): string {
   <div class="post-page-wrap">
     <div class="post-reading-stage">
       <aside id="post-sidebar" class="post-sidebar" aria-label="文章目录侧栏">
-        <button id="desktop-toc-toggle" class="desktop-toc-toggle" type="button" aria-expanded="true" aria-label="收起文章导航">⇥</button>
+        <button id="desktop-toc-toggle" class="desktop-toc-toggle floating-action" type="button" aria-expanded="true" aria-label="收起文章导航" title="收起目录">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 7l-5 5 5 5" /></svg>
+        </button>
         <div class="toc-card toc-card-desktop">
           <div class="toc-title-row">
             <span class="toc-title">文章导航</span>
@@ -59,10 +61,12 @@ function formatDate(date: Date): string {
     </div>
   </div>
 
-  <button id="back-to-top" class="back-to-top" type="button" aria-label="回到顶部" title="回到顶部">↑</button>
+  <button id="back-to-top" class="back-to-top floating-action" type="button" aria-label="回到顶部" title="回到顶部">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" /></svg>
+  </button>
 
-  <button id="mobile-toc-trigger" class="mobile-toc-trigger" type="button" aria-label="打开文章导航">
-    <span>目录</span>
+  <button id="mobile-toc-trigger" class="mobile-toc-trigger floating-action" type="button" aria-label="打开文章导航" title="打开目录">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h8M8 12h8M8 18h8" /></svg>
     <span id="reading-progress-text-mobile" class="mobile-toc-progress">0%</span>
   </button>
 
@@ -187,7 +191,8 @@ function formatDate(date: Date): string {
         postSidebar.classList.toggle('collapsed', collapsed);
         desktopTocToggle.setAttribute('aria-expanded', String(!collapsed));
         desktopTocToggle.setAttribute('aria-label', collapsed ? '展开文章导航' : '收起文章导航');
-        desktopTocToggle.textContent = collapsed ? '⇤' : '⇥';
+        desktopTocToggle.title = collapsed ? '展开目录' : '收起目录';
+        desktopTocToggle.classList.toggle('is-collapsed', collapsed);
       };
 
       const openMobileToc = () => {
@@ -469,30 +474,63 @@ function formatDate(date: Date): string {
     box-shadow: 0 18px 36px rgba(0, 0, 0, 0.26);
   }
 
+  .floating-action {
+    width: 2.55rem;
+    height: 2.55rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+    border-radius: 999px;
+    background: color-mix(in oklab, white 84%, transparent);
+    color: color-mix(in oklab, var(--foreground) 76%, transparent);
+    box-shadow: 0 8px 22px color-mix(in oklab, black 6%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    cursor: pointer;
+    transition: color var(--transition-base), border-color var(--transition-base), background-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base), opacity var(--transition-base);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .floating-action svg {
+    width: 1.05rem;
+    height: 1.05rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .floating-action:hover {
+    color: var(--foreground);
+    border-color: color-mix(in oklab, var(--foreground) 16%, transparent);
+    background: color-mix(in oklab, white 92%, var(--muted) 8%);
+    box-shadow: 0 10px 26px color-mix(in oklab, black 8%, transparent);
+    transform: translateY(-1px);
+  }
+
+  html[data-theme='dark'] .floating-action {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(29, 34, 48, 0.76);
+    color: rgba(244, 247, 251, 0.86);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
+  }
+
+  html[data-theme='dark'] .floating-action:hover {
+    background: rgba(39, 46, 63, 0.9);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
   .desktop-toc-toggle {
     position: absolute;
     top: 0.25rem;
-    left: -2.8rem;
-    width: 2.2rem;
-    height: 2.2rem;
-    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
-    border-radius: 999px;
-    background: color-mix(in oklab, white 94%, var(--muted) 6%);
-    color: var(--muted-foreground);
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-    transition: color var(--transition-base), background-color var(--transition-base), transform var(--transition-base), opacity var(--transition-base);
+    left: -3rem;
   }
 
-  html[data-theme='dark'] .desktop-toc-toggle {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: rgba(31, 37, 51, 0.96);
-    color: rgba(214, 221, 232, 0.82);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
-  }
-
-  .desktop-toc-toggle:hover {
-    color: var(--foreground);
-    transform: translateX(-1px);
+  .desktop-toc-toggle.is-collapsed svg {
+    transform: rotate(180deg);
   }
 
   .post-sidebar.collapsed .toc-card {
@@ -897,20 +935,10 @@ function formatDate(date: Date): string {
     left: max(1.5rem, calc((100vw - 1160px) / 2 + 1.5rem));
     right: auto;
     bottom: max(5rem, env(safe-area-inset-bottom, 0px) + 5rem);
-    width: 2.9rem;
-    height: 2.9rem;
-    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
-    border-radius: 999px;
-    background: color-mix(in oklab, white 90%, var(--muted) 10%);
-    color: var(--foreground);
-    box-shadow: 0 10px 30px color-mix(in oklab, black 8%, transparent);
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px);
     pointer-events: none;
-    transition: opacity var(--transition-base), transform var(--transition-base), background-color var(--transition-base);
     z-index: 998;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
     isolation: isolate;
   }
 
@@ -918,21 +946,6 @@ function formatDate(date: Date): string {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
-    cursor: pointer;
-  }
-
-  html[data-theme='dark'] .back-to-top {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: rgba(29, 34, 48, 0.94);
-    color: rgba(244, 247, 251, 0.94);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
-  }
-
-  html[data-theme='dark'] .mobile-toc-trigger {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: rgba(29, 34, 48, 0.92);
-    color: rgba(244, 247, 251, 0.94);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
   }
 
   .mobile-toc-trigger {
@@ -942,18 +955,18 @@ function formatDate(date: Date): string {
     bottom: 1rem;
     transform: translateX(-50%);
     z-index: 65;
-    border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
-    border-radius: 999px;
-    padding: 0.8rem 1rem;
-    background: rgba(255,255,255,0.92);
-    backdrop-filter: blur(14px);
-    color: var(--foreground);
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+    width: auto;
+    min-width: 4.6rem;
+    padding: 0 0.78rem;
+    gap: 0.46rem;
     font-family: var(--font-mono);
-    font-size: 0.72rem;
-    display: none;
-    align-items: center;
-    gap: 0.8rem;
+    font-size: 0.68rem;
+  }
+
+  .mobile-toc-progress {
+    min-width: 2.1rem;
+    text-align: right;
+    color: color-mix(in oklab, var(--muted-foreground) 78%, transparent);
   }
 
   .mobile-toc-sheet {
@@ -1162,8 +1175,6 @@ function formatDate(date: Date): string {
       left: auto;
       right: 0.9rem;
       bottom: max(5.4rem, env(safe-area-inset-bottom, 0px) + 5.4rem);
-      width: 2.8rem;
-      height: 2.8rem;
       z-index: 120;
     }
 

@@ -67,6 +67,20 @@ export function getPinnedPosts(): Post[] {
   return posts.filter((post) => post.pinned).sort(comparePosts);
 }
 
+export function getHomePosts(limit = 10): Post[] {
+  const pinned = getPinnedPosts();
+  const latest = posts
+    .filter((post) => !post.pinned)
+    .sort((a, b) => {
+      const diff = b.publishedAt.getTime() - a.publishedAt.getTime();
+      if (diff !== 0) return diff;
+      return a.id.localeCompare(b.id, 'zh-CN');
+    })
+    .slice(0, limit);
+
+  return [...pinned, ...latest];
+}
+
 export function getAllTags(): { name: string; count: number }[] {
   const tagMap = new Map<string, number>();
   for (const post of posts) {

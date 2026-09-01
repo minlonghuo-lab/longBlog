@@ -6,6 +6,7 @@ import { getSortedPosts, getAllTags } from '../../data/posts';
 const posts = getSortedPosts();
 const tags = getAllTags();
 const selectedTag = Astro.url.searchParams.get('tag') || '';
+const pageSize = 10;
 const hasMoreTags = tags.length > 8;
 const visibleTags = tags.slice(0, 7);
 const hiddenTags = tags.slice(7);
@@ -54,7 +55,7 @@ const hiddenTags = tags.slice(7);
     </div>
   </section>
 
-  <section class="posts-list" id="posts-list">
+  <section class="posts-list" id="posts-list" data-page-size={pageSize}>
     {posts.map(post => (
       <div class="post-row" data-tags={post.tags.join('|')}>
         <PostItem
@@ -69,29 +70,100 @@ const hiddenTags = tags.slice(7);
 
     <div class="empty" id="posts-empty" style="display:none;">暂无文章</div>
   </section>
+
+  <nav class="pagination" id="pagination" aria-label="文章分页" hidden>
+    <button class="page-nav" id="page-prev" type="button" aria-label="上一页">←</button>
+    <div class="page-numbers" id="page-numbers"></div>
+    <button class="page-nav" id="page-next" type="button" aria-label="下一页">→</button>
+  </nav>
 </BaseLayout>
 
 <script>
   (() => {
     const rows = Array.from(document.querySelectorAll('.post-row'));
+    const postsList = document.getElementById('posts-list');
     const empty = document.getElementById('posts-empty');
     const tagLinks = Array.from(document.querySelectorAll('#tag-row .tag-link'));
     const tagToggle = document.getElementById('tag-toggle');
     const tagExtra = document.getElementById('tag-extra');
+    const pagination = document.getElementById('pagination');
+    const pageNumbers = document.getElementById('page-numbers');
+    const pagePrev = document.getElementById('page-prev');
+    const pageNext = document.getElementById('page-next');
+    const pageSize = Number(postsList?.dataset.pageSize || 10);
 
-    const applyFilter = (selectedTag) => {
-      let visibleCount = 0;
+    const getCurrentPage = () => {
+      const raw = Number(new URLSearchParams(window.location.search).get('page') || '1');
+      return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
+    };
 
-      for (const row of rows) {
+    const setPageInUrl = (page) => {
+      const url = new URL(window.location.href);
+      if (page > 1) url.searchParams.set('page', String(page));
+      else url.searchParams.delete('page');
+      window.history.pushState({}, '', url);
+    };
+
+    const renderPagination = (totalPages, currentPage) => {
+      if (!(pagination instanceof HTMLElement) || !(pageNumbers instanceof HTMLElement)) return;
+      pagination.hidden = totalPages <= 1;
+      pageNumbers.innerHTML = '';
+      if (totalPages <= 1) return;
+
+      const makeButton = (page) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'page-number';
+        button.textContent = String(page);
+        button.setAttribute('aria-label', `第 ${page} 页`);
+        button.classList.toggle('active', page === currentPage);
+        button.addEventListener('click', () => {
+          setPageInUrl(page);
+          applyFilter(new URLSearchParams(window.location.search).get('tag') || '', page, true);
+        });
+        return button;
+      };
+
+      const pages = [];
+      for (let page = 1; page <= totalPages; page += 1) {
+        if (page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1) pages.push(page);
+      }
+
+      let prevPage = 0;
+      for (const page of pages) {
+        if (prevPage && page - prevPage > 1) {
+          const gap = document.createElement('span');
+          gap.className = 'page-gap';
+          gap.textContent = '…';
+          pageNumbers.appendChild(gap);
+        }
+        pageNumbers.appendChild(makeButton(page));
+        prevPage = page;
+      }
+
+      if (pagePrev instanceof HTMLButtonElement) pagePrev.disabled = currentPage <= 1;
+      if (pageNext instanceof HTMLButtonElement) pageNext.disabled = currentPage >= totalPages;
+    };
+
+    const applyFilter = (selectedTag, requestedPage = getCurrentPage(), shouldScroll = false) => {
+      const matchedRows = rows.filter((row) => {
         const tagStr = row.getAttribute('data-tags') || '';
         const tags = tagStr ? tagStr.split('|') : [];
-        const visible = !selectedTag || tags.includes(selectedTag);
+        return !selectedTag || tags.includes(selectedTag);
+      });
+      const totalPages = Math.max(1, Math.ceil(matchedRows.length / pageSize));
+      const currentPage = Math.min(Math.max(1, requestedPage), totalPages);
+      const start = (currentPage - 1) * pageSize;
+      const visibleSet = new Set(matchedRows.slice(start, start + pageSize));
 
+      if (requestedPage !== currentPage) setPageInUrl(currentPage);
+
+      for (const row of rows) {
+        const visible = visibleSet.has(row);
         if (visible) {
           row.classList.remove('is-hidden');
           row.style.display = '';
           requestAnimationFrame(() => row.classList.add('is-visible'));
-          visibleCount += 1;
         } else {
           row.classList.remove('is-visible');
           row.classList.add('is-hidden');
@@ -101,13 +173,17 @@ const hiddenTags = tags.slice(7);
         }
       }
 
-      if (empty) {
-        empty.style.display = visibleCount === 0 ? 'block' : 'none';
-      }
+      if (empty) empty.style.display = matchedRows.length === 0 ? 'block' : 'none';
+      renderPagination(totalPages, currentPage);
 
       for (const link of tagLinks) {
         const tag = link.getAttribute('data-tag') || '';
         link.classList.toggle('active', tag === selectedTag);
+      }
+
+      if (shouldScroll) {
+        const top = postsList instanceof HTMLElement ? postsList.getBoundingClientRect().top + window.scrollY - 120 : 0;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
       }
     };
 
@@ -150,9 +226,28 @@ const hiddenTags = tags.slice(7);
           url.searchParams.delete('tag');
         }
         window.history.pushState({}, '', url);
-        applyFilter(tag);
+        applyFilter(tag, 1, true);
       });
     }
+
+    pagePrev?.addEventListener('click', () => {
+      const page = Math.max(1, getCurrentPage() - 1);
+      setPageInUrl(page);
+      applyFilter(new URLSearchParams(window.location.search).get('tag') || '', page, true);
+    });
+
+    pageNext?.addEventListener('click', () => {
+      const tag = new URLSearchParams(window.location.search).get('tag') || '';
+      const visibleCount = rows.filter((row) => {
+        const tagStr = row.getAttribute('data-tags') || '';
+        const tags = tagStr ? tagStr.split('|') : [];
+        return !tag || tags.includes(tag);
+      }).length;
+      const totalPages = Math.max(1, Math.ceil(visibleCount / pageSize));
+      const page = Math.min(totalPages, getCurrentPage() + 1);
+      setPageInUrl(page);
+      applyFilter(tag, page, true);
+    });
 
     window.addEventListener('popstate', () => {
       const tag = new URLSearchParams(window.location.search).get('tag') || '';
@@ -284,6 +379,74 @@ const hiddenTags = tags.slice(7);
   .post-row.is-hidden {
     opacity: 0;
     transform: translateY(4px);
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    margin-top: 2.2rem;
+    font-family: var(--font-mono);
+  }
+
+  .pagination[hidden] {
+    display: none;
+  }
+
+  .page-numbers {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .page-nav,
+  .page-number {
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+    border-radius: 999px;
+    background: transparent;
+    color: color-mix(in oklab, var(--muted-foreground) 86%, transparent);
+    font: inherit;
+    font-size: 0.76rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color var(--transition-base), border-color var(--transition-base), background-color var(--transition-base), transform var(--transition-base);
+  }
+
+  .page-nav:hover:not(:disabled),
+  .page-number:hover,
+  .page-number.active {
+    color: var(--foreground);
+    border-color: color-mix(in oklab, var(--foreground) 18%, transparent);
+    background: color-mix(in oklab, var(--muted) 82%, white);
+    transform: translateY(-1px);
+  }
+
+  .page-number.active {
+    cursor: default;
+  }
+
+  .page-nav:disabled {
+    opacity: 0.32;
+    cursor: default;
+  }
+
+  .page-gap {
+    min-width: 0.8rem;
+    color: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+    text-align: center;
+  }
+
+  html[data-theme='dark'] .page-nav:hover:not(:disabled),
+  html[data-theme='dark'] .page-number:hover,
+  html[data-theme='dark'] .page-number.active {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
   }
 
   .empty {
