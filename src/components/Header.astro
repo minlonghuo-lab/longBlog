@@ -12,10 +12,8 @@ function isActive(href: string) {
 <header class="site-header">
   <nav class="site-nav container">
     <a href="/" class="site-logo" aria-label={SITE_TITLE}>
-      <picture>
-        <source srcset="/brand/logo-horizontal-white.svg" media="(prefers-color-scheme: dark)" />
-        <img src="/brand/logo-horizontal.svg" alt={SITE_TITLE} class="site-logo-img" width="210" height="80" />
-      </picture>
+      <img src="/brand/logo-horizontal.svg" alt={SITE_TITLE} class="site-logo-img logo-light" width="210" height="80" />
+      <img src="/brand/logo-horizontal-white.svg" alt="" class="site-logo-img logo-dark" width="210" height="80" aria-hidden="true" />
     </a>
     <div class="nav-links">
       {NAV_ITEMS.map(item => (
@@ -175,6 +173,18 @@ function isActive(href: string) {
     display: block;
     width: 8.9rem;
     height: auto;
+  }
+
+  .logo-dark {
+    display: none;
+  }
+
+  :global(html[data-theme=dark]) .logo-light {
+    display: none;
+  }
+
+  :global(html[data-theme=dark]) .logo-dark {
+    display: block;
   }
 
   .nav-links {
