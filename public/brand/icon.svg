@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">longBlog Knowledge Spine icon</title>
+  <desc id="desc">A seven-node symmetrical knowledge spine in ink black with a transparent central aperture.</desc>
+  <g id="icon">
+    <defs>
+      <mask id="core-hole">
+        <rect width="512" height="512" fill="#FFFFFF"/>
+        <circle cx="256" cy="256" r="17" fill="#000000"/>
+      </mask>
+    </defs>
+    <g mask="url(#core-hole)">
+      <g fill="none" stroke="#09090B" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M256 80V432M256 168L168 124M256 168L344 124M256 256H124M256 256H388M256 344L168 388M256 344L344 388"/>
+      </g>
+      <g id="nodes" fill="#09090B">
+        <circle cx="168" cy="124" r="20"/><circle cx="344" cy="124" r="20"/>
+        <circle cx="124" cy="256" r="20"/><circle cx="388" cy="256" r="20"/>
+        <circle cx="168" cy="388" r="20"/><circle cx="344" cy="388" r="20"/>
+      </g>
+    </g>
+    <circle id="core" cx="256" cy="256" r="32" fill="none" stroke="#09090B" stroke-width="30"/>
+  </g>
+</svg>

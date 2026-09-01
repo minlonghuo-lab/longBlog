@@ -11,7 +11,12 @@ function isActive(href: string) {
 
 <header class="site-header">
   <nav class="site-nav container">
-    <a href="/" class="site-logo">[ {SITE_TITLE} ]</a>
+    <a href="/" class="site-logo" aria-label={SITE_TITLE}>
+      <picture>
+        <source srcset="/brand/logo-horizontal-white.svg" media="(prefers-color-scheme: dark)" />
+        <img src="/brand/logo-horizontal.svg" alt={SITE_TITLE} class="site-logo-img" width="210" height="80" />
+      </picture>
+    </a>
     <div class="nav-links">
       {NAV_ITEMS.map(item => (
         <a 
@@ -155,16 +160,21 @@ function isActive(href: string) {
   }
 
   .site-logo {
-    font-family: var(--font-serif);
-    font-size: 1.1rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    display: inline-flex;
+    align-items: center;
     color: var(--foreground);
-    transition: color var(--transition-base), opacity var(--transition-base);
+    transition: opacity var(--transition-base), transform var(--transition-base);
   }
 
   .site-logo:hover {
-    color: var(--muted-foreground);
+    opacity: 0.78;
+    transform: translateY(-1px);
+  }
+
+  .site-logo-img {
+    display: block;
+    width: 8.9rem;
+    height: auto;
   }
 
   .nav-links {
@@ -199,8 +209,8 @@ function isActive(href: string) {
       height: 5rem;
     }
 
-    .site-logo {
-      font-size: 1rem;
+    .site-logo-img {
+      width: 7.6rem;
     }
 
     .nav-links {

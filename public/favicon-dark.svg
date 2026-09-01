@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">longBlog small-size favicon</title>
-  <desc id="desc">A heavier seven-node Knowledge Spine optimized for 16 to 48 pixel rendering.</desc>
+  <title id="title">longBlog reversed small-size favicon</title>
+  <desc id="desc">A heavier white Knowledge Spine optimized for small rendering on dark backgrounds.</desc>
   <g id="icon">
     <defs>
       <mask id="core-hole">
@@ -9,15 +9,15 @@
       </mask>
     </defs>
     <g mask="url(#core-hole)">
-      <g fill="none" stroke="#09090B" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+      <g fill="none" stroke="#FFFFFF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
         <path d="M256 80V432M256 168L168 124M256 168L344 124M256 256H124M256 256H388M256 344L168 388M256 344L344 388"/>
       </g>
-      <g id="nodes" fill="#09090B">
+      <g id="nodes" fill="#FFFFFF">
         <circle cx="168" cy="124" r="24"/><circle cx="344" cy="124" r="24"/>
         <circle cx="124" cy="256" r="24"/><circle cx="388" cy="256" r="24"/>
         <circle cx="168" cy="388" r="24"/><circle cx="344" cy="388" r="24"/>
       </g>
     </g>
-    <circle id="core" cx="256" cy="256" r="47" fill="none" stroke="#09090B" stroke-width="34"/>
+    <circle id="core" cx="256" cy="256" r="47" fill="none" stroke="#FFFFFF" stroke-width="34"/>
   </g>
 </svg>
