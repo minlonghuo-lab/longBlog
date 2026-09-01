@@ -385,68 +385,60 @@ const hiddenTags = tags.slice(7);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.55rem;
-    margin-top: 2.2rem;
+    gap: 0.85rem;
+    margin-top: 2rem;
+    color: var(--muted-foreground);
     font-family: var(--font-mono);
   }
 
-  .pagination[hidden] {
-    display: none;
-  }
+  .pagination[hidden] { display: none; }
 
   .page-numbers {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.15rem;
   }
 
   .page-nav,
   .page-number {
-    width: 2rem;
-    height: 2rem;
+    min-width: 1.65rem;
+    height: 1.65rem;
+    padding: 0 0.28rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
-    border-radius: 999px;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    border-radius: 0;
     background: transparent;
-    color: color-mix(in oklab, var(--muted-foreground) 86%, transparent);
+    color: color-mix(in oklab, var(--muted-foreground) 76%, transparent);
     font: inherit;
-    font-size: 0.76rem;
+    font-size: 0.68rem;
     line-height: 1;
     cursor: pointer;
-    transition: color var(--transition-base), border-color var(--transition-base), background-color var(--transition-base), transform var(--transition-base);
+    transition: color var(--transition-base), border-color var(--transition-base);
   }
 
   .page-nav:hover:not(:disabled),
   .page-number:hover,
   .page-number.active {
     color: var(--foreground);
-    border-color: color-mix(in oklab, var(--foreground) 18%, transparent);
-    background: color-mix(in oklab, var(--muted) 82%, white);
-    transform: translateY(-1px);
+    border-bottom-color: color-mix(in oklab, var(--foreground) 48%, transparent);
   }
 
-  .page-number.active {
-    cursor: default;
-  }
-
-  .page-nav:disabled {
-    opacity: 0.32;
-    cursor: default;
-  }
+  .page-number.active { cursor: default; }
+  .page-nav:disabled { opacity: 0.3; cursor: default; }
 
   .page-gap {
-    min-width: 0.8rem;
-    color: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+    min-width: 0.65rem;
+    color: color-mix(in oklab, var(--muted-foreground) 48%, transparent);
     text-align: center;
   }
 
-  html[data-theme='dark'] .page-nav:hover:not(:disabled),
-  html[data-theme='dark'] .page-number:hover,
-  html[data-theme='dark'] .page-number.active {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.14);
+  html[data-theme=dark] .page-nav:hover:not(:disabled),
+  html[data-theme=dark] .page-number:hover,
+  html[data-theme=dark] .page-number.active {
+    border-bottom-color: rgba(243, 245, 247, 0.56);
   }
 
   .empty {
