@@ -388,7 +388,9 @@ const hiddenTags = tags.slice(7);
     gap: 0.85rem;
     margin-top: 2rem;
     color: var(--muted-foreground);
+    opacity: 0.72;
     font-family: var(--font-mono);
+    font-size: 0.75rem;
   }
 
   .pagination[hidden] { display: none; }
@@ -401,44 +403,40 @@ const hiddenTags = tags.slice(7);
 
   .page-nav,
   .page-number {
-    min-width: 1.65rem;
-    height: 1.65rem;
-    padding: 0 0.28rem;
+    min-width: 1.35rem;
+    height: 1.5rem;
+    padding: 0 0.18rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border: 0;
-    border-bottom: 1px solid transparent;
-    border-radius: 0;
     background: transparent;
-    color: color-mix(in oklab, var(--muted-foreground) 76%, transparent);
+    color: inherit;
     font: inherit;
-    font-size: 0.68rem;
     line-height: 1;
     cursor: pointer;
-    transition: color var(--transition-base), border-color var(--transition-base);
+    transition: color var(--transition-base), opacity var(--transition-base);
+  }
+
+  .page-nav {
+    min-width: 1.55rem;
+    font-size: 0.98rem;
   }
 
   .page-nav:hover:not(:disabled),
   .page-number:hover,
   .page-number.active {
     color: var(--foreground);
-    border-bottom-color: color-mix(in oklab, var(--foreground) 48%, transparent);
+    opacity: 1;
   }
 
   .page-number.active { cursor: default; }
-  .page-nav:disabled { opacity: 0.3; cursor: default; }
+  .page-nav:disabled { opacity: 0.42; cursor: default; }
 
   .page-gap {
     min-width: 0.65rem;
-    color: color-mix(in oklab, var(--muted-foreground) 48%, transparent);
+    color: inherit;
     text-align: center;
-  }
-
-  html[data-theme=dark] .page-nav:hover:not(:disabled),
-  html[data-theme=dark] .page-number:hover,
-  html[data-theme=dark] .page-number.active {
-    border-bottom-color: rgba(243, 245, 247, 0.56);
   }
 
   .empty {
