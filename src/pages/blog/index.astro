@@ -381,7 +381,7 @@ const hiddenTags = tags.slice(7);
     transform: translateY(4px);
   }
 
-  .pagination {
+  :global(.pagination) {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -393,16 +393,16 @@ const hiddenTags = tags.slice(7);
     font-size: 0.75rem;
   }
 
-  .pagination[hidden] { display: none; }
+  :global(.pagination[hidden]) { display: none; }
 
-  .page-numbers {
+  :global(.page-numbers) {
     display: inline-flex;
     align-items: center;
     gap: 0.15rem;
   }
 
-  .page-nav,
-  .page-number {
+  :global(.page-nav),
+  :global(.page-number) {
     min-width: 1.35rem;
     height: 1.5rem;
     padding: 0 0.18rem;
@@ -418,22 +418,22 @@ const hiddenTags = tags.slice(7);
     transition: color var(--transition-base), opacity var(--transition-base);
   }
 
-  .page-nav {
+  :global(.page-nav) {
     min-width: 1.55rem;
     font-size: 0.98rem;
   }
 
-  .page-nav:hover:not(:disabled),
-  .page-number:hover,
-  .page-number.active {
+  :global(.page-nav:hover:not(:disabled)),
+  :global(.page-number:hover),
+  :global(.page-number.active) {
     color: var(--foreground);
     opacity: 1;
   }
 
-  .page-number.active { cursor: default; }
-  .page-nav:disabled { opacity: 0.42; cursor: default; }
+  :global(.page-number.active) { cursor: default; }
+  :global(.page-nav:disabled) { opacity: 0.42; cursor: default; }
 
-  .page-gap {
+  :global(.page-gap) {
     min-width: 0.65rem;
     color: inherit;
     text-align: center;
