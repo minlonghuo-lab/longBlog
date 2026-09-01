@@ -162,21 +162,6 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
     "syncStatus": "published"
   },
   {
-    "id": "F2ea4malPi8x",
-    "slug": "远程访问nas心得",
-    "updatedAt": "2026-04-01 17:54:54.788+0800",
-    "publishedAt": "2026-03-08T02:14:50.366611-08:00",
-    "tags": [
-      "NAS",
-      "安全性",
-      "远程访问",
-      "飞牛NAS"
-    ],
-    "pinned": false,
-    "syncHash": "67a73f344f4791016aeb327ba43ff9ddb13e984d5798e0ca89a5967488f8e416",
-    "syncStatus": "published"
-  },
-  {
     "id": "wqP8s2pQuo0H",
     "slug": "分享一些docker项目",
     "updatedAt": "2026-09-01 16:45:36.564+0800",
