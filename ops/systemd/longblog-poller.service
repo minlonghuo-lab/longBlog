@@ -1,0 +1,10 @@
+[Unit]
+Description=longBlog Trilium ETAPI Poller
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/longblog-automation/service
+ExecStart=/bin/sh -c ". /root/longblog-automation/runtime/env.sh; export LONGBLOG_RUNTIME_DIR=/root/longblog-automation/runtime; export LONGBLOG_REPO_DIR=/root/longblog-automation/workspace/current; exec python3 /root/longblog-automation/service/poll_trilium_changes.py"
+User=root

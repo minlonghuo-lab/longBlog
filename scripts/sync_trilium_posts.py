@@ -15,7 +15,7 @@ import requests
 BASE_URL = os.environ.get("TRILIUM_BASE_URL", "https://blog.ssaw.top").rstrip("/")
 TOKEN = os.environ.get("TRILIUM_ETAPI_TOKEN", "")
 ROOT_NOTE_ID = os.environ.get("TRILIUM_BLOG_ROOT_NOTE_ID", "zB8WioyKlvOw")
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+BASE_DIR = os.environ.get("LONGBLOG_REPO_DIR") or os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 OUT_CONTENT_TS = os.path.join(BASE_DIR, "src", "data", "trilium-posts.content.generated.ts")
 OUT_META_TS = os.path.join(BASE_DIR, "src", "data", "trilium-posts.meta.generated.ts")
 LEGACY_OUT_TS = os.path.join(BASE_DIR, "src", "data", "trilium-posts.generated.ts")
@@ -33,6 +33,24 @@ HEADERS_AUTH = {"Authorization": f"Bearer {TOKEN}"}
 SKIP_KEYWORDS = ("template", "模板", "logo", "素材", "draft-template", "index-template")
 TZ_UTC8 = timezone(timedelta(hours=8))
 STATE_LABEL_NAMES = ["publish", "sync", "aiRefresh", "pinned", "syncStatus"]
+PUBLISHED_AT_REGISTRY = os.path.join(os.environ.get("LONGBLOG_RUNTIME_DIR", os.path.join(os.path.dirname(BASE_DIR), "runtime")), "state", "published_at_registry.json")
+
+
+def load_published_at_registry() -> Dict[str, str]:
+    try:
+        with open(PUBLISHED_AT_REGISTRY, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_published_at_registry(data: Dict[str, str]):
+    os.makedirs(os.path.dirname(PUBLISHED_AT_REGISTRY), exist_ok=True)
+    tmp = PUBLISHED_AT_REGISTRY + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2, sort_keys=True)
+    os.replace(tmp, PUBLISHED_AT_REGISTRY)
 
 
 def now_str() -> str:
@@ -292,19 +310,20 @@ def parse_tags(attr_map: Dict[str, List[dict]]) -> List[str]:
     return [v.strip() for v in values if v and v.strip()]
 
 
-def generate_ai_meta(title: str, content_html: str, existing_summary: str, existing_tags: List[str], *, tags_only: bool) -> dict:
+def generate_ai_meta(title: str, content_html: str, existing_summary: str, existing_tags: List[str], *, force_summary: bool, max_total_tags: int = 5) -> dict:
     payload = {
         "title": title,
         "content": content_html,
         "summary": existing_summary,
         "tags": existing_tags,
+        "max_total_tags": max_total_tags,
+        "max_new_tags": max(0, max_total_tags - len(existing_tags)),
+        "force_summary": force_summary,
     }
     cmd = ["python3", os.path.join(BASE_DIR, "scripts", "ai_generate_meta.py")]
-    if tags_only:
-        cmd.extend(["--mode", "tags_only"])
     output = subprocess.check_output(cmd, input=json.dumps(payload, ensure_ascii=False), text=True)
     data = json.loads(output)
-    tags = [str(x).strip() for x in (data.get("tags") or []) if str(x).strip()]
+    tags = [str(x).strip() for x in (data.get("tags") or []) if str(x).strip()][:max_total_tags]
     summary = str(data.get("summary") or existing_summary).strip()
     return {"summary": summary, "tags": tags}
 
@@ -326,13 +345,20 @@ def build_post_record(note: dict, used_slugs: set, previous_slug_map: Dict[str, 
 
     if ai_refresh or not summary or not tags:
         try:
-            ai_result = generate_ai_meta(title, html_localized, summary, tags, tags_only=bool(tags))
-            if not summary:
+            existing_tags = list(tags)
+            ai_result = generate_ai_meta(
+                title,
+                html_localized,
+                summary,
+                existing_tags,
+                force_summary=bool(ai_refresh),
+                max_total_tags=5,
+            )
+            if ai_refresh or not summary:
                 summary = ai_result.get("summary", summary).strip()
-            tags = ai_result.get("tags", tags)
+            tags = ai_result.get("tags", existing_tags)[:5]
             ai_generated = True
-            ai_tagsOnly = bool(tags) and bool(attr_map.get("tags"))
-            ai_tags_only = ai_tagsOnly
+            ai_tags_only = False
         except Exception:
             pass
 
@@ -419,6 +445,26 @@ def write_generated_files(posts: List[dict]):
         f.write(meta_text)
 
 
+def load_existing_content_records() -> List[dict]:
+    if not os.path.exists(OUT_CONTENT_TS):
+        return []
+    text = open(OUT_CONTENT_TS, "r", encoding="utf-8").read()
+    marker = "export const triliumPostContents: TriliumPostContentRecord[] = "
+    start = text.find(marker)
+    if start == -1:
+        return []
+    start += len(marker)
+    end = text.rfind(";")
+    if end == -1 or end <= start:
+        return []
+    raw = text[start:end].strip()
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return []
+    return data if isinstance(data, list) else []
+
+
 def load_existing_meta_records() -> List[dict]:
     if not os.path.exists(OUT_META_TS):
         return []
@@ -494,7 +540,7 @@ def handle_pinned_only_update(args, report) -> bool:
         old_pinned = bool(meta.get("pinned"))
         if old_pinned != pinned:
             meta["pinned"] = pinned
-            meta["updatedAt"] = updated_at
+            # Keep original publishedAt/updatedAt stable for pin-only changes.
             changed = True
         meta["syncStatus"] = "published"
         report[("updated" if changed else "unchanged")].append({
@@ -506,8 +552,7 @@ def handle_pinned_only_update(args, report) -> bool:
     if not found:
         return False
     set_label(args.noteId, "syncStatus", "published")
-    if changed:
-        set_label(args.noteId, "updatedAt", updated_at)
+    # Do not write updatedAt for pin-only changes; sorting should stay based on original publishedAt.
     write_meta_only(metas)
     report["gitChanged"] = git_has_changes()
     report["autoPushEnabled"] = AUTO_PUSH
@@ -534,7 +579,7 @@ def cleanup_removed_assets(note_ids: List[str]) -> List[str]:
 
 
 def git_has_changes() -> bool:
-    r = subprocess.run(["git", "status", "--porcelain", "src/data/trilium-posts.content.generated.ts", "src/data/trilium-posts.meta.generated.ts", "public/trilium-assets"], cwd=BASE_DIR, capture_output=True, text=True)
+    r = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no", "src/data/trilium-posts.content.generated.ts", "src/data/trilium-posts.meta.generated.ts", "public/trilium-assets"], cwd=BASE_DIR, capture_output=True, text=True)
     return bool(r.stdout.strip())
 
 
@@ -619,7 +664,8 @@ def main():
         "failed": [],
         "aiUpdated": [],
         "removed": [],
-        "removedAssets": []
+        "removedAssets": [],
+        "workspaceDir": BASE_DIR,
     }
 
     if handle_pinned_only_update(args, report):
@@ -676,53 +722,93 @@ def main():
         candidates.append(note)
 
     posts: List[dict] = []
+    published_at_registry = load_published_at_registry()
     existing_meta = load_existing_meta_records()
+    existing_content = load_existing_content_records()
+    existing_meta_map = {str(item.get("id") or ""): item for item in existing_meta if str(item.get("id") or "")}
+    existing_content_map = {str(item.get("id") or ""): item for item in existing_content if str(item.get("id") or "")}
     previous_slug_map = {str(meta.get("id") or "").strip(): str(meta.get("slug") or "").strip() for meta in existing_meta if str(meta.get("id") or "").strip()}
     used_slugs = {slug for slug in previous_slug_map.values() if slug}
 
     for note in candidates:
         report["publishedCandidates"] += 1
         try:
-            targeted_note = bool(args.noteId and note.get("noteId") == args.noteId)
+            note_id = note.get("noteId")
+            attr_map = label_attrs(note.get("attributes", []) or [])
+            targeted_note = bool(args.noteId and note_id == args.noteId)
             force_ai_refresh = targeted_note and args.event == "ai_refresh_requested"
-            post, meta = build_post_record(note, used_slugs, previous_slug_map, force_ai_refresh=force_ai_refresh)
-            first_publish = not post["publishedAt"]
-            targeted_event_for_note = targeted_note and args.event in {"publish_changed", "sync_requested", "pinned_changed", "ai_refresh_requested"}
-            needs_publish = first_publish or meta["syncRequested"] or meta["aiRefresh"] or targeted_event_for_note
-            if needs_publish:
-                set_label(note["noteId"], "syncStatus", "publishing")
-                ts = now_str()
-                set_label(note["noteId"], "slug", post["slug"])
-                if meta["aiGenerated"]:
-                    if post["summary"]:
-                        set_label(note["noteId"], "summary", post["summary"])
-                    set_label(note["noteId"], "tags", ",".join(post["tags"]))
-                    report["aiUpdated"].append({
-                        "id": note["noteId"],
-                        "title": post["title"],
-                        "tagsOnly": meta["aiTagsOnly"],
-                        "tags": post["tags"],
-                    })
+            sync_requested = bool_label_value(attr_map, "sync", False)
+            ai_refresh = force_ai_refresh or bool_label_value(attr_map, "aiRefresh", False)
+            existing_meta_item = existing_meta_map.get(note_id)
+            existing_content_item = existing_content_map.get(note_id)
+            can_reuse_existing = bool(existing_meta_item and existing_content_item)
+            publish_requested = targeted_note and args.event == "publish_changed"
+            needs_full_sync = bool(sync_requested or ai_refresh or publish_requested or not can_reuse_existing)
+
+            if needs_full_sync:
+                post, meta = build_post_record(note, used_slugs, previous_slug_map, force_ai_refresh=force_ai_refresh)
                 if not post["publishedAt"]:
-                    post["publishedAt"] = ts
-                    set_label(note["noteId"], "publishedAt", ts)
-                set_label(note["noteId"], "syncHash", meta["computedSyncHash"])
-                set_label(note["noteId"], "updatedAt", ts)
-                set_label(note["noteId"], "syncStatus", "published")
-                set_label(note["noteId"], "sync", "false")
-                if meta["aiRefresh"]:
-                    set_label(note["noteId"], "aiRefresh", "false")
-                post["syncStatus"] = "published"
-                post["updatedAt"] = ts
-                report["updated"].append({"id": note["noteId"], "title": post["title"], "pinned": post["pinned"]})
+                    post["publishedAt"] = published_at_registry.get(note_id, "") or (existing_meta_item or {}).get("publishedAt", "")
+                first_publish = not post["publishedAt"]
+                targeted_event_for_note = targeted_note and args.event in {"publish_changed", "sync_requested", "pinned_changed", "ai_refresh_requested"}
+                needs_publish = first_publish or meta["syncRequested"] or meta["aiRefresh"] or targeted_event_for_note
+                if needs_publish:
+                    set_label(note_id, "syncStatus", "publishing")
+                    ts = now_str()
+                    set_label(note_id, "slug", post["slug"])
+                    if meta["aiGenerated"]:
+                        if post["summary"]:
+                            set_label(note_id, "summary", post["summary"])
+                        set_label(note_id, "tags", ",".join(post["tags"]))
+                        report["aiUpdated"].append({
+                            "id": note_id,
+                            "title": post["title"],
+                            "tagsOnly": meta["aiTagsOnly"],
+                            "tags": post["tags"],
+                        })
+                    if not post["publishedAt"]:
+                        post["publishedAt"] = ts
+                        set_label(note_id, "publishedAt", ts)
+                    else:
+                        published_at_registry[note_id] = post["publishedAt"]
+                        if last_label_value(attr_map, "publishedAt", "") != post["publishedAt"]:
+                            set_label(note_id, "publishedAt", post["publishedAt"])
+                    published_at_registry[note_id] = post["publishedAt"]
+                    save_published_at_registry(published_at_registry)
+                    set_label(note_id, "syncHash", meta["computedSyncHash"])
+                    set_label(note_id, "updatedAt", ts)
+                    set_label(note_id, "syncStatus", "published")
+                    set_label(note_id, "sync", "false")
+                    if meta["aiRefresh"]:
+                        set_label(note_id, "aiRefresh", "false")
+                    post["syncStatus"] = "published"
+                    post["updatedAt"] = ts
+                    report["updated"].append({"id": note_id, "title": post["title"], "pinned": post["pinned"]})
+                else:
+                    set_label(note_id, "syncStatus", "published")
+                    post["syncStatus"] = "published"
+                    report["unchanged"].append({"id": note_id, "title": post["title"], "pinned": post["pinned"]})
             else:
-                set_label(note["noteId"], "syncStatus", "published")
-                post["syncStatus"] = "published"
-                report["unchanged"].append({"id": note["noteId"], "title": post["title"], "pinned": post["pinned"]})
+                pinned = bool_label_value(attr_map, "pinned", False)
+                post = {
+                    "id": note_id,
+                    "slug": existing_meta_item.get("slug", slugify(note.get("title") or "未命名")),
+                    "title": existing_content_item.get("title") or note.get("title") or "未命名",
+                    "updatedAt": existing_meta_item.get("updatedAt") or now_str(),
+                    "publishedAt": existing_meta_item.get("publishedAt") or "",
+                    "tags": existing_meta_item.get("tags") or [],
+                    "summary": existing_content_item.get("summary") or "",
+                    "contentHtml": existing_content_item.get("contentHtml") or "",
+                    "pinned": pinned,
+                    "syncHash": existing_meta_item.get("syncHash") or "",
+                    "syncStatus": "published",
+                }
+                set_label(note_id, "syncStatus", "published")
+                report["unchanged"].append({"id": note_id, "title": post["title"], "pinned": post["pinned"]})
             posts.append(post)
         except Exception as e:
             try:
-                set_label(note["noteId"], "syncStatus", "error")
+                set_label(note.get("noteId"), "syncStatus", "error")
             except Exception:
                 pass
             report["failed"].append({"id": note.get("noteId"), "title": note.get("title"), "error": str(e)[:300]})

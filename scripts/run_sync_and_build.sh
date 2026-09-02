@@ -1,22 +1,35 @@
 #!/bin/sh
 set -eu
-BOOTSTRAP_ENV=/root/longBlog/ops/runtime-bootstrap.env
-DEFAULT_RUNTIME_DIR=/root/longblog-sync
-if [ -f "$BOOTSTRAP_ENV" ]; then
-  . "$BOOTSTRAP_ENV"
-fi
+
+SERVICE_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+ROOT_DIR=$(dirname "$SERVICE_DIR")
+DEFAULT_RUNTIME_DIR="$ROOT_DIR/runtime"
+DEFAULT_WORKSPACE_DIR="$ROOT_DIR/workspace/current"
+
 RUNTIME_DIR=${LONGBLOG_RUNTIME_DIR:-$DEFAULT_RUNTIME_DIR}
+WORKSPACE_DIR=${LONGBLOG_REPO_DIR:-${LONGBLOG_WORKSPACE_DIR:-$DEFAULT_WORKSPACE_DIR}}
 LOCK_DIR=$RUNTIME_DIR/state/run.lock
 PENDING_RERUN_FILE=$RUNTIME_DIR/state/pending_rerun
 REPORT_FILE=$RUNTIME_DIR/reports/last_report.json
 WEBHOOK_CTX_FILE=$RUNTIME_DIR/state/last_webhook.json
+SYNC_LOG=$RUNTIME_DIR/logs/sync.log
+BUILD_LOG=$RUNTIME_DIR/logs/build.log
+ENV_FILE=$RUNTIME_DIR/env.sh
 
 refresh_runtime_paths() {
   RUNTIME_DIR=${LONGBLOG_RUNTIME_DIR:-$DEFAULT_RUNTIME_DIR}
+  WORKSPACE_DIR=${LONGBLOG_REPO_DIR:-${LONGBLOG_WORKSPACE_DIR:-$DEFAULT_WORKSPACE_DIR}}
   LOCK_DIR=$RUNTIME_DIR/state/run.lock
   PENDING_RERUN_FILE=$RUNTIME_DIR/state/pending_rerun
   REPORT_FILE=$RUNTIME_DIR/reports/last_report.json
   WEBHOOK_CTX_FILE=$RUNTIME_DIR/state/last_webhook.json
+  SYNC_LOG=$RUNTIME_DIR/logs/sync.log
+  BUILD_LOG=$RUNTIME_DIR/logs/build.log
+  ENV_FILE=$RUNTIME_DIR/env.sh
+}
+
+ensure_base_dirs() {
+  mkdir -p "$RUNTIME_DIR/logs" "$RUNTIME_DIR/reports" "$RUNTIME_DIR/state" "$(dirname "$WORKSPACE_DIR")"
 }
 
 write_lock_report() {
@@ -32,7 +45,7 @@ print(json.dumps({
 }, ensure_ascii=False, indent=2))
 PY
 )
-  printf '%s\n' "$LOCK_REPORT" >> $RUNTIME_DIR/logs/sync.log
+  printf '%s\n' "$LOCK_REPORT" >> "$SYNC_LOG"
   printf '%s\n' "$LOCK_REPORT" > "$REPORT_FILE"
 }
 
@@ -65,7 +78,41 @@ PY
   rm -f "$TMP_CTX"
 }
 
+prepare_workspace() {
+  REPO_URL=${LONGBLOG_REPO_URL:-git@github.com:minlonghuo-lab/longBlog.git}
+  GIT_REMOTE=${LONGBLOG_GIT_REMOTE:-origin}
+  GIT_BRANCH=${LONGBLOG_GIT_BRANCH:-main}
+  GIT_SSH_COMMAND_VALUE=${LONGBLOG_GIT_SSH_COMMAND:-ssh -i /root/.ssh/id_ed25519_longblog -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes}
+
+  if [ ! -d "$WORKSPACE_DIR/.git" ]; then
+    GIT_SSH_COMMAND="$GIT_SSH_COMMAND_VALUE" git clone "$REPO_URL" "$WORKSPACE_DIR" >> "$BUILD_LOG" 2>&1
+  fi
+
+  cd "$WORKSPACE_DIR"
+
+  if git remote | grep -qx "$GIT_REMOTE"; then
+    git remote set-url "$GIT_REMOTE" "$REPO_URL" >> "$BUILD_LOG" 2>&1
+  else
+    git remote add "$GIT_REMOTE" "$REPO_URL" >> "$BUILD_LOG" 2>&1
+  fi
+
+  git config core.sshCommand "$GIT_SSH_COMMAND_VALUE"
+  if [ -n "${LONGBLOG_GIT_USER_NAME:-}" ]; then
+    git config user.name "$LONGBLOG_GIT_USER_NAME"
+  fi
+  if [ -n "${LONGBLOG_GIT_USER_EMAIL:-}" ]; then
+    git config user.email "$LONGBLOG_GIT_USER_EMAIL"
+  fi
+
+  GIT_SSH_COMMAND="$GIT_SSH_COMMAND_VALUE" git fetch "$GIT_REMOTE" "$GIT_BRANCH" >> "$BUILD_LOG" 2>&1
+  if git rev-parse --verify "$GIT_REMOTE/$GIT_BRANCH" >/dev/null 2>&1; then
+    git checkout -B "$GIT_BRANCH" "$GIT_REMOTE/$GIT_BRANCH" >> "$BUILD_LOG" 2>&1
+    git reset --hard "$GIT_REMOTE/$GIT_BRANCH" >> "$BUILD_LOG" 2>&1
+  fi
+}
+
 run_once() {
+  ensure_base_dirs
   run_started_at=$(date '+%Y-%m-%d %H:%M:%S%z')
   if ! mkdir "$LOCK_DIR" 2>/dev/null; then
     : > "$PENDING_RERUN_FILE"
@@ -79,41 +126,45 @@ run_once() {
   }
   trap cleanup EXIT INT TERM
 
-  ENV_FILE=$RUNTIME_DIR/env.sh
-  . $ENV_FILE
+  if [ ! -f "$ENV_FILE" ]; then
+    echo "Missing env file: $ENV_FILE" >&2
+    exit 1
+  fi
+
+  . "$ENV_FILE"
+  export LONGBLOG_RUNTIME_DIR="$RUNTIME_DIR"
+  export LONGBLOG_REPO_DIR="$WORKSPACE_DIR"
   refresh_runtime_paths
-  mkdir -p "$RUNTIME_DIR/logs" "$RUNTIME_DIR/reports" "$RUNTIME_DIR/state"
+  ensure_base_dirs
+
   {
-    printf '[runner-debug] ENV_FILE=%s\n' "$ENV_FILE"
-    printf '[runner-debug] RUNTIME_DIR=%s\n' "$RUNTIME_DIR"
-    printf '[runner-debug] REPORT_FILE=%s\n' "$REPORT_FILE"
-    printf '[runner-debug] WEBHOOK_CTX_FILE=%s\n' "$WEBHOOK_CTX_FILE"
-    printf '[runner-debug] SYNC_LOG=%s\n' "$RUNTIME_DIR/logs/sync.log"
-    printf '[runner-debug] BUILD_LOG=%s\n' "$RUNTIME_DIR/logs/build.log"
-  } >> $RUNTIME_DIR/logs/sync.log
-  {
-    printf '[runner-probe] ENV_FILE=%s\n' "$ENV_FILE"
-    printf '[runner-probe] RUNTIME_DIR=%s\n' "$RUNTIME_DIR"
-    printf '[runner-probe] REPORT_FILE=%s\n' "$REPORT_FILE"
-    printf '[runner-probe] WEBHOOK_CTX_FILE=%s\n' "$WEBHOOK_CTX_FILE"
-    printf '[runner-probe] SYNC_LOG=%s\n' "$RUNTIME_DIR/logs/sync.log"
-    printf '[runner-probe] BUILD_LOG=%s\n' "$RUNTIME_DIR/logs/build.log"
-  } >> /tmp/runner_path_probe.log
-  cd /root/longBlog
+    printf '[runner] SERVICE_DIR=%s\n' "$SERVICE_DIR"
+    printf '[runner] ROOT_DIR=%s\n' "$ROOT_DIR"
+    printf '[runner] RUNTIME_DIR=%s\n' "$RUNTIME_DIR"
+    printf '[runner] WORKSPACE_DIR=%s\n' "$WORKSPACE_DIR"
+    printf '[runner] REPORT_FILE=%s\n' "$REPORT_FILE"
+    printf '[runner] WEBHOOK_CTX_FILE=%s\n' "$WEBHOOK_CTX_FILE"
+  } >> "$SYNC_LOG"
+
+  prepare_workspace
+  cd "$WORKSPACE_DIR"
+
   PYTHON_BIN=$(command -v python3)
   NPM_BIN=$(command -v npm)
+  SYNC_SCRIPT="$SERVICE_DIR/sync_trilium_posts.py"
   BARK_BASE_URL=${LONGBLOG_BARK_BASE_URL:-}
+  BARK_ICON_URL=${LONGBLOG_BARK_ICON_URL:-}
 
   SYNC_ARGS=$(consume_webhook_args)
   if [ -n "$SYNC_ARGS" ]; then
-    SYNC_JSON=$(eval "$PYTHON_BIN scripts/sync_trilium_posts.py $SYNC_ARGS")
+    SYNC_JSON=$(eval "$PYTHON_BIN \"$SYNC_SCRIPT\" $SYNC_ARGS")
   else
-    SYNC_JSON=$($PYTHON_BIN scripts/sync_trilium_posts.py)
+    SYNC_JSON=$($PYTHON_BIN "$SYNC_SCRIPT")
   fi
 
   run_finished_at=$(date '+%Y-%m-%d %H:%M:%S%z')
   SYNC_JSON=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); d["runStartedAt"] = sys.argv[1]; d["runFinishedAt"] = sys.argv[2]; d["lockSkipped"] = False; d["lockReason"] = ""; print(json.dumps(d, ensure_ascii=False, indent=2))' "$run_started_at" "$run_finished_at")
-  printf '%s\n' "$SYNC_JSON" >> $RUNTIME_DIR/logs/sync.log
+  printf '%s\n' "$SYNC_JSON" >> "$SYNC_LOG"
   printf '%s\n' "$SYNC_JSON" > "$REPORT_FILE"
 
   GIT_CHANGED=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); print("true" if d.get("gitChanged") else "false")')
@@ -127,18 +178,27 @@ run_once() {
   fi
   if [ "$GIT_CHANGED" = "true" ]; then
     if [ ! -d node_modules ] || [ "$CURRENT_HASH" != "$PREV_HASH" ]; then
-      "$NPM_BIN" install >> $RUNTIME_DIR/logs/build.log 2>&1
+      "$NPM_BIN" install >> "$BUILD_LOG" 2>&1
+      CURRENT_HASH=$(sha256sum package-lock.json 2>/dev/null | awk '{print $1}')
       printf '%s' "$CURRENT_HASH" > "$LOCK_HASH_FILE"
       INSTALL_RAN=true
     fi
-    "$NPM_BIN" run build >> $RUNTIME_DIR/logs/build.log 2>&1
+    "$NPM_BIN" run build >> "$BUILD_LOG" 2>&1
     BUILD_RAN=true
   fi
 
+  FINAL_JSON=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json; d=json.load(sys.stdin); d["installRan"] = (sys.argv[1] == "true"); d["buildRan"] = (sys.argv[2] == "true"); print(json.dumps(d, ensure_ascii=False, indent=2))' "$INSTALL_RAN" "$BUILD_RAN")
+  printf '%s\n' "$FINAL_JSON" > "$REPORT_FILE"
+
   if [ -n "$BARK_BASE_URL" ]; then
-    TITLE=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); failed=len(d.get("failed") or []); title="longBlog 自动发布失败" if failed else "longBlog 自动发布"; print(urllib.parse.quote(title, safe=""))')
-    BODY=$(printf '%s' "$SYNC_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); updated=len(d.get("updated") or []); unchanged=len(d.get("unchanged") or []); removed=len(d.get("removed") or []); removed_assets=len(d.get("removedAssets") or []); failed=len(d.get("failed") or []); ai=len(d.get("aiUpdated") or []); git_changed=d.get("gitChanged"); git_pushed=d.get("gitPushed"); req=d.get("requestId") or "-"; evt=d.get("event") or "-"; msg=f"事件 {evt}｜请求 {req}｜更新{updated}篇｜撤下{removed}篇｜清理资源{removed_assets}个｜未变{unchanged}篇｜失败{failed}篇｜AI {ai}篇｜Git变更 {git_changed}｜已推送 {git_pushed}"; print(urllib.parse.quote(msg, safe=""))')
-    curl -fsS "$BARK_BASE_URL/$TITLE/$BODY?group=longBlog&icon=https://ssaw.top/favicon.ico&level=active" >/dev/null 2>&1 || true
+    TITLE=$(printf '%s' "$FINAL_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); failed=len(d.get("failed") or []); title="longBlog 自动发布失败" if failed else "longBlog 自动发布"; print(urllib.parse.quote(title, safe=""))')
+    BODY=$(printf '%s' "$FINAL_JSON" | $PYTHON_BIN -c 'import sys,json,urllib.parse; d=json.load(sys.stdin); updated=len(d.get("updated") or []); unchanged=len(d.get("unchanged") or []); removed=len(d.get("removed") or []); removed_assets=len(d.get("removedAssets") or []); failed=len(d.get("failed") or []); ai=len(d.get("aiUpdated") or []); git_changed=d.get("gitChanged"); git_pushed=d.get("gitPushed"); req=d.get("requestId") or "-"; evt=d.get("event") or "-"; build_ran=d.get("buildRan"); workspace=d.get("workspaceDir") or "-"; msg=f"事件 {evt}｜请求 {req}｜更新{updated}篇｜撤下{removed}篇｜清理资源{removed_assets}个｜未变{unchanged}篇｜失败{failed}篇｜AI {ai}篇｜Git变更 {git_changed}｜已推送 {git_pushed}｜构建 {build_ran}"; print(urllib.parse.quote(msg, safe=""))')
+    BARK_QUERY="?group=longBlog&level=active"
+    if [ -n "$BARK_ICON_URL" ]; then
+      ICON_ENCODED=$(printf '%s' "$BARK_ICON_URL" | $PYTHON_BIN -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip(), safe=""))')
+      BARK_QUERY="$BARK_QUERY&icon=$ICON_ENCODED"
+    fi
+    curl -fsS "$BARK_BASE_URL/$TITLE/$BODY$BARK_QUERY" >/dev/null 2>&1 || true
   fi
 
   trap - EXIT INT TERM
