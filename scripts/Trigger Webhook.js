@@ -9,7 +9,7 @@ if (!["publish", "sync", "pinned", "aiRefresh"].includes(attr.name)) return;
 const note = api.getNote(attr.noteId);
 if (!note || note.isDeleted) return;
 
-const TEMPLATE_NOTE_IDS = new Set(["YOUR_TEMPLATE_NOTE_ID"]);
+const TEMPLATE_NOTE_IDS = new Set(["MC7PtiChdF5S"]);
 
 function isTemplateNote(note) {
     if (!note) return false;

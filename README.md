@@ -146,7 +146,7 @@ systemctl enable --now longblog-poller.timer
 
 说明：`longblog-poller.service` 是 `Type=oneshot`，平时显示 `inactive` 属于正常状态；它由 timer 每分钟唤起。
 
-Trilium 内部脚本需将 `scripts/Trigger Webhook.js` 的内容部署到脚本 Note，并配置 `runOnAttributeChange`。仓库副本不会自动覆盖 Trilium 内脚本。
+Trilium 内部脚本需将 `scripts/Trigger Webhook.js` 的内容部署到脚本 Note，并配置 `runOnAttributeChange`。仓库副本不会自动覆盖 Trilium 内脚本。 部署时必须仅在 Trilium 私有脚本中替换 `YOUR_WEBHOOK_URL` 和 `YOUR_WEBHOOK_SECRET`；这两个运行值不得提交。因此仓库模板与 Trilium 实例允许且只允许这两项配置不同，去除配置后的业务逻辑必须一致。
 
 ## 7. 本地开发与构建
 
