@@ -23,8 +23,8 @@ export const TRILIUM_TREE_API_URL = (env.PUBLIC_TRILIUM_TREE_API_URL || '').trim
 export const SITE_URL = (env.PUBLIC_SITE_URL || '').trim();
 
 // Footer / ICP / links
-export const ICP_URL = env.PUBLIC_ICP_URL || 'https://icp.gov.moe/?keyword=20260550';
-export const ICP_TEXT = env.PUBLIC_ICP_TEXT || '萌ICP备20260550号';
+export const ICP_URL = env.PUBLIC_ICP_URL || 'https://beian.miit.gov.cn/';
+export const ICP_TEXT = env.PUBLIC_ICP_TEXT || '苏ICP备2026065369号';
 export const FOOTER_TRILIUM_URL = env.PUBLIC_FOOTER_POWERED_TRILIUM_URL || 'https://github.com/TriliumNext/Trilium';
 export const FOOTER_ASTRO_URL = env.PUBLIC_FOOTER_POWERED_ASTRO_URL || 'https://github.com/withastro/astro';
 export const SITE_LAUNCH_DATE = env.PUBLIC_SITE_LAUNCH_DATE || '2026-03-27T00:00:00+08:00';
