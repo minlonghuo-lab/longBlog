@@ -1,3 +1,5 @@
+@import url("https://cdn.jsdelivr.net/npm/@fontsource-variable/noto-sans-sc@5.2.5/wght.css");
+@import url("https://cdn.jsdelivr.net/npm/@fontsource-variable/noto-serif-sc@5.2.5/wght.css");
 /* 一比一复刻 flare-stack-blog 样式 */
 
 /* ===== CSS 变量 ===== */
@@ -22,8 +24,8 @@
   --selection-foreground: hsl(0 0% 98%);
 
   /* 字体 */
-  --font-serif: "Noto Serif SC", "Source Han Serif SC", serif;
-  --font-sans: "Noto Sans SC", "Source Han Sans SC", system-ui, sans-serif;
+  --font-serif: "Noto Serif SC Variable", "Noto Serif SC", "Source Han Serif SC", serif;
+  --font-sans: "Noto Sans SC Variable", "Noto Sans SC", "Source Han Sans SC", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   /* 过渡 */
