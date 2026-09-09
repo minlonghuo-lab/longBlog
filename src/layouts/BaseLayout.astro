@@ -53,7 +53,6 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
   <title>{pageTitle}</title>
 </head>
 <body>
-  <div id="theme-transition" class="theme-transition" aria-hidden="true"></div>
   <Header />
   <main class="page-main" id="page-main">
     <slot />
@@ -68,7 +67,6 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
 
       const storageKey = 'LONG_BLOG_THEME';
       const root = document.documentElement;
-      const themeTransition = document.getElementById('theme-transition');
       const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
 
       const loadAnalytics = () => {
@@ -101,61 +99,65 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
 
       applyTheme(getPreferredTheme());
 
-      const animateThemeTransition = (theme, sourceEl) => {
-        if (!(sourceEl instanceof HTMLElement) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          applyTheme(theme);
-          updateThemeToggleState();
-          return;
-        }
+      let themeTransitionActive = false;
 
+      const animateThemeTransition = async (theme, sourceEl, pointerEvent) => {
+        if (themeTransitionActive) return;
+
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const startViewTransition = document.startViewTransition?.bind(document);
-        if (!startViewTransition) {
+        if (!(sourceEl instanceof HTMLElement) || reduceMotion || !startViewTransition) {
           applyTheme(theme);
           updateThemeToggleState();
           return;
         }
 
         const rect = sourceEl.getBoundingClientRect();
-        const x = rect.left + rect.width / 2;
-        const y = rect.top + rect.height / 2;
+        const hasPointerPosition = pointerEvent instanceof MouseEvent
+          && pointerEvent.detail > 0
+          && Number.isFinite(pointerEvent.clientX)
+          && Number.isFinite(pointerEvent.clientY);
+        const x = hasPointerPosition ? pointerEvent.clientX : rect.left + rect.width / 2;
+        const y = hasPointerPosition ? pointerEvent.clientY : rect.top + rect.height / 2;
         const maxRadius = Math.hypot(
-          Math.max(rect.left, window.innerWidth - rect.right),
-          Math.max(rect.top, window.innerHeight - rect.bottom)
+          Math.max(x, window.innerWidth - x),
+          Math.max(y, window.innerHeight - y),
         );
 
-        document.documentElement.style.setProperty('--theme-transition-x', `${x}px`);
-        document.documentElement.style.setProperty('--theme-transition-y', `${y}px`);
-        document.documentElement.classList.add('theme-transitioning');
+        themeTransitionActive = true;
+        root.classList.add('theme-transitioning');
+        sourceEl.disabled = true;
 
-        const transition = startViewTransition(() => {
-          applyTheme(theme);
-          updateThemeToggleState();
-        });
-
-        transition.ready
-          .then(() => {
-            document.documentElement.animate(
-              {
-                clipPath: [
-                  `circle(0px at ${x}px ${y}px)`,
-                  `circle(${maxRadius}px at ${x}px ${y}px)`,
-                ],
-              },
-              {
-                duration: 560,
-                easing: 'ease-in-out',
-                pseudoElement: '::view-transition-new(root)',
-              },
-            );
-          })
-          .catch(() => {
+        try {
+          const transition = startViewTransition(() => {
             applyTheme(theme);
             updateThemeToggleState();
           });
-
-        transition.finished.finally(() => {
-          document.documentElement.classList.remove('theme-transitioning');
-        });
+          await transition.ready;
+          const animation = root.animate(
+            {
+              clipPath: [
+                `circle(0px at ${x}px ${y}px)`,
+                `circle(${maxRadius}px at ${x}px ${y}px)`,
+              ],
+            },
+            {
+              duration: 400,
+              easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+              fill: 'both',
+              pseudoElement: '::view-transition-new(root)',
+            },
+          );
+          await animation.finished;
+          await transition.finished;
+        } catch {
+          applyTheme(theme);
+          updateThemeToggleState();
+        } finally {
+          root.classList.remove('theme-transitioning');
+          sourceEl.disabled = false;
+          themeTransitionActive = false;
+        }
       };
 
       const updateThemeToggleState = () => {
@@ -187,8 +189,7 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
           const current = root.dataset.theme || getPreferredTheme();
           const next = current === 'dark' ? 'light' : 'dark';
           localStorage.setItem(storageKey, next);
-          animateThemeTransition(next, themeButton);
-          updateThemeToggleState();
+          animateThemeTransition(next, themeButton, event);
           return;
         }
 
