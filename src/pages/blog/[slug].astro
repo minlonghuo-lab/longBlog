@@ -11,6 +11,14 @@ export function getStaticPaths() {
 
 const { post } = Astro.props;
 
+const optimizedContentHtml = post.contentHtml.replace(/<img\b([^>]*)>/gi, (_match, attributes) => {
+  const clean = attributes
+    .replace(/\sloading=(['"])[^'"]*\1/gi, '')
+    .replace(/\sdecoding=(['"])[^'"]*\1/gi, '')
+    .replace(/\sfetchpriority=(['"])[^'"]*\1/gi, '');
+  return `<img${clean} decoding="async" loading="lazy" fetchpriority="low">`;
+});
+
 function formatDate(date: Date): string {
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -56,7 +64,7 @@ function formatDate(date: Date): string {
           </div>
         </header>
 
-        <section id="post-content" class="content" set:html={post.contentHtml}></section>
+        <section id="post-content" class="content" set:html={optimizedContentHtml}></section>
       </article>
     </div>
   </div>

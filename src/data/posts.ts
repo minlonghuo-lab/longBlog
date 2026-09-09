@@ -13,11 +13,18 @@ export interface Post {
   pinned?: boolean;
 }
 
-function toDate(v?: string) {
-  if (!v) return new Date();
-  const normalized = v.replace(' ', 'T').replace(/(\+\d{2})(\d{2})$/, '$1:$2');
-  const d = new Date(normalized);
-  return Number.isNaN(d.getTime()) ? new Date() : d;
+function toDate(...values: Array<string | undefined>) {
+  for (const value of values) {
+    if (!value) continue;
+    const normalized = value.replace(' ', 'T').replace(/(\+\d{2})(\d{2})$/, '$1:$2');
+    const date = new Date(normalized);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  return new Date(0);
+}
+
+function normalizeTags(values?: string[]) {
+  return [...new Set((values ?? []).map((tag) => tag.trim()).filter(Boolean))];
 }
 
 function comparePosts(a: Post, b: Post) {
@@ -49,9 +56,9 @@ export const posts: Post[] = triliumPostMetas
       id: meta.id,
       slug: meta.slug,
       title: content.title,
-      publishedAt: toDate(meta.publishedAt || meta.updatedAt),
-      updatedAt: toDate(meta.updatedAt),
-      tags: meta.tags ?? [],
+      publishedAt: toDate(meta.publishedAt, meta.updatedAt),
+      updatedAt: toDate(meta.updatedAt, meta.publishedAt),
+      tags: normalizeTags(meta.tags),
       summary: content.summary ?? '',
       contentHtml: content.contentHtml ?? '',
       pinned: !!meta.pinned,

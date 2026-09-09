@@ -80,6 +80,7 @@ const hiddenTags = tags.slice(7);
 
 <script>
   (() => {
+    document.documentElement.classList.add('posts-enhanced');
     const rows = Array.from(document.querySelectorAll('.post-row'));
     const postsList = document.getElementById('posts-list');
     const empty = document.getElementById('posts-empty');
@@ -366,9 +367,14 @@ const hiddenTags = tags.slice(7);
   }
 
   .post-row {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.14s ease, transform 0.14s ease;
+  }
+
+  :global(html.posts-enhanced) .post-row:not(.is-visible) {
     opacity: 0;
     transform: translateY(4px);
-    transition: opacity 0.14s ease, transform 0.14s ease;
   }
 
   .post-row.is-visible {

@@ -1,4 +1,7 @@
 ---
+import '@fontsource-variable/noto-sans-sc/wght.css';
+import '@fontsource-variable/noto-serif-sc/wght.css';
+import '@fontsource-variable/jetbrains-mono/wght.css';
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
@@ -15,7 +18,6 @@ const {
 } = Astro.props;
 
 const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
-const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
 ---
 
 <!DOCTYPE html>
@@ -48,10 +50,6 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
     })();
   </script>
 
-  {UMAMI_SCRIPT_URL && UMAMI_WEBSITE_ID && (
-    <script defer src={UMAMI_SCRIPT_URL} data-website-id={UMAMI_WEBSITE_ID}></script>
-  )}
-
   <title>{pageTitle}</title>
 </head>
 <body>
@@ -63,7 +61,7 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
   <Footer />
 
   <div id="route-progress" class="route-progress" aria-hidden="true"></div>
-  <script define:vars={{ memosApiPreloadUrl }}>
+  <script define:vars={{ umamiScriptUrl: UMAMI_SCRIPT_URL, umamiWebsiteId: UMAMI_WEBSITE_ID }}>
     (() => {
       const main = document.getElementById('page-main');
       if (!main) return;
@@ -72,6 +70,22 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
       const root = document.documentElement;
       const themeTransition = document.getElementById('theme-transition');
       const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+
+      const loadAnalytics = () => {
+        if (!umamiScriptUrl || !umamiWebsiteId || document.querySelector('script[data-website-id]')) return;
+        const script = document.createElement('script');
+        script.src = umamiScriptUrl;
+        script.defer = true;
+        script.dataset.websiteId = umamiWebsiteId;
+        document.head.appendChild(script);
+      };
+
+      const scheduleAnalytics = () => {
+        if ('requestIdleCallback' in window) window.requestIdleCallback(loadAnalytics, { timeout: 3000 });
+        else window.setTimeout(loadAnalytics, 1500);
+      };
+      if (document.readyState === 'complete') scheduleAnalytics();
+      else window.addEventListener('load', scheduleAnalytics, { once: true });
 
       const getStoredTheme = () => {
         const value = localStorage.getItem(storageKey);
@@ -196,28 +210,7 @@ const memosApiPreloadUrl = `${MEMOS_URL}/api/v1/memos?pageSize=10`;
 
         if (progress) progress.classList.add('active');
 
-        if (url.pathname === '/shuoshuo') {
-          const memosFetch = fetch(memosApiPreloadUrl, { credentials: 'omit' })
-            .then((r) => (r.ok ? r.json() : null))
-            .then((data) => {
-              if (data && Array.isArray(data.memos)) {
-                sessionStorage.setItem('LONG_BLOG_MEMOS_CACHE_V2', JSON.stringify({
-                  ts: Date.now(),
-                  data,
-                }));
-              }
-            })
-            .catch(() => null);
-
-          await Promise.race([
-            memosFetch,
-            new Promise((resolve) => window.setTimeout(resolve, 450)),
-          ]);
-        } else {
-          await new Promise((resolve) => window.setTimeout(resolve, 50));
-        }
-
-        window.location.href = url.href;
+        window.location.assign(url.href);
       });
 
       const progress = document.getElementById('route-progress');
