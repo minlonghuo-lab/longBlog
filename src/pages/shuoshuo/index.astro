@@ -401,7 +401,7 @@ const memosApiBase = MEMOS_URL;
   .timeline-dot { position: absolute; left: 0.15rem; top: 0.49rem; width: 0.43rem; height: 0.43rem; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 28%, transparent); }
   .memo-meta { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.02em; color: color-mix(in oklab, var(--muted-foreground) 78%, transparent); margin-bottom: 0.62rem; line-height: 1.2; }
   .memo-pinned { color: var(--foreground); font-weight: 500; font-size: 0.64rem; border: 1px solid color-mix(in oklab, var(--border) 92%, transparent); border-radius: 999px; padding: 0.04rem 0.34rem; }
-  .memo-content { font-family: var(--font-sans); font-size: 1.02rem; font-weight: 400; line-height: 1.82; color: color-mix(in oklab, var(--foreground) 95%, transparent); white-space: pre-wrap; word-break: break-word; max-width: 42rem; letter-spacing: 0.002em; }
+  .memo-content { font-family: var(--font-serif); font-size: 1.02rem; font-weight: 400; font-optical-sizing: auto; font-synthesis: none; line-height: 1.88; color: color-mix(in oklab, var(--foreground) 95%, transparent); white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; max-width: 42rem; letter-spacing: 0.006em; }
   .memo-body { padding-right: 0.25rem; }
   .memo-item::after { content: ''; position: absolute; left: 2.04rem; right: 0; bottom: -1.24rem; height: 1px; background: color-mix(in oklab, var(--border) 66%, transparent); opacity: 0.4; }
   .memo-item:last-child::after { display: none; }
