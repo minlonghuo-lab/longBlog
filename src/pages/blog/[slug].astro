@@ -218,10 +218,22 @@ function formatDate(date: Date): string {
         }
       };
 
-      const syncDesktopTocAnchor = () => {
+      const syncDesktopTocGeometry = () => {
         if (!(postSidebar instanceof HTMLElement) || !(postPaper instanceof HTMLElement)) return;
         const paperRect = postPaper.getBoundingClientRect();
-        postSidebar.style.setProperty('--toc-anchor-left', `${Math.round(paperRect.right - 20)}px`);
+        const paperDocumentTop = paperRect.top + window.scrollY;
+        const gap = 8;
+        const viewportPadding = 16;
+        const collapsedWidth = 48;
+        const availableWidth = window.innerWidth - paperRect.right - gap - viewportPadding;
+        const drawerWidth = Math.max(collapsedWidth, Math.min(264, availableWidth));
+        const openHeight = Math.max(260, Math.min(512, window.innerHeight - paperDocumentTop - 32));
+
+        postSidebar.style.setProperty('--toc-anchor-left', `${Math.round(paperRect.right + gap)}px`);
+        postSidebar.style.setProperty('--toc-anchor-top', `${Math.round(paperDocumentTop)}px`);
+        postSidebar.style.setProperty('--toc-drawer-width', `${Math.round(drawerWidth)}px`);
+        postSidebar.style.setProperty('--toc-panel-height', `${Math.round(openHeight)}px`);
+        postSidebar.classList.add('is-ready');
       };
 
       const setDesktopTocCollapsed = (collapsed, persist = true) => {
@@ -352,12 +364,12 @@ function formatDate(date: Date): string {
         updateActiveHeading();
       };
 
-      syncDesktopTocAnchor();
+      syncDesktopTocGeometry();
       setDesktopTocCollapsed(getInitialDesktopTocCollapsed(), false);
       onScroll();
       window.addEventListener('scroll', onScroll, { passive: true });
       window.addEventListener('resize', () => {
-        syncDesktopTocAnchor();
+        syncDesktopTocGeometry();
         onScroll();
       });
     })();
@@ -423,27 +435,32 @@ function formatDate(date: Date): string {
   }
 
   .post-sidebar {
-    --toc-drawer-width: clamp(14rem, calc(50vw - 29.75rem), 16.5rem);
-    --toc-visible-spine: 3.9rem;
+    --toc-collapsed-width: 3rem;
+    --toc-collapsed-height: 7rem;
+    --toc-drawer-width: 16.5rem;
+    --toc-panel-height: 32rem;
     position: fixed;
-    top: 8.6rem;
-    left: var(--toc-anchor-left, calc(50% + 28rem));
+    top: var(--toc-anchor-top, 13rem);
+    left: var(--toc-anchor-left, calc(50% + 31rem));
     width: var(--toc-drawer-width);
-    max-height: calc(100vh - 10rem);
-    z-index: 1;
+    height: var(--toc-panel-height);
+    z-index: 3;
     pointer-events: auto;
-    opacity: 1;
-    transform: translateX(0);
+    opacity: 0;
     transition:
-      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-      opacity 0.2s ease,
-      width var(--transition-base),
-      top var(--transition-base);
-    will-change: transform;
+      width 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+      height 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.18s ease;
+    will-change: width, height;
+  }
+
+  .post-sidebar.is-ready {
+    opacity: 1;
   }
 
   .post-sidebar.collapsed {
-    transform: translateX(calc(-100% + var(--toc-visible-spine)));
+    width: var(--toc-collapsed-width);
+    height: var(--toc-collapsed-height);
   }
 
   .post-sidebar.is-outside-article {
@@ -538,17 +555,25 @@ function formatDate(date: Date): string {
   }
 
   .toc-card {
-    position: sticky;
-    top: 5.6rem;
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 10rem);
+    width: 100%;
+    height: 100%;
     border: 1px solid color-mix(in oklab, var(--border) 86%, transparent);
     border-radius: 1rem;
     padding: 0.95rem 0.8rem 0.85rem;
     background: color-mix(in oklab, white 92%, var(--muted) 8%);
     box-shadow: 0 12px 32px color-mix(in oklab, black 5%, transparent);
     overflow: hidden;
+    opacity: 1;
+    transform: scale(1);
+    transform-origin: top left;
+    transition:
+      opacity 0.16s ease 0.08s,
+      transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear;
   }
 
   html[data-theme='dark'] .toc-card {
@@ -608,11 +633,11 @@ function formatDate(date: Date): string {
 
   .desktop-toc-tab {
     position: absolute;
-    top: 0.95rem;
+    top: 0;
     right: 0;
     z-index: 2;
-    width: 2.65rem;
-    min-height: 5.6rem;
+    width: var(--toc-collapsed-width);
+    height: var(--toc-collapsed-height);
     padding: 0.58rem 0.25rem;
     display: flex;
     flex-direction: column;
@@ -620,7 +645,7 @@ function formatDate(date: Date): string {
     justify-content: center;
     gap: 0.48rem;
     border: 1px solid color-mix(in oklab, var(--border) 76%, transparent);
-    border-radius: 0.82rem;
+    border-radius: 0.95rem;
     color: color-mix(in oklab, var(--muted-foreground) 82%, transparent);
     background: color-mix(in oklab, white 72%, transparent);
     box-shadow: 0 7px 18px color-mix(in oklab, black 5%, transparent);
@@ -631,7 +656,8 @@ function formatDate(date: Date): string {
       color var(--transition-base),
       border-color var(--transition-base),
       background-color var(--transition-base),
-      box-shadow var(--transition-base);
+      box-shadow var(--transition-base),
+      border-radius 0.34s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .desktop-toc-tab:hover,
@@ -682,24 +708,14 @@ function formatDate(date: Date): string {
   }
 
   .post-sidebar.collapsed .toc-card {
-    box-shadow: 0 14px 34px color-mix(in oklab, black 5%, transparent);
-  }
-
-  .post-sidebar .toc-card {
-    transition: box-shadow var(--transition-base);
-  }
-
-  .post-sidebar .toc-title-row,
-  .post-sidebar .toc-nav {
-    opacity: 1;
-    transition: opacity 0.16s ease 0.1s;
-  }
-
-  .post-sidebar.collapsed .toc-title-row,
-  .post-sidebar.collapsed .toc-nav {
+    visibility: hidden;
     opacity: 0;
+    transform: scale(0.96);
     pointer-events: none;
-    transition-delay: 0s;
+    transition:
+      opacity 0.12s ease,
+      transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear 0.16s;
   }
 
   .toc-title-row {
@@ -1201,7 +1217,6 @@ function formatDate(date: Date): string {
 
     .post-sidebar {
       --toc-drawer-width: 14.5rem;
-      width: var(--toc-drawer-width);
     }
   }
 
