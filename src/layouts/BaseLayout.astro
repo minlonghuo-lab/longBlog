@@ -47,7 +47,6 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
         : (media.matches ? 'dark' : 'light');
       root.dataset.theme = theme;
       root.style.colorScheme = theme;
-      root.classList.toggle('route-transition-supported', 'startViewTransition' in document);
     })();
   </script>
 
@@ -60,6 +59,7 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
   </main>
   <Footer />
 
+  <div id="route-progress" class="route-progress" aria-hidden="true"></div>
   <script define:vars={{ umamiScriptUrl: UMAMI_SCRIPT_URL, umamiWebsiteId: UMAMI_WEBSITE_ID }}>
     (() => {
       const main = document.getElementById('page-main');
@@ -206,19 +206,20 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
         if (url.pathname === window.location.pathname && url.search === window.location.search) return;
 
         event.preventDefault();
-        document.body.classList.add('page-navigating');
+        document.body.classList.remove('page-ready');
+        document.body.classList.add('page-leave', 'page-navigating');
 
-        if (root.classList.contains('route-transition-supported')) {
-          window.location.assign(url.href);
-        } else {
-          document.body.classList.add('page-leave');
-          window.setTimeout(() => window.location.assign(url.href), 100);
-        }
+        if (progress) progress.classList.add('active');
+
+        window.location.assign(url.href);
       });
+
+      const progress = document.getElementById('route-progress');
 
       const restorePageState = () => {
         document.body.classList.remove('page-leave', 'page-navigating');
         document.body.classList.add('page-ready');
+        if (progress) progress.classList.remove('active');
       };
 
       const updateHeaderState = () => {

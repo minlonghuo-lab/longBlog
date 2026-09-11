@@ -75,18 +75,28 @@ body {
 
 #page-main {
   opacity: 1;
-  transform: translateY(0);
-  transition: opacity 0.16s ease-out, transform 0.16s ease-out;
+  transition: opacity 0.12s ease-out;
 }
 
-html:not(.route-transition-supported) body:not(.page-ready) #page-main {
+body.page-leave #page-main {
   opacity: 0;
-  transform: translateY(4px);
 }
 
-html:not(.route-transition-supported) body.page-leave #page-main {
+.route-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(28, 28, 32, 0.75), rgba(28, 28, 32, 0.35));
+  z-index: 120;
   opacity: 0;
-  transform: translateY(-3px);
+  transition: width 0.16s ease-out, opacity 0.16s ease-out;
+}
+
+.route-progress.active {
+  width: 62vw;
+  opacity: 1;
 }
 
 body::before {
@@ -124,62 +134,18 @@ body::before {
   z-index: 999 !important;
 }
 
-@view-transition {
-  navigation: auto;
-}
-
-.site-header {
-  view-transition-name: site-header;
-}
-
-html.theme-transitioning .site-header {
-  view-transition-name: none;
-}
-
 ::view-transition-old(root),
-::view-transition-new(root),
-::view-transition-old(site-header),
-::view-transition-new(site-header) {
+::view-transition-new(root) {
+  animation: none;
   mix-blend-mode: normal;
 }
 
-::view-transition-old(root) {
-  animation: route-out 130ms cubic-bezier(0.4, 0, 1, 1) both;
+html.theme-transitioning::view-transition-old(root) {
+  z-index: 1;
 }
 
-::view-transition-new(root) {
-  animation: route-in 230ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-::view-transition-group(site-header) {
-  animation-duration: 180ms;
-}
-
-::view-transition-old(site-header),
-::view-transition-new(site-header) {
-  animation: route-header-fade 180ms ease-out both;
-}
-
-html.theme-transitioning::view-transition-old(root),
 html.theme-transitioning::view-transition-new(root) {
-  animation: none;
-}
-
-html.theme-transitioning::view-transition-old(root) { z-index: 1; }
-html.theme-transitioning::view-transition-new(root) { z-index: 2; }
-
-@keyframes route-out {
-  to { opacity: 0; transform: translateY(-3px); }
-}
-
-@keyframes route-in {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes route-header-fade {
-  from { opacity: 0.86; }
-  to { opacity: 1; }
+  z-index: 2;
 }
 
 html.theme-transitioning *,
