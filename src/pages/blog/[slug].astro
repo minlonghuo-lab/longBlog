@@ -35,14 +35,19 @@ function formatDate(date: Date): string {
 
   <div class="post-page-wrap">
     <div class="post-reading-stage">
-      <aside id="post-sidebar" class="post-sidebar" aria-label="文章目录侧栏">
-        <button id="desktop-toc-toggle" class="desktop-toc-toggle floating-action" type="button" aria-expanded="true" aria-label="收起文章导航" title="收起目录">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 7l-5 5 5 5" /></svg>
+      <aside id="post-sidebar" class="post-sidebar collapsed" aria-label="文章目录侧栏">
+        <button id="desktop-toc-toggle" class="desktop-toc-tab" type="button" aria-expanded="false" aria-label="展开文章导航" title="展开目录">
+          <svg class="toc-tab-list-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 6h9M8 12h9M8 18h9M5 6h.01M5 12h.01M5 18h.01" />
+          </svg>
+          <span id="reading-progress-text-tab" class="desktop-toc-progress">0%</span>
+          <svg class="toc-tab-chevron" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
         </button>
-        <div class="toc-card toc-card-desktop">
+        <div class="toc-card toc-card-desktop" aria-hidden="true" inert>
           <div class="toc-title-row">
             <span class="toc-title">文章导航</span>
-            <span id="reading-progress-text" class="reading-progress-text">0%</span>
           </div>
           <nav id="post-toc-desktop" class="toc-nav" aria-label="文章目录"></nav>
         </div>
@@ -102,6 +107,7 @@ function formatDate(date: Date): string {
       const progressBar = document.getElementById('reading-progress-bar');
       const progressText = document.getElementById('reading-progress-text');
       const progressTextMobile = document.getElementById('reading-progress-text-mobile');
+      const progressTextTab = document.getElementById('reading-progress-text-tab');
       const backToTop = document.getElementById('back-to-top');
       const mobileTocSheet = document.getElementById('mobile-toc-sheet');
       const mobileTocTrigger = document.getElementById('mobile-toc-trigger');
@@ -109,10 +115,15 @@ function formatDate(date: Date): string {
       const mobileTocBackdrop = document.getElementById('mobile-toc-backdrop');
       const desktopTocToggle = document.getElementById('desktop-toc-toggle');
       const postSidebar = document.getElementById('post-sidebar');
+      const desktopTocCard = document.querySelector('.toc-card-desktop');
       const lightbox = document.getElementById('image-lightbox');
       const lightboxImg = document.getElementById('image-lightbox-img');
       const lightboxClose = document.getElementById('image-lightbox-close');
+      const postPaper = document.querySelector('.post-paper');
       if (!(content instanceof HTMLElement) || !(desktopToc instanceof HTMLElement) || !(mobileToc instanceof HTMLElement)) return;
+
+      const DESKTOP_TOC_STORAGE_KEY = 'LONG_BLOG_DESKTOP_TOC_STATE';
+      let activeHeadingId = '';
 
       const slugifyHeading = (text, index) => {
         const base = (text || `section-${index + 1}`)
@@ -169,7 +180,14 @@ function formatDate(date: Date): string {
         if (progressBar) progressBar.style.width = `${percent}%`;
         if (progressText) progressText.textContent = `${percent}%`;
         if (progressTextMobile) progressTextMobile.textContent = `${percent}%`;
+        if (progressTextTab) progressTextTab.textContent = `${percent}%`;
         if (backToTop) backToTop.classList.toggle('visible', shouldShowBackToTop && !shouldHideBackToTopForMobileToc);
+
+        if (postSidebar instanceof HTMLElement && postPaper instanceof HTMLElement) {
+          const paperRect = postPaper.getBoundingClientRect();
+          const shouldShowSidebar = window.innerWidth >= 1280 && paperRect.bottom > 220;
+          postSidebar.classList.toggle('is-outside-article', !shouldShowSidebar);
+        }
       };
 
       const updateActiveHeading = () => {
@@ -192,15 +210,43 @@ function formatDate(date: Date): string {
           const matched = link.dataset.target === currentId;
           link.classList.toggle('active', matched);
         });
+
+        if (currentId && currentId !== activeHeadingId) {
+          activeHeadingId = currentId;
+          const activeDesktopLink = desktopToc.querySelector(`[data-target="${CSS.escape(currentId)}"]`);
+          activeDesktopLink?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
       };
 
-      const setDesktopTocCollapsed = (collapsed) => {
+      const syncDesktopTocAnchor = () => {
+        if (!(postSidebar instanceof HTMLElement) || !(postPaper instanceof HTMLElement)) return;
+        const paperRect = postPaper.getBoundingClientRect();
+        postSidebar.style.setProperty('--toc-anchor-left', `${Math.round(paperRect.right - 20)}px`);
+      };
+
+      const setDesktopTocCollapsed = (collapsed, persist = true) => {
         if (!(postSidebar instanceof HTMLElement) || !(desktopTocToggle instanceof HTMLButtonElement)) return;
         postSidebar.classList.toggle('collapsed', collapsed);
+        if (desktopTocCard instanceof HTMLElement) {
+          desktopTocCard.inert = collapsed;
+          desktopTocCard.setAttribute('aria-hidden', String(collapsed));
+        }
         desktopTocToggle.setAttribute('aria-expanded', String(!collapsed));
         desktopTocToggle.setAttribute('aria-label', collapsed ? '展开文章导航' : '收起文章导航');
         desktopTocToggle.title = collapsed ? '展开目录' : '收起目录';
-        desktopTocToggle.classList.toggle('is-collapsed', collapsed);
+        if (persist) {
+          try {
+            localStorage.setItem(DESKTOP_TOC_STORAGE_KEY, collapsed ? 'collapsed' : 'open');
+          } catch {}
+        }
+      };
+
+      const getInitialDesktopTocCollapsed = () => {
+        try {
+          return localStorage.getItem(DESKTOP_TOC_STORAGE_KEY) !== 'open';
+        } catch {
+          return true;
+        }
       };
 
       const openMobileToc = () => {
@@ -257,6 +303,16 @@ function formatDate(date: Date): string {
         const image = target.closest('#post-content img');
         if (image instanceof HTMLImageElement) {
           openLightbox(image.currentSrc || image.src, image.alt || '文章图片预览');
+          return;
+        }
+
+        if (
+          window.innerWidth >= 1280
+          && postSidebar instanceof HTMLElement
+          && !postSidebar.classList.contains('collapsed')
+          && target.closest('.post-paper')
+        ) {
+          setDesktopTocCollapsed(true);
         }
       });
 
@@ -287,6 +343,7 @@ function formatDate(date: Date): string {
         if (event.key === 'Escape') {
           closeMobileToc();
           closeLightbox();
+          if (window.innerWidth >= 1280) setDesktopTocCollapsed(true);
         }
       });
 
@@ -295,10 +352,14 @@ function formatDate(date: Date): string {
         updateActiveHeading();
       };
 
-      setDesktopTocCollapsed(false);
+      syncDesktopTocAnchor();
+      setDesktopTocCollapsed(getInitialDesktopTocCollapsed(), false);
       onScroll();
       window.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('resize', onScroll);
+      window.addEventListener('resize', () => {
+        syncDesktopTocAnchor();
+        onScroll();
+      });
     })();
   </script>
 </BaseLayout>
@@ -321,7 +382,7 @@ function formatDate(date: Date): string {
 
   .post-paper {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     width: min(60rem, calc(100vw - (2 * clamp(1.25rem, 8vw, 15rem))));
     max-width: calc(100vw - 2rem);
     margin: 0 auto;
@@ -362,18 +423,32 @@ function formatDate(date: Date): string {
   }
 
   .post-sidebar {
+    --toc-drawer-width: clamp(14rem, calc(50vw - 29.75rem), 16.5rem);
+    --toc-visible-spine: 3.9rem;
     position: fixed;
     top: 8.6rem;
-    right: max(1.5rem, calc((100vw - 1460px) / 2 + 1.5rem));
-    width: clamp(15rem, 17vw, 18rem);
+    left: var(--toc-anchor-left, calc(50% + 28rem));
+    width: var(--toc-drawer-width);
     max-height: calc(100vh - 10rem);
-    z-index: 999;
+    z-index: 1;
     pointer-events: auto;
-    transition: right var(--transition-base), width var(--transition-base), transform var(--transition-base), top var(--transition-base);
+    opacity: 1;
+    transform: translateX(0);
+    transition:
+      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.2s ease,
+      width var(--transition-base),
+      top var(--transition-base);
+    will-change: transform;
   }
 
   .post-sidebar.collapsed {
-    width: 2.8rem;
+    transform: translateX(calc(-100% + var(--toc-visible-spine)));
+  }
+
+  .post-sidebar.is-outside-article {
+    opacity: 0;
+    pointer-events: none;
   }
 
   .reading-progress {
@@ -531,24 +606,100 @@ function formatDate(date: Date): string {
     border-color: rgba(255, 255, 255, 0.14);
   }
 
-  .desktop-toc-toggle {
+  .desktop-toc-tab {
     position: absolute;
-    top: 0.25rem;
-    left: -3rem;
+    top: 0.95rem;
+    right: 0;
+    z-index: 2;
+    width: 2.65rem;
+    min-height: 5.6rem;
+    padding: 0.58rem 0.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.48rem;
+    border: 1px solid color-mix(in oklab, var(--border) 76%, transparent);
+    border-radius: 0.82rem;
+    color: color-mix(in oklab, var(--muted-foreground) 82%, transparent);
+    background: color-mix(in oklab, white 72%, transparent);
+    box-shadow: 0 7px 18px color-mix(in oklab, black 5%, transparent);
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition:
+      color var(--transition-base),
+      border-color var(--transition-base),
+      background-color var(--transition-base),
+      box-shadow var(--transition-base);
   }
 
-  .desktop-toc-toggle.is-collapsed svg {
+  .desktop-toc-tab:hover,
+  .desktop-toc-tab:focus-visible {
+    color: var(--foreground);
+    border-color: color-mix(in oklab, var(--foreground) 18%, transparent);
+    background: color-mix(in oklab, white 90%, var(--muted) 10%);
+    box-shadow: 0 10px 24px color-mix(in oklab, black 8%, transparent);
+    outline: none;
+  }
+
+  .desktop-toc-tab svg {
+    width: 1rem;
+    height: 1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .desktop-toc-progress {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .toc-tab-chevron {
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .post-sidebar:not(.collapsed) .toc-tab-chevron {
     transform: rotate(180deg);
   }
 
+  html[data-theme='dark'] .desktop-toc-tab {
+    border-color: rgba(255, 255, 255, 0.09);
+    color: rgba(223, 229, 239, 0.76);
+    background: rgba(35, 41, 56, 0.82);
+    box-shadow: 0 9px 22px rgba(0, 0, 0, 0.22);
+  }
+
+  html[data-theme='dark'] .desktop-toc-tab:hover,
+  html[data-theme='dark'] .desktop-toc-tab:focus-visible {
+    color: rgba(255, 255, 255, 0.96);
+    background: rgba(45, 52, 70, 0.94);
+  }
+
   .post-sidebar.collapsed .toc-card {
-    opacity: 0;
-    transform: translateX(1rem);
-    pointer-events: none;
+    box-shadow: 0 14px 34px color-mix(in oklab, black 5%, transparent);
   }
 
   .post-sidebar .toc-card {
-    transition: opacity var(--transition-base), transform var(--transition-base);
+    transition: box-shadow var(--transition-base);
+  }
+
+  .post-sidebar .toc-title-row,
+  .post-sidebar .toc-nav {
+    opacity: 1;
+    transition: opacity 0.16s ease 0.1s;
+  }
+
+  .post-sidebar.collapsed .toc-title-row,
+  .post-sidebar.collapsed .toc-nav {
+    opacity: 0;
+    pointer-events: none;
+    transition-delay: 0s;
   }
 
   .toc-title-row {
@@ -557,7 +708,7 @@ function formatDate(date: Date): string {
     justify-content: space-between;
     gap: 0.6rem;
     margin-bottom: 0.7rem;
-    padding-bottom: 0.65rem;
+    padding: 0 3.15rem 0.65rem 0;
     border-bottom: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
     flex-shrink: 0;
   }
@@ -1049,8 +1200,8 @@ function formatDate(date: Date): string {
     }
 
     .post-sidebar {
-      right: max(1rem, calc((100vw - 1320px) / 2 + 1rem));
-      width: clamp(13rem, 18vw, 14.5rem);
+      --toc-drawer-width: 14.5rem;
+      width: var(--toc-drawer-width);
     }
   }
 
@@ -1065,7 +1216,7 @@ function formatDate(date: Date): string {
     }
   }
 
-  @media (max-width: 1080px) {
+  @media (max-width: 1279px) {
     .post-reading-stage {
       width: 100%;
     }
