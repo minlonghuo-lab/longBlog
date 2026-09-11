@@ -130,10 +130,6 @@ body::before {
   z-index: 998 !important;
 }
 
-.post-sidebar {
-  z-index: 999 !important;
-}
-
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
