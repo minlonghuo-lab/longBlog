@@ -423,7 +423,7 @@ function formatDate(date: Date): string {
   }
 
   .post-sidebar {
-    --toc-drawer-width: 16.5rem;
+    --toc-drawer-width: clamp(14rem, calc(50vw - 29.75rem), 16.5rem);
     --toc-visible-spine: 3.9rem;
     position: fixed;
     top: 8.6rem;
@@ -609,7 +609,7 @@ function formatDate(date: Date): string {
   .desktop-toc-tab {
     position: absolute;
     top: 0.95rem;
-    right: 0.58rem;
+    right: 0;
     z-index: 2;
     width: 2.65rem;
     min-height: 5.6rem;
