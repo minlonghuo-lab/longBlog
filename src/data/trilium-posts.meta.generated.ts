@@ -5,6 +5,21 @@ export interface TriliumPostMetaRecord {
 
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
+    "id": "vvEmuVooTDii",
+    "slug": "我的建站史",
+    "updatedAt": "2026-04-02 20:40:34.017+0800",
+    "publishedAt": "2026-04-02 17:34:02.331+0800",
+    "tags": [
+      "Astro",
+      "博客搭建",
+      "静态站点生成器",
+      "技术选型"
+    ],
+    "pinned": true,
+    "syncHash": "375003f5924c838bea292a1d3a074250ce9e6ae8259aad70948a314eb61e0d2c",
+    "syncStatus": "published"
+  },
+  {
     "id": "y6WtEPfNytSp",
     "slug": "从微信对话到线上博客",
     "updatedAt": "2026-09-01 00:15:40.464+0800",
@@ -99,21 +114,6 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
     ],
     "pinned": false,
     "syncHash": "6fc8ef4155ed7c8553c37e4ddb849f9ea2dedbee5256949844f70761e1a13871",
-    "syncStatus": "published"
-  },
-  {
-    "id": "vvEmuVooTDii",
-    "slug": "我的建站史",
-    "updatedAt": "2026-04-02 20:40:34.017+0800",
-    "publishedAt": "2026-04-02 17:34:02.331+0800",
-    "tags": [
-      "Astro",
-      "博客搭建",
-      "静态站点生成器",
-      "技术选型"
-    ],
-    "pinned": false,
-    "syncHash": "375003f5924c838bea292a1d3a074250ce9e6ae8259aad70948a314eb61e0d2c",
     "syncStatus": "published"
   },
   {
