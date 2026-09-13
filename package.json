@@ -7,7 +7,9 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test:unit": "node --test tests/*.test.mjs",
+    "test": "npm run build && npm run test:unit"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "5.2.5",
@@ -16,5 +18,8 @@
     "astro": "7.3.2",
     "vis-data": "^8.0.3",
     "vis-network": "^10.0.2"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
   }
 }
