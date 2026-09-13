@@ -7,11 +7,14 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "v3TcOR39a3fu",
     "slug": "你好",
-    "updatedAt": "2026-09-14 01:09:13.370+0800",
+    "updatedAt": "2026-09-14 01:14:05.046+0800",
     "publishedAt": "2026-09-14 01:09:13.370+0800",
-    "tags": [],
+    "tags": [
+      "测试文章",
+      "博客测试"
+    ],
     "pinned": false,
-    "syncHash": "83a6d5f3c8c8da18f3196e5e926ed4e2f88f6cab17ded3dcda30a325204bf45c",
+    "syncHash": "f493b1b9fc8a259d77c48550a9dca61dab96eb46d87ba63b8785b264bca70767",
     "syncStatus": "published"
   },
   {

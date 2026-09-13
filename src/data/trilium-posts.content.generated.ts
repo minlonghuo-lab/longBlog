@@ -7,7 +7,7 @@ export const triliumPostContents: TriliumPostContentRecord[] = [
   {
     "id": "v3TcOR39a3fu",
     "title": "你好",
-    "summary": "",
+    "summary": "这是一篇测试文章，标题为“你好”，正文内容仅为“测试一下”，用于验证博客系统的发布与展示功能。",
     "contentHtml": "<p>测试一下</p>"
   },
   {
