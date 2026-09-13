@@ -8,7 +8,7 @@ export const triliumPostContents: TriliumPostContentRecord[] = [
     "id": "v3TcOR39a3fu",
     "title": "你好",
     "summary": "这是一篇测试文章，标题为“你好”，正文内容仅为“测试一下”，用于验证博客系统的发布与展示功能。",
-    "contentHtml": "<p>测试一下</p><p>&nbsp;</p>"
+    "contentHtml": "<p>测试一下</p><p><span class=\"math-tex\">\\(x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}\n\\)</span></p><p>&nbsp;</p>"
   },
   {
     "id": "4o1kCT4CizAt",
