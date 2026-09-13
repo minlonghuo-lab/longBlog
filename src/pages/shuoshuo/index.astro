@@ -363,6 +363,13 @@ const memosApiBase = MEMOS_URL;
     }
   });
 
+  document.addEventListener('astro:before-swap', () => {
+    io.disconnect();
+    document.documentElement.classList.remove('memos-page');
+    document.body.classList.remove('memos-page', 'lightbox-open');
+    document.body.style.overflow = '';
+  }, { once: true });
+
   window.addEventListener('beforeunload', () => {
     document.documentElement.classList.remove('memos-page');
     document.body.classList.remove('memos-page');
