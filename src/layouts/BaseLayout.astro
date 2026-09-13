@@ -5,6 +5,7 @@ import '@fontsource-variable/jetbrains-mono/wght.css';
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { ClientRouter } from 'astro:transitions';
 import { SITE_TITLE, SITE_DESCRIPTION, MEMOS_URL, UMAMI_SCRIPT_URL, UMAMI_WEBSITE_ID } from '../consts';
 
 interface Props {
@@ -51,10 +52,11 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
   </script>
 
   <title>{pageTitle}</title>
+  <ClientRouter />
 </head>
 <body>
   <Header />
-  <main class="page-main" id="page-main">
+  <main class="page-main" id="page-main" transition:name="page-content">
     <slot />
   </main>
   <Footer />
@@ -62,9 +64,6 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
   <div id="route-progress" class="route-progress" aria-hidden="true"></div>
   <script define:vars={{ umamiScriptUrl: UMAMI_SCRIPT_URL, umamiWebsiteId: UMAMI_WEBSITE_ID }}>
     (() => {
-      const main = document.getElementById('page-main');
-      if (!main) return;
-
       const storageKey = 'LONG_BLOG_THEME';
       const root = document.documentElement;
       const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
@@ -192,26 +191,6 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
           animateThemeTransition(next, themeButton, event);
           return;
         }
-
-        const anchor = target.closest('a');
-        if (!anchor) return;
-
-        const href = anchor.getAttribute('href');
-        if (!href) return;
-        if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
-        if (anchor.target === '_blank' || anchor.hasAttribute('download')) return;
-
-        const url = new URL(href, window.location.href);
-        if (url.origin !== window.location.origin) return;
-        if (url.pathname === window.location.pathname && url.search === window.location.search) return;
-
-        event.preventDefault();
-        document.body.classList.remove('page-ready');
-        document.body.classList.add('page-leave', 'page-navigating');
-
-        if (progress) progress.classList.add('active');
-
-        window.location.assign(url.href);
       });
 
       const progress = document.getElementById('route-progress');
@@ -221,6 +200,17 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
         document.body.classList.add('page-ready');
         if (progress) progress.classList.remove('active');
       };
+
+      document.addEventListener('astro:before-preparation', () => {
+        document.body.classList.add('page-navigating');
+        if (progress) progress.classList.add('active');
+      });
+
+      document.addEventListener('astro:page-load', () => {
+        restorePageState();
+        updateHeaderState();
+        updateThemeToggleState();
+      });
 
       const updateHeaderState = () => {
         if (window.scrollY > 20) {

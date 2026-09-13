@@ -109,7 +109,7 @@ const searchPosts = allPosts.map((post) => ({
   </section>
 </BaseLayout>
 
-<script define:vars={{ searchPosts }}>
+<script define:vars={{ searchPosts }} data-astro-rerun>
   (() => {
     const toggle = document.getElementById('search-toggle');
     const panel = document.getElementById('search-panel');
