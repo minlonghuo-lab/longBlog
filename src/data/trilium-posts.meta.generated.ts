@@ -221,7 +221,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "VOsmZSt8PWpI",
     "slug": "关于对教程主义的思考",
-    "updatedAt": "2026-08-01 15:21:33.867+0800",
+    "updatedAt": "2026-09-13 23:19:41.280+0800",
     "publishedAt": "2025-03-05T02:14:50.366611-08:00",
     "tags": [
       "感悟",
