@@ -26,6 +26,9 @@
   --font-sans: "Noto Sans SC Variable", "Noto Sans SC", "Source Han Sans SC", system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
 
+  /* 首页与各板块共用标题起点 */
+  --page-title-padding-top: 3rem;
+
   /* 过渡 */
   --transition-base: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
@@ -58,6 +61,7 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -77,43 +81,29 @@ body {
   opacity: 1;
 }
 
-html:not(.theme-transitioning)::view-transition-group(page-content) {
-  animation: none !important;
+/* Fade viewport snapshots at their original size. A shared, auto-height main
+   snapshot can stretch when a short page is replaced by a cached long list. */
+::view-transition-group(root),
+::view-transition-group(site-header) {
+  animation: none;
 }
 
-::view-transition-old(page-content),
-::view-transition-new(page-content) {
-  height: auto;
+.site-header {
+  view-transition-name: site-header;
+}
+
+::view-transition-old(site-header),
+::view-transition-new(site-header) {
+  animation: none;
   mix-blend-mode: normal;
-  animation-duration: 220ms;
-  animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-  animation-fill-mode: both;
 }
 
-::view-transition-old(page-content) {
-  animation-name: page-content-fade-out;
+::view-transition-old(site-header) {
+  opacity: 0;
 }
 
-::view-transition-new(page-content) {
-  animation-name: page-content-fade-in;
-}
-
-@keyframes page-content-fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes page-content-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+html.theme-transitioning .site-header {
+  view-transition-name: none;
 }
 
 .route-progress {
@@ -164,9 +154,9 @@ body::before {
   z-index: 998 !important;
 }
 
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
+html.theme-transitioning::view-transition-old(root),
+html.theme-transitioning::view-transition-new(root) {
+  animation: none !important;
   mix-blend-mode: normal;
 }
 
@@ -299,18 +289,12 @@ a {
 
 /* ===== 页面标题区 ===== */
 .page-header {
-  padding-top: 2rem;
+  padding-top: var(--page-title-padding-top);
   padding-bottom: 1.5rem;
 }
 
-@media (min-width: 768px) {
-  .page-header {
-    padding-top: 3rem;
-  }
-}
-
 .page-header h1 {
-  margin-bottom: 1.5rem;
+  margin: 0 0 1.5rem;
 }
 
 .page-header p {
@@ -348,3 +332,4 @@ a {
 .pb-section {
   padding-bottom: 5rem;
 }
+
