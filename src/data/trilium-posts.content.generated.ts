@@ -5,10 +5,10 @@ export interface TriliumPostContentRecord {
 
 export const triliumPostContents: TriliumPostContentRecord[] = [
   {
-    "id": "ay2aJ4diGYNy",
-    "title": "这是第二篇测试文档",
-    "summary": "本文记录在NAS上部署Trilium笔记服务并搭建自动化流程的体验，作者对这套方案带来的便利表示满意，认为使用起来非常舒服。",
-    "contentHtml": "<link rel=\"stylesheet\" href=\"/__fnos/assets/update.css\" data-trilium-fnos-manager><script defer src=\"/__fnos/assets/update.js\" data-trilium-fnos-manager></script><p>嘿嘿嘿嘿😈</p><p>NAS部署trilium及自动化流就是舒服</p>"
+    "id": "lDynxGiHSfbi",
+    "title": "这是第三篇测试博客",
+    "summary": "这是一篇测试博客，正文内容简短，仅包含一句询问读者感受的话，未涉及具体技术主题或实质信息。",
+    "contentHtml": "<link rel=\"stylesheet\" href=\"/__fnos/assets/update.css\" data-trilium-fnos-manager><script defer src=\"/__fnos/assets/update.js\" data-trilium-fnos-manager></script><p>你觉得怎么样，可强？</p>"
   },
   {
     "id": "4o1kCT4CizAt",
@@ -105,5 +105,11 @@ export const triliumPostContents: TriliumPostContentRecord[] = [
     "title": "你好",
     "summary": "这是一篇测试文章，标题为“你好”，正文内容仅为“测试一下”，用于验证博客系统的发布与展示功能。",
     "contentHtml": "<link rel=\"stylesheet\" href=\"/__fnos/assets/update.css\" data-trilium-fnos-manager><script defer src=\"/__fnos/assets/update.js\" data-trilium-fnos-manager></script><p>测试一下</p><p><span class=\"math-tex\">\\(x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}\\)</span></p><p>看来这个latex暂时无法显示，到时候再适配一下吧！</p>"
+  },
+  {
+    "id": "ay2aJ4diGYNy",
+    "title": "这是第二篇测试文档",
+    "summary": "本文记录在NAS上部署Trilium笔记服务并搭建自动化流程的体验，作者对这套方案带来的便利表示满意，认为使用起来非常舒服。",
+    "contentHtml": "<link rel=\"stylesheet\" href=\"/__fnos/assets/update.css\" data-trilium-fnos-manager><script defer src=\"/__fnos/assets/update.js\" data-trilium-fnos-manager></script><p>嘿嘿嘿嘿😈</p><p>NAS部署trilium及自动化流就是舒服</p>"
   }
 ];
