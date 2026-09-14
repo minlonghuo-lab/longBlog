@@ -5,12 +5,6 @@ export interface TriliumPostContentRecord {
 
 export const triliumPostContents: TriliumPostContentRecord[] = [
   {
-    "id": "lDynxGiHSfbi",
-    "title": "这是第三篇测试博客",
-    "summary": "这是一篇测试博客，正文内容简短，仅包含一句询问读者感受的话，未涉及具体技术主题或实质信息。",
-    "contentHtml": "<link rel=\"stylesheet\" href=\"/__fnos/assets/update.css\" data-trilium-fnos-manager><script defer src=\"/__fnos/assets/update.js\" data-trilium-fnos-manager></script><p>你觉得怎么样，可强？</p>"
-  },
-  {
     "id": "4o1kCT4CizAt",
     "title": "飞牛nas部署Matrix",
     "summary": "Matrix 是一个开源、去中心化、可联邦的实时通信协议，旨在成为一种通用通信网络标准。它支持即时聊天、语音/视频通话、团队协作、物联网消息同步和跨平台消息桥接。要部署 Matrix，可以使用 Docker，在飞牛 NAS 上部署 Synapse 服务器。步骤包括生成初始配置文件、使用 Docker GUI 部署、创建个人账号和访问使用。首先，使用命令生成配置文件，然后在 Docker GUI 中设置端口和存储，启动容器。创建管理员账号后，可以下载 Element 客户端登录并开始聊天。",
