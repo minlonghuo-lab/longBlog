@@ -146,7 +146,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "KyFrU3uItyRq",
     "slug": "近期让我眼前一亮的软件",
-    "updatedAt": "2026-09-01 16:52:44.558+0800",
+    "updatedAt": "2026-09-14 14:36:43.062+0800",
     "publishedAt": "2026-03-11 19:00:21.893+0800",
     "tags": [
       "AI生成",
@@ -157,7 +157,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "隐私保护"
     ],
     "pinned": false,
-    "syncHash": "2cd5b0aa1dbcacdc5b3173367a03cf5ee474c8219faabf4435f7086abed96b46",
+    "syncHash": "62a3e2459a8042fd83f5a346e662908225a8fe0ab938bf8aeaaa131433f61f25",
     "syncStatus": "published"
   },
   {
