@@ -206,7 +206,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "4o1kCT4CizAt",
     "slug": "飞牛nas部署matrix",
-    "updatedAt": "2026-09-01 16:45:35.688+0800",
+    "updatedAt": "2026-09-14 14:35:32.135+0800",
     "publishedAt": "2026-02-19T02:14:50.366611-08:00",
     "tags": [
       "DOCKER",
@@ -214,7 +214,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "NAS"
     ],
     "pinned": false,
-    "syncHash": "d281ca06513574f3d5f7f8f8c91a353da833c7bbda7db56d7586151d5b4401cd",
+    "syncHash": "7a22f81b3ebb0982e86fba106c9fd2f52097a78a17fb854f99314e7d61c58b6d",
     "syncStatus": "published"
   },
   {
