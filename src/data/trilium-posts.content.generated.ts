@@ -8,7 +8,7 @@ export const triliumPostContents: TriliumPostContentRecord[] = [
     "id": "bAtLnRXr4CHj",
     "title": "第三篇测试博客",
     "summary": "本文记录了飞牛远程访问机制的使用体验，指出其端口频繁变化带来的困扰，为遇到同类问题的用户提供参考。",
-    "contentHtml": "<link rel=\"stylesheet\" href=\"/__fnos/assets/update.css\" data-trilium-fnos-manager><script defer src=\"/__fnos/assets/update.js\" data-trilium-fnos-manager></script><p>这个飞牛远程的机制确实有点难受，端口一直在变化。🫪</p><p>刚刚又加上了bark推送服务🤝</p>"
+    "contentHtml": "<link rel=\"stylesheet\" href=\"/__fnos/assets/update.css\" data-trilium-fnos-manager><script defer src=\"/__fnos/assets/update.js\" data-trilium-fnos-manager></script><p>这个飞牛远程的机制确实有点难受，端口一直在变化。🫪</p><p>刚刚又加上了bark推送服务🤝</p><p>刚刚修复了一下bug</p>"
   },
   {
     "id": "4o1kCT4CizAt",
