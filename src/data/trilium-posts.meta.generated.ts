@@ -5,61 +5,6 @@ export interface TriliumPostMetaRecord {
 
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
-    "id": "RbTIoagb1Yp3",
-    "slug": "测试博客",
-    "updatedAt": "2026-09-15 10:18:12.825+0800",
-    "publishedAt": "2026-09-15 10:18:12.825+0800",
-    "tags": [
-      "测试博客",
-      "内容验证"
-    ],
-    "pinned": false,
-    "syncHash": "6e99f736fbce5f9cab1a475bcee7652801af00e4ed5b11ab6700ad79c65f43e6",
-    "syncStatus": "published"
-  },
-  {
-    "id": "bAtLnRXr4CHj",
-    "slug": "第三篇测试博客",
-    "updatedAt": "2026-09-15 10:15:10.631+0800",
-    "publishedAt": "2026-09-15 01:01:44.334+0800",
-    "tags": [
-      "飞牛",
-      "远程访问",
-      "端口变化"
-    ],
-    "pinned": false,
-    "syncHash": "54a951aaeda198c90b516343c6ed4cae34324965eabe6da99abf59647ea02226",
-    "syncStatus": "published"
-  },
-  {
-    "id": "ay2aJ4diGYNy",
-    "slug": "这是第二篇测试文档",
-    "updatedAt": "2026-09-15 09:06:30.019+0800",
-    "publishedAt": "2026-09-15 00:14:29.101+0800",
-    "tags": [
-      "trilium",
-      "NAS部署",
-      "自动化流程",
-      "笔记服务"
-    ],
-    "pinned": false,
-    "syncHash": "bd2fd65807a185021d9f88afd8193918c0bea4485acebfa1aeb7c290a96fef89",
-    "syncStatus": "published"
-  },
-  {
-    "id": "v3TcOR39a3fu",
-    "slug": "你好",
-    "updatedAt": "2026-09-14 23:52:18.572+0800",
-    "publishedAt": "2026-09-14 01:09:13.370+0800",
-    "tags": [
-      "测试文章",
-      "博客测试"
-    ],
-    "pinned": false,
-    "syncHash": "76c6464e94c329427be1e02c3d6c0beea0c0ce53314c1e51f7271be957ad12aa",
-    "syncStatus": "published"
-  },
-  {
     "id": "y6WtEPfNytSp",
     "slug": "从微信对话到线上博客",
     "updatedAt": "2026-09-14 14:37:40.618+0800",
