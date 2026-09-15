@@ -7,7 +7,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "bAtLnRXr4CHj",
     "slug": "第三篇测试博客",
-    "updatedAt": "2026-09-15 01:01:44.334+0800",
+    "updatedAt": "2026-09-15 10:06:07.844+0800",
     "publishedAt": "2026-09-15 01:01:44.334+0800",
     "tags": [
       "飞牛",
@@ -15,7 +15,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "端口变化"
     ],
     "pinned": false,
-    "syncHash": "e94e49ab95e9be8dd6eff9c27e59c9c034ef079dd338349352a83602c745f7f0",
+    "syncHash": "dbe7a43cad029c61964102b28f4e4674b74599edc68a935201a1907eb1da7d33",
     "syncStatus": "published"
   },
   {
