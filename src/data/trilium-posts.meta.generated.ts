@@ -5,6 +5,19 @@ export interface TriliumPostMetaRecord {
 
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
+    "id": "RbTIoagb1Yp3",
+    "slug": "测试博客",
+    "updatedAt": "2026-09-15 10:18:12.825+0800",
+    "publishedAt": "2026-09-15 10:18:12.825+0800",
+    "tags": [
+      "测试博客",
+      "内容验证"
+    ],
+    "pinned": false,
+    "syncHash": "6e99f736fbce5f9cab1a475bcee7652801af00e4ed5b11ab6700ad79c65f43e6",
+    "syncStatus": "published"
+  },
+  {
     "id": "bAtLnRXr4CHj",
     "slug": "第三篇测试博客",
     "updatedAt": "2026-09-15 10:15:10.631+0800",
