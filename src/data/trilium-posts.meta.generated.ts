@@ -21,16 +21,16 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "ay2aJ4diGYNy",
     "slug": "这是第二篇测试文档",
-    "updatedAt": "2026-09-15 00:14:29.101+0800",
+    "updatedAt": "2026-09-15 09:06:30.019+0800",
     "publishedAt": "2026-09-15 00:14:29.101+0800",
     "tags": [
-      "Trilium",
+      "trilium",
       "NAS部署",
       "自动化流程",
       "笔记服务"
     ],
     "pinned": false,
-    "syncHash": "7bab8ae5a466e17834602d0d1ae286c8de930c5c816fd2717b3bd9f0a91bb176",
+    "syncHash": "bd2fd65807a185021d9f88afd8193918c0bea4485acebfa1aeb7c290a96fef89",
     "syncStatus": "published"
   },
   {
