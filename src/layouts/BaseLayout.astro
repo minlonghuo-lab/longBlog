@@ -103,61 +103,24 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
 
       let themeTransitionActive = false;
 
-      const animateThemeTransition = async (theme, sourceEl, pointerEvent) => {
+      // 参考 mmddskq.top：不使用 View Transition 圆形扩散，
+      // 直接切换主题，由 CSS transition 完成颜色平滑过渡。
+      const applyThemeWithTransition = async (theme, sourceEl) => {
         if (themeTransitionActive) return;
-
-        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const startViewTransition = document.startViewTransition?.bind(document);
-        if (!(sourceEl instanceof HTMLElement) || reduceMotion || !startViewTransition) {
-          applyTheme(theme);
-          updateThemeToggleState();
-          return;
-        }
-
-        const rect = sourceEl.getBoundingClientRect();
-        const hasPointerPosition = pointerEvent instanceof MouseEvent
-          && pointerEvent.detail > 0
-          && Number.isFinite(pointerEvent.clientX)
-          && Number.isFinite(pointerEvent.clientY);
-        const x = hasPointerPosition ? pointerEvent.clientX : rect.left + rect.width / 2;
-        const y = hasPointerPosition ? pointerEvent.clientY : rect.top + rect.height / 2;
-        const maxRadius = Math.hypot(
-          Math.max(x, window.innerWidth - x),
-          Math.max(y, window.innerHeight - y),
-        );
-
         themeTransitionActive = true;
+
+        // 切换期间给根元素加标记类，让颜色过渡更干净（避免元素各自为政）
         root.classList.add('theme-transitioning');
-        sourceEl.disabled = true;
+        if (sourceEl instanceof HTMLElement) sourceEl.disabled = true;
 
         try {
-          const transition = startViewTransition(() => {
-            applyTheme(theme);
-            updateThemeToggleState();
-          });
-          await transition.ready;
-          const animation = root.animate(
-            {
-              clipPath: [
-                `circle(0px at ${x}px ${y}px)`,
-                `circle(${maxRadius}px at ${x}px ${y}px)`,
-              ],
-            },
-            {
-              duration: 400,
-              easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
-              fill: 'both',
-              pseudoElement: '::view-transition-new(root)',
-            },
-          );
-          await animation.finished;
-          await transition.finished;
-        } catch {
           applyTheme(theme);
           updateThemeToggleState();
+          // 等待过渡走完再解锁，避免连点导致状态错乱
+          await new Promise((resolve) => window.setTimeout(resolve, 200));
         } finally {
           root.classList.remove('theme-transitioning');
-          sourceEl.disabled = false;
+          if (sourceEl instanceof HTMLElement) sourceEl.disabled = false;
           themeTransitionActive = false;
         }
       };
@@ -191,7 +154,7 @@ const pageTitle = title === SITE_TITLE ? title : `${title} - ${SITE_TITLE}`;
           const current = root.dataset.theme || getPreferredTheme();
           const next = current === 'dark' ? 'light' : 'dark';
           localStorage.setItem(storageKey, next);
-          animateThemeTransition(next, themeButton, event);
+          applyThemeWithTransition(next, themeButton);
           return;
         }
       });
