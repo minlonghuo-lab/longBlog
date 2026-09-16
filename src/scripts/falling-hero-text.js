@@ -118,6 +118,7 @@ export function initFallingHeroText(heroEl, options = {}) {
   let render = null;
   let rafId = 0;
   let wordBodies = [];
+  let releaseDragOnLeave = null;
 
   // 把 hero 内的文字按语义切成若干 span（不用 split(' ') 是因为中文没有空格）
   function buildSpans() {
@@ -176,6 +177,12 @@ export function initFallingHeroText(heroEl, options = {}) {
   function teardown() {
     if (rafId) cancelAnimationFrame(rafId);
     rafId = 0;
+    if (releaseDragOnLeave) {
+      releaseDragOnLeave.canvas.removeEventListener('pointerleave', releaseDragOnLeave.release);
+      releaseDragOnLeave.canvas.removeEventListener('pointercancel', releaseDragOnLeave.release);
+      window.removeEventListener('pointermove', releaseDragOnLeave.onMove);
+      releaseDragOnLeave = null;
+    }
     if (engine) {
       Matter.World.clear(engine.world, false);
       Matter.Engine.clear(engine);
@@ -317,6 +324,31 @@ export function initFallingHeroText(heroEl, options = {}) {
       constraint: { stiffness, render: { visible: false } },
     });
     render.mouse = mouse;
+
+    // 指针移出活动区域时立即释放拖拽，避免字块被区域外的指针一路拽着贴边跑。
+    // 用 pointerleave 而不是 mouseleave，这样触控抬手/离开同样能解除。
+    const releaseDrag = () => {
+      mouseConstraint.constraint.bodyB = null;
+      mouseConstraint.constraint.pointB = null;
+      // 同时清掉鼠标的按下状态，防止回到区域内又自动吸附
+      mouse.button = -1;
+    };
+    render.canvas.addEventListener('pointerleave', releaseDrag);
+    render.canvas.addEventListener('pointercancel', releaseDrag);
+    // 拖拽途中指针滑出画布时，Matter 仍在用旧的 clientX/clientY 计算位置，
+    // 这里在 window 上兜一层，确保离开区域立刻松手
+    const onWindowPointerMove = (event) => {
+      const rect = render.canvas.getBoundingClientRect();
+      const outside = event.clientX < rect.left || event.clientX > rect.right
+        || event.clientY < rect.top || event.clientY > rect.bottom;
+      if (outside && mouseConstraint.constraint.bodyB) releaseDrag();
+    };
+    window.addEventListener('pointermove', onWindowPointerMove, { passive: true });
+    releaseDragOnLeave = {
+      canvas: render.canvas,
+      release: releaseDrag,
+      onMove: onWindowPointerMove,
+    };
 
     Matter.World.add(engine.world, [
       floor, ceiling, leftWall, rightWall,
