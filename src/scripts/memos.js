@@ -22,20 +22,21 @@ export function initMemosPage() {
   let refreshedAt = 0;
   const nodeSignatures = new WeakMap();
 
-  let pageToken = '';
+  let cursor = '';
+  let offset = 0;
   let hasMore = true;
   let loading = false;
-  let pinnedReady = false;
   const seen = new Set();
   const memoStore = new Map();
 
   const PAGE_SIZE = 10;
   const CACHE_KEY = `LONG_BLOG_MEMOS_CACHE_V3:${memosApiBase}`;
   const CACHE_TTL = 30 * 1000;
-  const MAX_SAME_TOKEN_HITS = 2;
-  let lastNextPageToken = '';
-  let sameTokenHits = 0;
-  let requestPageSize = PAGE_SIZE;
+
+  // 新版（v1.0.0）用 /api/v1/memo 偏移分页，旧版用 /api/v1/memos 游标分页
+  // null = 尚未探测，true = 新接口，false = 旧接口
+  let modernApi = null;
+  let apiBase = memosApiBase;
 
   function formatDate(input) {
     const d = new Date(input);
@@ -78,13 +79,24 @@ export function initMemosPage() {
   function mapAttachments(memo) {
     const images = [];
     const files = [];
-    const attachments = Array.isArray(memo.attachments) ? memo.attachments : [];
+    // 新版字段是 resourceList，旧版是 attachments
+    const attachments = Array.isArray(memo.resourceList)
+      ? memo.resourceList
+      : (Array.isArray(memo.attachments) ? memo.attachments : []);
 
     for (const att of attachments) {
-      const attachmentId = (att.name || '').replace('attachments/', '');
       const filename = att.filename || '';
-      if (!attachmentId || !filename) continue;
-      const fileUrl = `${memosApiBase}/file/attachments/${attachmentId}/${encodeURIComponent(filename)}`;
+      if (!filename) continue;
+
+      let fileUrl = att.externalLink || '';
+      if (!fileUrl) {
+        const rawId = String(att.id || att.name || '').replace(/^(attachments|resource)\//, '');
+        if (!rawId) continue;
+        fileUrl = modernApi
+          ? `${apiBase}/api/v1/resource/${encodeURIComponent(rawId)}/file`
+          : `${apiBase}/file/attachments/${rawId}/${encodeURIComponent(filename)}`;
+      }
+
       if ((att.type || '').startsWith('image/')) {
         images.push(fileUrl);
       } else {
@@ -103,10 +115,51 @@ export function initMemosPage() {
     return { images, files };
   }
 
+  function normalizeTags(memo) {
+    const raw = Array.isArray(memo.tagList)
+      ? memo.tagList.map((t) => (t && typeof t === 'object' ? t.name : t))
+      : (Array.isArray(memo.tags) ? memo.tags : []);
+    return raw
+      .map((t) => String(t || '').replace(/^#/, '').trim())
+      .filter(Boolean);
+  }
+
+  function memoKeyOf(memo) {
+    return String(memo.id || memo.name || `${memo.displayTs}-${memo.content?.slice(0, 16) || ''}`);
+  }
+
+  // 把新旧两种接口返回统一成内部结构
+  function normalizeMemo(raw) {
+    const id = String(raw.id ?? raw.name ?? '');
+    const createdTs = typeof raw.createdTs === 'number'
+      ? raw.createdTs
+      : Math.floor(new Date(raw.createTime || 0).getTime() / 1000);
+    const updatedTs = typeof raw.updatedTs === 'number'
+      ? raw.updatedTs
+      : Math.floor(new Date(raw.updateTime || raw.createTime || 0).getTime() / 1000);
+    const displayTs = typeof raw.displayTs === 'number' ? raw.displayTs : createdTs;
+
+    return {
+      id,
+      name: raw.name,
+      content: raw.content || '',
+      // 新旧字段名不同，统一到 pinned / visibility / state
+      pinned: Boolean(raw.pinned),
+      visibility: String(raw.visibility || 'PUBLIC'),
+      state: String(raw.rowStatus || raw.state || 'NORMAL'),
+      createdTs,
+      updatedTs,
+      displayTs,
+      tagList: normalizeTags(raw),
+      resourceList: raw.resourceList,
+      attachments: raw.attachments,
+    };
+  }
+
   function renderMemo(memo) {
     const content = processContent(memo.content || '');
     const { images, files } = mapAttachments(memo);
-    const tags = (memo.tags || []).filter((t) => !String(t).startsWith('#'));
+    const tags = normalizeTags(memo);
     const article = document.createElement('article');
     article.className = 'memo-item';
 
@@ -133,7 +186,7 @@ export function initMemosPage() {
       <div class="timeline-dot"></div>
       <div class="memo-body">
         <div class="memo-meta">
-          <time>${escapeHTML(formatDate(memo.createTime))}</time>
+          <time>${escapeHTML(formatDate(memo.displayTs * 1000))}</time>
           ${memo.pinned ? '<span class="memo-pinned">置顶</span>' : ''}
         </div>
         <div class="memo-content">${escapeHTML(content).replaceAll('\n', '<br>')}</div>
@@ -150,13 +203,13 @@ export function initMemosPage() {
     const items = [...memoStore.values()].sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
-      return new Date(b.createTime).getTime() - new Date(a.createTime).getTime();
+      return (b.displayTs || b.createdTs) - (a.displayTs || a.createdTs);
     });
 
     // Retain unchanged cards (especially decoded thumbnails) during refresh/pagination.
     const existing = new Map(Array.from(listEl.children).map(node => [node.dataset.memoKey, node]));
     items.forEach((memo, index) => {
-      const key = String(memo.name || `${memo.createTime}-${memo.updateTime}-${memo.content?.slice(0, 16) || ''}`);
+      const key = memoKeyOf(memo);
       const signature = JSON.stringify(memo);
       let node = existing.get(key);
       if (!node || nodeSignatures.get(node) !== signature) {
@@ -177,7 +230,7 @@ export function initMemosPage() {
 
   function mergeMemos(memos) {
     for (const memo of memos) {
-      const memoKey = String(memo.name || `${memo.createTime}-${memo.updateTime}-${memo.content?.slice(0, 16) || ''}`);
+      const memoKey = memoKeyOf(memo);
       seen.add(memoKey);
       memoStore.set(memoKey, memo);
     }
@@ -203,12 +256,80 @@ export function initMemosPage() {
     } catch {}
   }
 
-  async function fetchPage(pageTokenValue = '', pageSize = PAGE_SIZE) {
-    const qs = new URLSearchParams({ pageSize: String(pageSize) });
-    if (pageTokenValue) qs.set('pageToken', pageTokenValue);
-    const resp = await fetch(`${memosApiBase}/api/v1/memos?${qs.toString()}`, { cache: 'no-store', signal: controller.signal });
+  async function requestJson(url) {
+    const resp = await fetch(url, { cache: 'no-store', signal: controller.signal });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    // 旧路径在新版实例上会被前端路由接管并返回 HTML，这里显式拦掉
+    const contentType = resp.headers.get('content-type') || '';
+    if (!contentType.includes('json')) throw new Error(`Unexpected content-type: ${contentType}`);
     return await resp.json();
+  }
+
+  // 探测实例版本：新版 /api/v1/memo 返回 JSON 数组，旧版 /api/v1/memos 返回 { memos: [...] }
+  async function detectApi() {
+    if (modernApi !== null) return modernApi;
+
+    const bases = [apiBase, 'https://memos.ssaw.top']
+      .filter((v, i, arr) => v && arr.indexOf(v) === i);
+
+    for (const base of bases) {
+      try {
+        const data = await requestJson(`${base}/api/v1/memo?limit=1`);
+        if (Array.isArray(data)) {
+          modernApi = true;
+          apiBase = base;
+          return true;
+        }
+      } catch {}
+      try {
+        const data = await requestJson(`${base}/api/v1/memos?pageSize=1`);
+        if (data && Array.isArray(data.memos)) {
+          modernApi = false;
+          apiBase = base;
+          return false;
+        }
+      } catch {}
+    }
+
+    modernApi = false;
+    return false;
+  }
+
+  // 新版：offset/limit 分页，直接返回数组；旧版：pageToken 游标分页
+  async function fetchPage(pageSize = PAGE_SIZE) {
+    await detectApi();
+    if (disposed) return { memos: [], nextToken: '' };
+
+    if (modernApi) {
+      const qs = new URLSearchParams({ limit: String(pageSize), offset: String(offset) });
+      const data = await requestJson(`${apiBase}/api/v1/memo?${qs.toString()}`);
+      return { memos: Array.isArray(data) ? data : [], nextToken: '' };
+    }
+
+    const qs = new URLSearchParams({ pageSize: String(pageSize) });
+    if (cursor) qs.set('pageToken', cursor);
+    const data = await requestJson(`${apiBase}/api/v1/memos?${qs.toString()}`);
+    return { memos: Array.isArray(data?.memos) ? data.memos : [], nextToken: data?.nextPageToken || '' };
+  }
+
+  // 隐藏：只展示公开且未被归档的说说，PRIVATE / ARCHIVED 一律不渲染
+  function visibleMemos(rawMemos) {
+    return rawMemos
+      .map(normalizeMemo)
+      .filter((m) => m.visibility === 'PUBLIC' && m.state === 'NORMAL');
+  }
+
+  function advancePagination(batchLength, nextToken, addedCount) {
+    if (modernApi) {
+      offset += PAGE_SIZE;
+      // 返回数量不足一页说明已到底
+      hasMore = batchLength >= PAGE_SIZE;
+    } else {
+      cursor = nextToken;
+      hasMore = Boolean(cursor);
+    }
+    // 防止整页都是不可见内容时无限循环
+    if (hasMore && addedCount === 0) hasMore = false;
   }
 
   async function loadMore() {
@@ -218,53 +339,20 @@ export function initMemosPage() {
     errorEl.style.display = 'none';
 
     try {
-      const data = await fetchPage(pageToken, requestPageSize);
+      const data = await fetchPage(PAGE_SIZE);
       if (disposed) return;
-      let memos = Array.isArray(data.memos) ? data.memos : [];
-
-      if (!pinnedReady) {
-        try {
-          const pinData = await fetchPage('', 100);
-          const pinMemos = Array.isArray(pinData?.memos) ? pinData.memos.filter((m) => m?.pinned) : [];
-          if (pinMemos.length) {
-            const mergeMap = new Map();
-            for (const m of [...pinMemos, ...memos]) {
-              const key = String(m.name || `${m.createTime}-${m.updateTime}-${m.content?.slice(0, 16) || ''}`);
-              mergeMap.set(key, m);
-            }
-            memos = [...mergeMap.values()];
-          }
-        } catch {}
-        pinnedReady = true;
-      }
-
-      if (disposed) return;
-      const publicMemos = memos.filter((m) => m.visibility === 'PUBLIC');
+      const memos = visibleMemos(data.memos);
       const beforeCount = seen.size;
-      mergeMemos(publicMemos);
+      mergeMemos(memos);
       const addedCount = seen.size - beforeCount;
 
-      if (!pageToken) {
+      const isFirstPage = modernApi ? offset === 0 : !cursor;
+      if (isFirstPage) {
         refreshedAt = Date.now();
-        setCachedFirstPage({ memos: publicMemos, nextPageToken: data.nextPageToken || '' });
+        setCachedFirstPage({ memos: [...memoStore.values()], offset, cursor, hasMore });
       }
 
-      const nextToken = data.nextPageToken || '';
-      if (nextToken) {
-        if (nextToken === lastNextPageToken) sameTokenHits += 1;
-        else sameTokenHits = 0;
-        lastNextPageToken = nextToken;
-        pageToken = nextToken;
-        hasMore = sameTokenHits < MAX_SAME_TOKEN_HITS;
-      } else {
-        pageToken = '';
-        if (addedCount > 0 && memos.length >= requestPageSize) {
-          requestPageSize += PAGE_SIZE;
-          hasMore = true;
-        } else {
-          hasMore = false;
-        }
-      }
+      advancePagination(data.memos.length, data.nextToken, addedCount);
 
       if (!hasMore) {
         loadingEl.style.display = 'none';
@@ -288,12 +376,9 @@ export function initMemosPage() {
     const restored = memoSession?.api === memosApiBase && memoSession.ts > 0 ? memoSession : null;
     const cached = restored || getCachedFirstPage();
     if (cached && Array.isArray(cached.memos)) {
-      pageToken = cached.nextPageToken || '';
-      hasMore = restored ? restored.hasMore : !!pageToken;
-      pinnedReady = restored?.pinnedReady || false;
-      requestPageSize = restored?.requestPageSize || PAGE_SIZE;
-      lastNextPageToken = restored?.lastNextPageToken || '';
-      sameTokenHits = restored?.sameTokenHits || 0;
+      offset = restored ? (restored.offset || 0) : (cached.offset || 0);
+      cursor = restored ? (restored.cursor || '') : (cached.cursor || '');
+      hasMore = restored ? restored.hasMore : cached.hasMore !== false;
       refreshedAt = restored?.ts || refreshedAt;
       mergeMemos(cached.memos);
       loadingEl.style.display = 'none';
@@ -301,16 +386,19 @@ export function initMemosPage() {
       // Show the restored list immediately; refresh only changed cards in the background.
       loading = true;
       try {
-        const data = await fetchPage('', PAGE_SIZE);
+        const data = await fetchPage(PAGE_SIZE);
         if (disposed) return;
-        const memos = Array.isArray(data.memos) ? data.memos.filter(m => m.visibility === 'PUBLIC') : [];
+        const memos = visibleMemos(data.memos);
         if (!restored || restored.memos.length <= PAGE_SIZE) {
-          pageToken = data.nextPageToken || '';
-          hasMore = !!pageToken;
+          // 首页整体替换后，分页状态需要归零重建
+          offset = 0;
+          cursor = '';
+          hasMore = true;
+          advancePagination(data.memos.length, data.nextToken, memos.length);
         }
         mergeMemos(memos);
         refreshedAt = Date.now();
-        setCachedFirstPage({ memos, nextPageToken: data.nextPageToken || '' });
+        setCachedFirstPage({ memos, offset, cursor, hasMore });
       } catch {
         // The restored content remains usable when the refresh is unavailable.
       } finally {
@@ -372,12 +460,9 @@ export function initMemosPage() {
     memoSession = {
       api: memosApiBase,
       memos: [...memoStore.values()],
-      nextPageToken: pageToken,
+      offset,
+      cursor,
       hasMore,
-      pinnedReady,
-      requestPageSize,
-      lastNextPageToken,
-      sameTokenHits,
       ts: refreshedAt,
     };
     disposed = true;
