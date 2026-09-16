@@ -296,20 +296,29 @@ export function initMemosPage() {
   }
 
   // 新版：offset/limit 分页，直接返回数组；旧版：pageToken 游标分页
-  async function fetchPage(pageSize = PAGE_SIZE) {
+  // 注意：必须传 object 而不是「值」，否则调用方读取 modernApi 时它还是 null，
+  // 会把 offset 误当成 cursor 传进来，导致分页永远停在第一页。
+  async function fetchPageAt(target, pageSize) {
     await detectApi();
     if (disposed) return { memos: [], nextToken: '' };
 
     if (modernApi) {
-      const qs = new URLSearchParams({ limit: String(pageSize), offset: String(offset) });
+      const at = typeof target?.offset === 'number' ? target.offset : offset;
+      const qs = new URLSearchParams({ limit: String(pageSize), offset: String(at) });
       const data = await requestJson(`${apiBase}/api/v1/memo?${qs.toString()}`);
       return { memos: Array.isArray(data) ? data : [], nextToken: '' };
     }
 
+    const token = typeof target?.cursor === 'string' ? target.cursor : cursor;
     const qs = new URLSearchParams({ pageSize: String(pageSize) });
-    if (cursor) qs.set('pageToken', cursor);
+    if (token) qs.set('pageToken', token);
     const data = await requestJson(`${apiBase}/api/v1/memos?${qs.toString()}`);
     return { memos: Array.isArray(data?.memos) ? data.memos : [], nextToken: data?.nextPageToken || '' };
+  }
+
+  // 取当前分页位置，不传参即使用当前进度
+  function fetchPage(pageSize = PAGE_SIZE) {
+    return fetchPageAt({ offset, cursor }, pageSize);
   }
 
   // 隐藏：只展示公开且未被归档的说说，PRIVATE / ARCHIVED 一律不渲染
@@ -319,18 +328,23 @@ export function initMemosPage() {
       .filter((m) => m.visibility === 'PUBLIC' && m.state === 'NORMAL');
   }
 
-  function advancePagination(batchLength, nextToken, addedCount) {
+  // 分页推进只看服务端返回的批次大小，不用去重后的新增数量判断，
+  // 否则「重复请求同一页」或「整页都是不可见内容」都会被误判成已经到底。
+  function advancePagination(batchLength, nextToken) {
     if (modernApi) {
+      // 推进到下一页；返回数量不足一页说明已到底，等于一页则认为后面可能还有
       offset += PAGE_SIZE;
-      // 返回数量不足一页说明已到底
       hasMore = batchLength >= PAGE_SIZE;
     } else {
       cursor = nextToken;
       hasMore = Boolean(cursor);
     }
-    // 防止整页都是不可见内容时无限循环
-    if (hasMore && addedCount === 0) hasMore = false;
   }
+
+  // 整页都不可见时不能无限翻下去，但也绝不能直接判定到底。
+  // 只有连续多页没有任何新内容（正常情况说明分页参数没推进）才停止。
+  const MAX_EMPTY_PAGES = 3;
+  let emptyPageStreak = 0;
 
   async function loadMore() {
     if (disposed || !hasMore || loading) return;
@@ -346,13 +360,20 @@ export function initMemosPage() {
       mergeMemos(memos);
       const addedCount = seen.size - beforeCount;
 
+      // 首屏请求（offset 仍为 0）才写缓存；后续翻页不覆盖，避免把进度写回起点
       const isFirstPage = modernApi ? offset === 0 : !cursor;
       if (isFirstPage) {
         refreshedAt = Date.now();
-        setCachedFirstPage({ memos: [...memoStore.values()], offset, cursor, hasMore });
       }
 
-      advancePagination(data.memos.length, data.nextToken, addedCount);
+      // 去重后没有新增内容时，允许继续翻页，避免把「整页都不可见」误判成到底
+      if (addedCount === 0) emptyPageStreak += 1;
+      else emptyPageStreak = 0;
+
+      advancePagination(data.memos.length, data.nextToken);
+      if (emptyPageStreak >= MAX_EMPTY_PAGES) hasMore = false;
+
+      setCachedFirstPage({ memos: [...memoStore.values()], offset, cursor, hasMore });
 
       if (!hasMore) {
         loadingEl.style.display = 'none';
@@ -386,19 +407,18 @@ export function initMemosPage() {
       // Show the restored list immediately; refresh only changed cards in the background.
       loading = true;
       try {
-        const data = await fetchPage(PAGE_SIZE);
+        // 固定从第 0 页取，用来刷新最新内容；
+        // 这只是「覆盖前 N 条」，不代表分页进度，所以不能推进 offset，
+        // 否则会整页跳过（例如已加载到 20，刷新后又从 30 开始）。
+        const data = await fetchPageAt({ offset: 0, cursor: '' }, PAGE_SIZE);
         if (disposed) return;
-        const memos = visibleMemos(data.memos);
-        if (!restored || restored.memos.length <= PAGE_SIZE) {
-          // 首页整体替换后，分页状态需要归零重建
-          offset = 0;
-          cursor = '';
-          hasMore = true;
-          advancePagination(data.memos.length, data.nextToken, memos.length);
+        mergeMemos(visibleMemos(data.memos));
+        if (modernApi ? offset === 0 : !cursor) {
+          // 还没有任何分页进度，用这一页建立初始进度
+          hasMore = data.memos.length >= PAGE_SIZE;
         }
-        mergeMemos(memos);
         refreshedAt = Date.now();
-        setCachedFirstPage({ memos, offset, cursor, hasMore });
+        setCachedFirstPage({ memos: [...memoStore.values()], offset, cursor, hasMore });
       } catch {
         // The restored content remains usable when the refresh is unavailable.
       } finally {
