@@ -5,11 +5,19 @@ import Matter from 'matter-js';
 
 const STYLE_ID = 'falling-hero-style';
 
+// 说明：页面样式由 Astro 编译成带 [data-astro-cid-*] 的属性选择器，
+// 优先级高于普通类选择器。这里统一加 .hero-section 前缀，
+// 避免注入的规则被页面样式反向覆盖。
 const CSS = `
-.falling-hero {
+.hero-section.falling-hero {
   position: relative;
   overflow: hidden;
   isolation: isolate;
+}
+
+/* 未触发前提示可点击 */
+.hero-section.falling-hero:not(.is-falling) .hero-copy {
+  cursor: pointer;
 }
 
 .falling-hero__text {
@@ -20,7 +28,7 @@ const CSS = `
 }
 
 /* 文字被物理化后，整块文案淡出，交给画布里的字块呈现 */
-.falling-hero.is-falling .falling-hero__text {
+.hero-section.falling-hero.is-falling .falling-hero__text {
   opacity: 0;
   pointer-events: none;
 }
@@ -31,23 +39,32 @@ const CSS = `
   pointer-events: none;
 }
 
-.falling-hero__canvas {
+.hero-section.falling-hero .falling-hero__canvas {
   position: absolute;
-  inset: 0;
+  inset: auto;
+  top: 0;
+  left: 0;
   z-index: 3;
   pointer-events: none;
 }
 
-.falling-hero.is-falling .falling-hero__canvas {
+/* 下落开始后画布才接管指针事件，用于拖拽字块 */
+.hero-section.falling-hero.is-falling .falling-hero__canvas {
   pointer-events: auto;
 }
 
-.falling-hero__canvas canvas {
-  display: block;
-  cursor: grab;
+/* 字块自身不拦截事件，交给画布统一处理，避免拖拽断触 */
+.hero-section.falling-hero .word {
+  pointer-events: none;
 }
 
-.falling-hero__canvas canvas:active {
+.hero-section.falling-hero .falling-hero__canvas canvas {
+  display: block;
+  cursor: grab;
+  touch-action: none;
+}
+
+.hero-section.falling-hero .falling-hero__canvas canvas:active {
   cursor: grabbing;
 }
 
@@ -90,6 +107,8 @@ export function initFallingHeroText(heroEl, options = {}) {
   } = options;
 
   ensureStyle();
+  // 注入样式以 .hero-section.falling-hero 提高优先级，这里补上标记类
+  heroEl.classList.add('falling-hero');
 
   const textEl = heroEl.querySelector('.hero-copy');
   if (!(textEl instanceof HTMLElement) || !segments.length) return () => {};
@@ -99,7 +118,6 @@ export function initFallingHeroText(heroEl, options = {}) {
   let render = null;
   let rafId = 0;
   let wordBodies = [];
-  let observer = null;
 
   // 把 hero 内的文字按语义切成若干 span（不用 split(' ') 是因为中文没有空格）
   function buildSpans() {
@@ -167,7 +185,7 @@ export function initFallingHeroText(heroEl, options = {}) {
     render = null;
     engine = null;
     wordBodies = [];
-    heroEl.classList.remove('is-falling');
+    heroEl.classList.remove('is-falling', 'falling-hero');
     releaseLayout();
   }
 
@@ -255,6 +273,19 @@ export function initFallingHeroText(heroEl, options = {}) {
       const x = rect.left - heroRect.left + rect.width / 2;
       const y = rect.top - heroRect.top + rect.height / 2;
 
+      // 记录原始排版样式：字块脱离原容器后会丢失继承来的字号/字重，
+      // 这里把计算后的样式固化下来，保证大小与原来完全一致。
+      const computed = getComputedStyle(elem);
+      const styleSnapshot = {
+        fontSize: computed.fontSize,
+        fontWeight: computed.fontWeight,
+        fontFamily: computed.fontFamily,
+        fontStyle: computed.fontStyle,
+        lineHeight: computed.lineHeight,
+        letterSpacing: computed.letterSpacing,
+        color: computed.color,
+      };
+
       const body = Matter.Bodies.rectangle(x, y, Math.max(8, rect.width), Math.max(8, rect.height), {
         // 弹性略高、摩擦较低，落地后靠碰撞互相推开、自然摊平而不是叠在原处
         restitution: 0.6,
@@ -273,8 +304,11 @@ export function initFallingHeroText(heroEl, options = {}) {
       // 把字块移入画布宿主，使其与物理坐标同处 hero 坐标系
       elem.style.position = 'absolute';
       elem.style.margin = '0';
+      elem.style.whiteSpace = 'pre';
+      elem.style.lineHeight = '1';
+      Object.assign(elem.style, styleSnapshot);
       canvasHost.appendChild(elem);
-      return { elem, body };
+      return { elem, body, styleSnapshot };
     });
 
     const mouse = Matter.Mouse.create(render.canvas);
@@ -320,23 +354,21 @@ export function initFallingHeroText(heroEl, options = {}) {
   const spans = buildSpans();
   if (!spans.length) return () => {};
 
-  // 进入视口即开始下落（与参考组件 trigger="scroll" 一致）
-  observer = new IntersectionObserver(
-    (entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        start();
-        observer?.disconnect();
-        observer = null;
-      }
-    },
-    { threshold: 0.1 },
-  );
-  observer.observe(heroEl);
+  // 点击 hero 区域才开始下落；未触发前保持原样排版
+  const onTrigger = (event) => {
+    // 空白处或文字上的点击都算触发，但点链接不拦截
+    if (event.target instanceof Element && event.target.closest('a, button')) return;
+    heroEl.removeEventListener('click', onTrigger);
+    heroEl.removeEventListener('touchstart', onTrigger);
+    start();
+  };
+  heroEl.addEventListener('click', onTrigger);
+  heroEl.addEventListener('touchstart', onTrigger, { passive: true });
 
   return () => {
     disposed = true;
-    observer?.disconnect();
-    observer = null;
+    heroEl.removeEventListener('click', onTrigger);
+    heroEl.removeEventListener('touchstart', onTrigger);
     reset();
   };
 }
