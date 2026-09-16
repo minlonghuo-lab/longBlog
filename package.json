@@ -16,6 +16,7 @@
     "@fontsource-variable/noto-sans-sc": "5.2.5",
     "@fontsource-variable/noto-serif-sc": "5.2.5",
     "astro": "7.3.2",
+    "matter-js": "^0.20.0",
     "vis-data": "^8.0.3",
     "vis-network": "^10.0.2"
   },
