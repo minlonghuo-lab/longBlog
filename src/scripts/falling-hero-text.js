@@ -326,10 +326,34 @@ export function initFallingHeroText(heroEl, options = {}) {
 
     // 单个渲染循环：先推进物理，再把刚体位置同步到 DOM。
     // 字块已挂在画布宿主内，与物理坐标同处 hero 坐标系，可直接使用。
+    //
+    // 拖拽时鼠标约束会直接把刚体拉到指针位置，四壁挡不住，
+    // 因此每帧额外把字块夹回活动区域内，保证无法拖出边界。
+    const clampBody = (body) => {
+      const halfW = (body.bounds.max.x - body.bounds.min.x) / 2;
+      const halfH = (body.bounds.max.y - body.bounds.min.y) / 2;
+      const minX = halfW;
+      const maxX = width - halfW;
+      const minY = halfH;
+      const maxY = floorY - halfH;
+      // 字块比区域还大时，居中放置，避免越界判断抖动
+      const x = minX > maxX ? width / 2 : Math.min(Math.max(body.position.x, minX), maxX);
+      const y = minY > maxY ? floorY / 2 : Math.min(Math.max(body.position.y, minY), maxY);
+      const clampedX = x !== body.position.x;
+      const clampedY = y !== body.position.y;
+      if (!clampedX && !clampedY) return;
+      Matter.Body.setVelocity(body, {
+        x: clampedX ? 0 : body.velocity.x,
+        y: clampedY ? 0 : body.velocity.y,
+      });
+      Matter.Body.setPosition(body, { x, y });
+    };
+
     const sync = () => {
       if (disposed) return;
       Matter.Engine.update(engine, 1000 / 60);
       for (const { body, elem } of bodies) {
+        clampBody(body);
         elem.style.left = `${body.position.x}px`;
         elem.style.top = `${body.position.y}px`;
         elem.style.transform = `translate(-50%, -50%) rotate(${body.angle}rad)`;
