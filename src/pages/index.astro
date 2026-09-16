@@ -6,6 +6,20 @@ import { AUTHOR, AUTHOR_INTRO, SOCIAL_LINKS, SITE_TITLE } from '../consts';
 
 const allPosts = getSortedPosts();
 const displayPosts = getHomePosts(10);
+
+// 首页 hero 下落文字的切分片段（与 DOM 中的文字顺序一致）
+// 逗号单独成段，其余按语义切分
+const [INTRO_PREFIX, ...INTRO_REST] = AUTHOR_INTRO.split(',');
+const FALLING_SEGMENTS = [
+  '你好',
+  '👋',
+  '我是',
+  AUTHOR,
+  '——',
+  INTRO_PREFIX,
+  '，',
+  INTRO_REST.join(','),
+].filter(Boolean);
 const searchPosts = allPosts.map((post) => ({
   slug: post.slug,
   title: post.title,
@@ -16,14 +30,11 @@ const searchPosts = allPosts.map((post) => ({
 ---
 
 <BaseLayout title={SITE_TITLE} description={AUTHOR_INTRO}>
-  <section class="hero-section divider">
-    <h1>
-      你好 <span class="wave">👋</span>
-    </h1>
-
-    <p class="hero-intro">
-      我是 <span class="hero-author">{AUTHOR}</span> —— {AUTHOR_INTRO}
-    </p>
+  <section class="hero-section divider" id="hero-falling" data-falling-segments={JSON.stringify(FALLING_SEGMENTS)}>
+    <div class="hero-copy" data-falling-root>
+      <h1 data-falling-line>你好 👋</h1>
+      <p class="hero-intro" data-falling-line>我是 {AUTHOR} —— {INTRO_PREFIX}，{INTRO_REST.join(',')}</p>
+    </div>
 
     <div class="hero-social">
       {SOCIAL_LINKS.map(link => (
@@ -218,6 +229,11 @@ const searchPosts = allPosts.map((post) => ({
 <style>
   .hero-section {
     padding: var(--page-title-padding-top) 0 3rem;
+    position: relative;
+  }
+
+  .hero-copy {
+    position: relative;
   }
 
   .hero-section h1 {
@@ -508,4 +524,43 @@ const searchPosts = allPosts.map((post) => ({
     75% { transform: rotate(-20deg); }
   }
 </style>
+
+<script>
+  import { initFallingHeroText } from '../scripts/falling-hero-text.js';
+
+  let disposeFalling = null;
+
+  const setupFalling = () => {
+    const hero = document.getElementById('hero-falling');
+    if (!(hero instanceof HTMLElement)) return;
+
+    let segments = [];
+    try {
+      segments = JSON.parse(hero.dataset.fallingSegments || '[]');
+    } catch {
+      segments = [];
+    }
+
+    disposeFalling?.();
+    disposeFalling = initFallingHeroText(hero, {
+      segments,
+      gravity: 0.56,
+      stiffness: 0.9,
+    });
+  };
+
+  // 进入页面即初始化；离开时销毁物理世界，回到首页重新开始（等效于复原）
+  setupFalling();
+  document.addEventListener('astro:page-load', setupFalling);
+
+  document.addEventListener('astro:before-swap', () => {
+    disposeFalling?.();
+    disposeFalling = null;
+  }, { once: true });
+
+  window.addEventListener('beforeunload', () => {
+    disposeFalling?.();
+    disposeFalling = null;
+  });
+</script>
 
