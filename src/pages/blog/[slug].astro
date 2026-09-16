@@ -782,6 +782,10 @@ function formatDate(date: Date): string {
     padding: 0.42rem 0.58rem 0.42rem 1.3rem;
     border-radius: 0.58rem;
     color: var(--muted-foreground);
+    /* 与正文标题保持同一字体体系，层级关系与 .content h2/h3/h4 对齐 */
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.01em;
     line-height: 1.45;
     font-size: 0.9rem;
     transition:
@@ -837,7 +841,6 @@ function formatDate(date: Date): string {
     color: var(--foreground);
     background: color-mix(in oklab, var(--foreground) 7%, white);
     box-shadow: inset 3px 0 0 color-mix(in oklab, var(--foreground) 76%, transparent);
-    font-weight: 600;
   }
 
   .toc-link.active::before {
@@ -891,7 +894,9 @@ function formatDate(date: Date): string {
     padding-left: 1.3rem;
     color: var(--foreground);
     font-size: 0.92rem;
-    font-weight: 600;
+    /* 对应正文 h2 / h3，字重保持一致 */
+    font-weight: 500;
+    letter-spacing: -0.02em;
   }
 
   .toc-link:first-child {
@@ -911,7 +916,9 @@ function formatDate(date: Date): string {
   .toc-level-3 {
     padding-left: 2.18rem;
     font-size: 0.84rem;
+    /* 对应正文 h3，字重与 h2/h3 同族但更轻的层级观感 */
     font-weight: 500;
+    letter-spacing: -0.01em;
   }
 
   .toc-level-3::before {
@@ -929,7 +936,9 @@ function formatDate(date: Date): string {
     padding-left: 3.28rem;
     color: color-mix(in oklab, var(--muted-foreground) 84%, transparent);
     font-size: 0.78rem;
-    font-weight: 400;
+    /* 正文 h4 未单独设字号，沿用标题基础字重 500 */
+    font-weight: 500;
+    letter-spacing: 0;
   }
 
   .toc-level-4::before {
