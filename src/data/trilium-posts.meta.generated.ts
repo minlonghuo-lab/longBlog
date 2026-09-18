@@ -24,17 +24,17 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "KgAdONn6xKlf",
     "slug": "overleaf部署实战指南",
-    "updatedAt": "2026-09-18 20:15:51.599+0800",
+    "updatedAt": "2026-09-19 01:05:30.354+0800",
     "publishedAt": "2026-08-30 17:37:19.626+0800",
     "tags": [
       "Overleaf",
-      "fnOS",
+      "NAS",
       "LaTeX",
       "Docker",
       "反向代理"
     ],
     "pinned": false,
-    "syncHash": "bb42490d136fbb862c67d162b82b5ba82a109dbbb5af19820edc02875e35751b",
+    "syncHash": "7adc081896af17b369740baffd46ea084c6d802efcb818f5ff685f5132dd56ba",
     "syncStatus": "published"
   },
   {
