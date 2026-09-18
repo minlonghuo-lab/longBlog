@@ -24,7 +24,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "KgAdONn6xKlf",
     "slug": "overleaf部署实战指南",
-    "updatedAt": "2026-09-18 20:13:52.641+0800",
+    "updatedAt": "2026-09-18 20:15:51.599+0800",
     "publishedAt": "2026-08-30 17:37:19.626+0800",
     "tags": [
       "Overleaf",
@@ -34,7 +34,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "反向代理"
     ],
     "pinned": false,
-    "syncHash": "4f4e6e5c543d312e304febd802ae81169b45e0c13e2faee0c6d8c1b9fbf1ad58",
+    "syncHash": "bb42490d136fbb862c67d162b82b5ba82a109dbbb5af19820edc02875e35751b",
     "syncStatus": "published"
   },
   {
