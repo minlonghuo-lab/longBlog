@@ -34,12 +34,17 @@ const memos = Array.from({ length: 26 }, (_, i) => ({
 }));
 let requests = [], pending = [];
 globalThis.fetch = (input, { signal }) => new Promise((resolve, reject) => {
+  // Like native fetch, an already-aborted signal must not send a new request.
+  if (signal.aborted) {
+    reject(new window.DOMException('aborted', 'AbortError'));
+    return;
+  }
   const url = new URL(input, window.location.origin);
   requests.push({ url, signal });
   const settle = () => {
     const start = Number(url.searchParams.get('pageToken') || 0);
     const size = Number(url.searchParams.get('pageSize'));
-    resolve({ ok: true, json: async () => ({ memos: memos.slice(start, start + size), nextPageToken: start + size < memos.length ? String(start + size) : '' }) });
+    resolve({ ok: true, headers: new Headers({ 'content-type': 'application/json' }), json: async () => ({ memos: memos.slice(start, start + size), nextPageToken: start + size < memos.length ? String(start + size) : '' }) });
   };
   signal.addEventListener('abort', () => reject(new window.DOMException('aborted', 'AbortError')), { once: true });
   pending.push(settle);
@@ -117,8 +122,9 @@ test('navigation state is ready before the new snapshot, with repeatable cleanup
   await t.test('paging resumes with its previous cursor', async () => {
     await settleRequests();
     observers.at(-1).intersect();
-    assert.equal(requests.at(-1).url.searchParams.get('pageToken'), '20');
+    // API version detection can complete before the actual cursor request.
     await settleRequests();
+    assert.equal(requests.at(-1).url.searchParams.get('pageToken'), '20');
     assert.equal(document.querySelectorAll('.memo-item').length, 26);
   });
   await t.test('stale cache remains visible, and a late request is aborted on departure', async () => {

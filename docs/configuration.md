@@ -64,12 +64,12 @@
 - `PUBLIC_UMAMI_SCRIPT_URL`
 - `PUBLIC_UMAMI_WEBSITE_ID`
 
-### 以下 3 个公开 URL 不再写入仓库 `.env`
-它们仍然是前端需要读取的 `PUBLIC_*` 变量，但建议只在 Pages 环境变量中提供：
+### 仅在 Pages 环境变量中提供的公开 URL
+说说模块仍然需要以下公开变量，建议只在 Pages 环境变量中提供：
 
 - `PUBLIC_MEMOS_URL`
-- `PUBLIC_TRILIUM_BASE_URL`
-- `PUBLIC_TRILIUM_TREE_API_URL`
+
+关于页旧知识图谱已移除，前端不再读取 `PUBLIC_TRILIUM_BASE_URL` 和 `PUBLIC_TRILIUM_TREE_API_URL`。文章发布使用的服务端 Trilium 配置不受影响，详见 [关于页说明](./about-page-env.md)。
 
 ---
 
