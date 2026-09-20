@@ -33,7 +33,6 @@ export function mountAboutConsole(root) {
   };
   const observer = new window.MutationObserver(updateTheme);
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-  const sizeInput = () => { input.style.width = `${Math.max(2, Math.min(28, Array.from(input.value).length + 1.5))}ch`; };
   const hideSuggestions = () => { suggestions.hidden = true; suggestions.replaceChildren(); };
   const showMatches = matches => {
     suggestions.replaceChildren();
@@ -56,7 +55,7 @@ export function mountAboutConsole(root) {
     history.push(raw);
     if (history.length > MAX_HISTORY) history.shift();
     historyIndex = history.length; draft = ''; input.value = '';
-    sizeInput(); hideSuggestions();
+    hideSuggestions();
     const normalized = raw.toLowerCase();
     const command = Object.hasOwn(ALIASES, normalized) ? ALIASES[normalized] : normalized;
     if (command === 'clear') {
@@ -95,7 +94,7 @@ export function mountAboutConsole(root) {
     const button = event.target.closest?.('button[data-command]');
     if (button && root.contains(button)) execute(button.dataset.command);
   }, { signal });
-  input.addEventListener('input', () => { sizeInput(); hideSuggestions(); }, { signal });
+  input.addEventListener('input', hideSuggestions, { signal });
   input.addEventListener('keydown', event => {
     if (event.isComposing || event.keyCode === 229) return;
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
@@ -103,12 +102,12 @@ export function mountAboutConsole(root) {
       if (historyIndex === history.length) draft = input.value;
       historyIndex = Math.max(0, Math.min(history.length, historyIndex + (event.key === 'ArrowUp' ? -1 : 1)));
       input.value = historyIndex === history.length ? draft : history[historyIndex];
-      sizeInput(); hideSuggestions();
+      hideSuggestions();
     } else if (event.key === 'Tab' && !event.shiftKey && input.value.trim()) {
       const value = input.value.trim().toLowerCase();
       const matches = [...COMMANDS, ...Object.keys(ALIASES)].filter(command => command.startsWith(value));
       if (matches.length === 1 && matches[0] !== value) {
-        event.preventDefault(); input.value = matches[0]; sizeInput(); hideSuggestions();
+        event.preventDefault(); input.value = matches[0]; hideSuggestions();
       } else if (matches.length > 1) {
         event.preventDefault(); showMatches(matches);
         announcement.textContent = `匹配命令：${matches.join('、')}。继续输入或点击选择。`;
@@ -117,7 +116,7 @@ export function mountAboutConsole(root) {
   }, { signal });
 
   root.querySelectorAll('[data-terminal-form], [data-terminal-shortcuts], [data-terminal-help]').forEach(node => { node.hidden = false; });
-  updateTheme(); sizeInput();
+  updateTheme();
   return () => { disposed = true; controller.abort(); observer.disconnect(); };
 }
 
