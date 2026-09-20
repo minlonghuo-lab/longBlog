@@ -23,13 +23,15 @@ function fixture() {
   return { dom, document, root, input, transcript, submit, key, cleanup() { uninstall(); dom.window.close(); } };
 }
 
-test('server-rendered profile works without JS and ships no legacy graph', () => {
+test('server-rendered terminal starts clear and ships no legacy graph', () => {
   const dom = new JSDOM(html);
   const root = dom.window.document.querySelector('[data-about-console]');
-  assert.match(root.textContent, /huowenlong.com/);
   assert.ok(root.querySelector('noscript').textContent.includes('阅读文章'));
   assert.ok(root.querySelector('[data-terminal-form]').hidden);
-  assert.equal(root.querySelector('.terminal-block-cursor'), null);
+  assert.equal(root.querySelector('[data-terminal-transcript]').children.length, 0);
+  assert.equal(root.querySelector('input').value, '');
+  assert.ok(root.querySelector('.terminal-block-cursor'));
+  assert.equal(root.querySelector('.terminal-run'), null);
   assert.match(root.querySelector('.about-header')?.textContent || dom.window.document.body.textContent, /这里是我的个人终端。/);
   assert.equal(root.querySelectorAll('#theme-toggle').length, 1);
   assert.doesNotMatch(html, /vis-network|vis-data|knowledge-graph|data-api-url|TRILIUM_TREE_API/);
@@ -41,6 +43,8 @@ test('five commands, aliases, clear, append and bounded output', () => {
   const f = fixture();
   try {
     assert.equal(f.root.querySelector('form').hidden, false);
+    assert.equal(f.transcript.children.length, 0, 'default state matches clear');
+    assert.equal(f.input.value, '');
     assert.notEqual(f.document.activeElement, f.input, 'no autofocus / soft keyboard on entry');
     assert.deepEqual([...f.root.querySelectorAll('nav [data-command]')].map(b => b.dataset.command), COMMANDS);
     for (const command of ['knowledge', 'projects', 'history', 'profile', 'fastfetch', 'whoami']) {
@@ -124,7 +128,7 @@ test('repeated ClientRouter entry mounts once and releases detached handlers', a
     f.document.dispatchEvent(new f.dom.window.Event('astro:page-load'));
     f.document.dispatchEvent(new f.dom.window.Event('astro:page-load'));
     f.submit('projects');
-    assert.equal(f.transcript.children.length, 2);
+    assert.equal(f.transcript.children.length, 1);
     for (let i = 0; i < 3; i++) {
       const oldRoot = f.document.querySelector('[data-about-console]');
       const oldTranscript = oldRoot.querySelector('[data-terminal-transcript]');
@@ -139,12 +143,14 @@ test('repeated ClientRouter entry mounts once and releases detached handlers', a
       f.document.dispatchEvent(new f.dom.window.Event('astro:page-load'));
       f.document.dispatchEvent(new f.dom.window.Event('astro:page-load'));
       f.document.querySelector('[data-command="knowledge"]').click();
-      assert.equal(f.document.querySelector('[data-terminal-transcript]').children.length, 2);
+      assert.equal(f.document.querySelector('[data-terminal-transcript]').children.length, 1);
     }
+    f.document.querySelector('[data-command="profile"]').click();
+    const detachedTheme = f.document.querySelector('[data-terminal-theme]');
     f.document.dispatchEvent(new f.dom.window.Event('astro:before-swap'));
     f.document.documentElement.dataset.theme = 'dark';
     await new Promise(resolve => setImmediate(resolve));
-    assert.equal(f.document.querySelector('[data-terminal-theme]').textContent, 'Light', 'detached observer cleaned');
+    assert.equal(detachedTheme.textContent, 'Light', 'detached observer cleaned');
   } finally { f.cleanup(); }
 });
 

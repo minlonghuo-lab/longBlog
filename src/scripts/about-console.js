@@ -14,11 +14,10 @@ export function mountAboutConsole(root) {
   const screen = root.querySelector('[data-terminal-screen]');
   const suggestions = root.querySelector('[data-command-suggestions]');
   const announcement = root.querySelector('[data-terminal-announcement]');
-  const profile = root.querySelector('[data-profile-output]');
-  const originalPrompt = root.querySelector('[data-command-line]');
-  if (!form || !input || !transcript || !profile || !originalPrompt) return () => controller.abort();
-  const profileTemplate = profile.cloneNode(true);
-  const promptTemplate = originalPrompt.cloneNode(true);
+  const inputShell = root.querySelector('.terminal-input-shell');
+  const profileTemplate = root.querySelector('template[data-output="profile"]')?.content.firstElementChild;
+  const promptTemplate = root.querySelector('template[data-command-template]')?.content.firstElementChild;
+  if (!form || !input || !transcript || !profileTemplate || !promptTemplate) return () => controller.abort();
   const history = [];
   let historyIndex = 0;
   let draft = '';
@@ -33,6 +32,7 @@ export function mountAboutConsole(root) {
   };
   const observer = new window.MutationObserver(updateTheme);
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  const sizeInput = () => { input.style.width = `${Math.max(1, Array.from(input.value).length + .5)}ch`; };
   const hideSuggestions = () => { suggestions.hidden = true; suggestions.replaceChildren(); };
   const showMatches = matches => {
     suggestions.replaceChildren();
@@ -55,7 +55,7 @@ export function mountAboutConsole(root) {
     history.push(raw);
     if (history.length > MAX_HISTORY) history.shift();
     historyIndex = history.length; draft = ''; input.value = '';
-    hideSuggestions();
+    sizeInput(); hideSuggestions();
     const normalized = raw.toLowerCase();
     const command = Object.hasOwn(ALIASES, normalized) ? ALIASES[normalized] : normalized;
     if (command === 'clear') {
@@ -94,7 +94,8 @@ export function mountAboutConsole(root) {
     const button = event.target.closest?.('button[data-command]');
     if (button && root.contains(button)) execute(button.dataset.command);
   }, { signal });
-  input.addEventListener('input', hideSuggestions, { signal });
+  input.addEventListener('input', () => { sizeInput(); hideSuggestions(); }, { signal });
+  inputShell?.addEventListener('click', () => input.focus({ preventScroll: true }), { signal });
   input.addEventListener('keydown', event => {
     if (event.isComposing || event.keyCode === 229) return;
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
@@ -102,12 +103,12 @@ export function mountAboutConsole(root) {
       if (historyIndex === history.length) draft = input.value;
       historyIndex = Math.max(0, Math.min(history.length, historyIndex + (event.key === 'ArrowUp' ? -1 : 1)));
       input.value = historyIndex === history.length ? draft : history[historyIndex];
-      hideSuggestions();
+      sizeInput(); hideSuggestions();
     } else if (event.key === 'Tab' && !event.shiftKey && input.value.trim()) {
       const value = input.value.trim().toLowerCase();
       const matches = [...COMMANDS, ...Object.keys(ALIASES)].filter(command => command.startsWith(value));
       if (matches.length === 1 && matches[0] !== value) {
-        event.preventDefault(); input.value = matches[0]; hideSuggestions();
+        event.preventDefault(); input.value = matches[0]; sizeInput(); hideSuggestions();
       } else if (matches.length > 1) {
         event.preventDefault(); showMatches(matches);
         announcement.textContent = `匹配命令：${matches.join('、')}。继续输入或点击选择。`;
@@ -116,7 +117,7 @@ export function mountAboutConsole(root) {
   }, { signal });
 
   root.querySelectorAll('[data-terminal-form], [data-terminal-shortcuts], [data-terminal-help]').forEach(node => { node.hidden = false; });
-  updateTheme();
+  updateTheme(); sizeInput();
   return () => { disposed = true; controller.abort(); observer.disconnect(); };
 }
 
