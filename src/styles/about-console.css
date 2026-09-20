@@ -79,14 +79,18 @@ html[data-theme='dark'] .terminal-sun { display: block; }
 .terminal-fields dd { margin: 0; overflow-wrap: anywhere; }
 .terminal-input-line { display: flex; align-items: baseline; gap: .5ch; margin: 1.5rem 0 0; min-width: 0; }
 .terminal-input-line label { flex-shrink: 0; }
-.terminal-input-shell { display: inline-flex; align-items: center; flex: 1 1 auto; min-width: 2ch; }
+.terminal-input-shell { display: inline-flex; align-items: center; flex: 1 1 auto; min-width: 2ch; overflow: hidden; }
 .terminal-input-shell input {
-  width: 100%; min-width: 0; border: 0; border-radius: 0;
+  width: 1ch; min-width: 1ch; max-width: calc(100% - 1ch); border: 0; border-radius: 0;
   padding: 0; background: transparent; color: var(--foreground);
-  caret-color: var(--terminal-cursor); line-height: 1.55; outline: none;
+  caret-color: transparent; line-height: 1.55; outline: none;
 }
-.terminal-run { color: var(--muted-foreground); background: transparent; border: 0; min-width: 2rem; min-height: 2rem; }
-.terminal-run:hover { color: var(--terminal-blue); }
+.terminal-block-cursor {
+  display: inline-block; flex: 0 0 auto; width: .62ch; height: 1.2em; margin-left: .16ch;
+  background: var(--terminal-cursor); vertical-align: -.16em; pointer-events: none;
+  animation: terminal-caret-blink 1.05s steps(1, end) infinite;
+}
+@keyframes terminal-caret-blink { 0%, 48% { opacity: 1; } 49%, 100% { opacity: 0; } }
 .terminal-shortcuts { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin-top: 1.3rem; }
 .terminal-shortcuts button, .terminal-suggestions button {
   border: 0; background: transparent; color: var(--terminal-blue); padding: .35rem 0; font-size: .76rem;
@@ -129,7 +133,10 @@ html[data-theme='dark'] .terminal-sun { display: block; }
   .terminal-help span { display: none; }
 }
 @media (pointer: coarse) {
-  .terminal-theme, .terminal-run { min-width: 44px; min-height: 44px; }
+  .terminal-theme { min-width: 44px; min-height: 44px; }
   .terminal-shortcuts button, .terminal-suggestions button { min-height: 44px; }
 }
-@media (prefers-reduced-motion: reduce) { .about-console { transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .about-console { transition: none; }
+  .terminal-block-cursor { animation: none; }
+}

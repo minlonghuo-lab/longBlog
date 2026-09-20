@@ -16,41 +16,10 @@ const commands = ['profile', 'knowledge', 'projects', 'history', 'clear'];
       </button>
     </header>
     <div class="terminal-screen" data-terminal-screen>
-      <div data-terminal-transcript>
-        <section class="terminal-block" data-terminal-block>
-          <div class="terminal-prompt" data-command-line aria-label="已执行 fastfetch">
-            <span class="terminal-identity"><span class="terminal-user">{profile.user}</span>@<span class="terminal-host">{profile.host}</span></span><span class="terminal-path">~ &gt;</span><span class="terminal-command">fastfetch</span>
-          </div>
-          <div class="terminal-profile" data-profile-output>
-            <!-- Thin-line variation of the existing Knowledge Spine brand mark. -->
-            <svg class="terminal-mark" width="256" height="256" viewBox="0 0 512 512" role="img" aria-label="longBlog 知识脊柱线条图标">
-              <g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M256 80V215M256 297V432M256 168L183 132M256 168L329 132M145 256H212M300 256H367M256 344L183 380M256 344L329 380"/>
-                <circle cx="168" cy="124" r="20"/><circle cx="344" cy="124" r="20"/>
-                <circle cx="124" cy="256" r="20"/><circle cx="388" cy="256" r="20"/>
-                <circle cx="168" cy="388" r="20"/><circle cx="344" cy="388" r="20"/>
-                <path d="M240 227a33 33 0 0 0 0 58M272 227a33 33 0 0 1 0 58"/>
-              </g>
-            </svg>
-            <div class="terminal-profile-info">
-              <div class="terminal-profile-name"><span>{profile.user}</span>@<span>{profile.host}</span></div>
-              <div class="terminal-divider" aria-hidden="true">──────────────────</div>
-              <dl class="terminal-fields">
-                <div><dt>Site</dt><dd>{profile.site}</dd></div>
-                <div><dt>Stack</dt><dd>{profile.stack}</dd></div>
-                <div><dt>Theme</dt><dd>longBlog <span data-terminal-theme>Light</span></dd></div>
-                <div><dt>Focus</dt><dd>{profile.focus}</dd></div>
-                <div><dt>About</dt><dd>{profile.about}</dd></div>
-                <div><dt>Status</dt><dd>{profile.status}</dd></div>
-              </dl>
-            </div>
-          </div>
-        </section>
-      </div>
+      <div data-terminal-transcript></div>
       <form class="terminal-input-line" data-terminal-form hidden>
         <label for="about-command" class="terminal-prompt"><span class="terminal-identity"><span class="terminal-user">{profile.user}</span>@<span class="terminal-host">{profile.host}</span></span><span class="terminal-path">~ &gt;</span><span class="terminal-sr-only">输入命令</span></label>
-        <span class="terminal-input-shell"><input id="about-command" name="command" type="text" value="knowledge" maxlength="160" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-describedby="about-command-help"/></span>
-        <button type="submit" class="terminal-run" aria-label="执行命令" title="执行命令">↵</button>
+        <span class="terminal-input-shell"><input id="about-command" name="command" type="text" value="" maxlength="160" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-describedby="about-command-help"/><span class="terminal-block-cursor" aria-hidden="true"></span></span>
       </form>
       <div class="terminal-suggestions" data-command-suggestions aria-label="命令补全建议" hidden></div>
       <nav class="terminal-shortcuts" data-terminal-shortcuts aria-label="可执行命令" hidden>
@@ -60,6 +29,37 @@ const commands = ['profile', 'knowledge', 'projects', 'history', 'clear'];
       <p class="terminal-sr-only" data-terminal-announcement role="status" aria-live="polite" aria-atomic="true"></p>
     </div>
     <noscript><p class="terminal-fallback">开启 JavaScript 后可使用交互命令。<a href="/blog">阅读文章 →</a> · <a href="https://github.com/minlonghuo-lab" target="_blank" rel="noopener noreferrer">GitHub ↗</a></p></noscript>
+    <template data-command-template>
+      <div class="terminal-prompt" data-command-line>
+        <span class="terminal-identity"><span class="terminal-user">{profile.user}</span>@<span class="terminal-host">{profile.host}</span></span><span class="terminal-path">~ &gt;</span><span class="terminal-command"></span>
+      </div>
+    </template>
+    <template data-output="profile">
+      <div class="terminal-profile" data-profile-output>
+        <!-- ASCII-inspired single-line rendering of the longBlog Knowledge Spine. -->
+        <svg class="terminal-mark" width="256" height="256" viewBox="0 0 512 512" role="img" aria-label="longBlog 知识脊柱线条图标">
+          <g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M256 68v76M256 178v45M256 289v45M256 368v76"/>
+            <path d="M236 164l-48-25M156 123l-22-11 22-11M276 164l48-25M356 123l22-11-22-11"/>
+            <path d="M205 256h-55M112 256H76l18-14M307 256h55M400 256h36l-18-14"/>
+            <path d="M236 348l-48 25M156 389l-22 11 22 11M276 348l48 25M356 389l22 11-22 11"/>
+            <path d="M237 230c-17 13-17 39 0 52M275 230c17 13 17 39 0 52"/>
+          </g>
+        </svg>
+        <div class="terminal-profile-info">
+          <div class="terminal-profile-name"><span>{profile.user}</span>@<span>{profile.host}</span></div>
+          <div class="terminal-divider" aria-hidden="true">──────────────────</div>
+          <dl class="terminal-fields">
+            <div><dt>Site</dt><dd>{profile.site}</dd></div>
+            <div><dt>Stack</dt><dd>{profile.stack}</dd></div>
+            <div><dt>Theme</dt><dd>longBlog <span data-terminal-theme>Light</span></dd></div>
+            <div><dt>Focus</dt><dd>{profile.focus}</dd></div>
+            <div><dt>About</dt><dd>{profile.about}</dd></div>
+            <div><dt>Status</dt><dd>{profile.status}</dd></div>
+          </dl>
+        </div>
+      </div>
+    </template>
     <template data-output="knowledge">
       <div class="terminal-text-output">
         <h3>knowledge /</h3>
