@@ -29,6 +29,8 @@ test('server-rendered profile works without JS and ships no legacy graph', () =>
   assert.match(root.textContent, /huowenlong.com/);
   assert.ok(root.querySelector('noscript').textContent.includes('阅读文章'));
   assert.ok(root.querySelector('[data-terminal-form]').hidden);
+  assert.equal(root.querySelector('.terminal-block-cursor'), null);
+  assert.match(root.querySelector('.about-header')?.textContent || dom.window.document.body.textContent, /这里是我的个人终端。/);
   assert.equal(root.querySelectorAll('#theme-toggle').length, 1);
   assert.doesNotMatch(html, /vis-network|vis-data|knowledge-graph|data-api-url|TRILIUM_TREE_API/);
   assert.match(html, /type="module"/);
