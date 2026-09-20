@@ -18,8 +18,6 @@ export const SOCIAL_LINKS = [
 
 // Public service URLs
 export const MEMOS_URL = (env.PUBLIC_MEMOS_URL || '').replace(/\/$/, '');
-export const TRILIUM_BASE_URL = (env.PUBLIC_TRILIUM_BASE_URL || '').replace(/\/$/, '');
-export const TRILIUM_TREE_API_URL = (env.PUBLIC_TRILIUM_TREE_API_URL || '').trim();
 export const SITE_URL = (env.PUBLIC_SITE_URL || '').trim();
 
 // Footer / ICP / links
