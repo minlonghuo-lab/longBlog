@@ -5,6 +5,24 @@ export interface TriliumPostMetaRecord {
 
 export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
+    "id": "cyZ6AgNjauV8",
+    "slug": "记一次华为杯数学建模协作经验",
+    "updatedAt": "2026-10-07 04:01:39.876+0800",
+    "publishedAt": "2026-10-07 04:01:39.876+0800",
+    "tags": [
+      "数学建模",
+      "LaTeX",
+      "Overleaf",
+      "Docker",
+      "经验分享",
+      "AI生成",
+      "自动化"
+    ],
+    "pinned": false,
+    "syncHash": "36ee2fdb25fc17a1772b933e682c5ba3f5c5d4dbaae09ba0f03861df1db63098",
+    "syncStatus": "published"
+  },
+  {
     "id": "y6WtEPfNytSp",
     "slug": "从微信对话到线上博客",
     "updatedAt": "2026-09-14 14:37:40.618+0800",
