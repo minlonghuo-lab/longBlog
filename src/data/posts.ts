@@ -1,3 +1,4 @@
+import { sanitizeNoteHtml } from './sanitize-content';
 import { highlightCodeBlocks } from './syntax-highlight';
 import { triliumPostContents } from './trilium-posts.content.generated';
 import { triliumPostMetas } from './trilium-posts.meta.generated';
@@ -61,7 +62,7 @@ export const posts: Post[] = triliumPostMetas
       updatedAt: toDate(meta.updatedAt, meta.publishedAt),
       tags: normalizeTags(meta.tags),
       summary: content.summary ?? '',
-      contentHtml: highlightCodeBlocks(content.contentHtml ?? ''),
+      contentHtml: highlightCodeBlocks(sanitizeNoteHtml(content.contentHtml ?? '')),
       pinned: !!meta.pinned,
     } satisfies Post;
   })

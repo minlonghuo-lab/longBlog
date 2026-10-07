@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { JSDOM } from 'jsdom';
+import {
+  sanitizeNoteHtml,
+  stripEmptyImageFigures,
+  stripHostInjections,
+} from '../src/data/sanitize-content.ts';
 
 // Regression cover for Trilium -> blog rendering parity. These assertions run
 // against the built output (npm test builds first), so they fail if either the
@@ -243,4 +248,44 @@ test('the icon font is emitted subset, not whole', async () => {
   assert.ok(font.byteLength > 500, 'the font must be present');
   assert.ok(font.byteLength < 8000, `expected a subset, got ${font.byteLength} bytes`);
   assert.equal(font.subarray(0, 4).toString('ascii'), 'wOFF', 'must be a woff file');
+});
+
+test('note html is sanitized on the consuming side', () => {
+  // The sync script runs from a deployed copy on the server, so the blog cannot
+  // rely on it having been redeployed; these guards hold whatever it emits.
+  const injected =
+    '<link rel="stylesheet" href="/__fnos/assets/update.css" data-trilium-fnos-manager>' +
+    '<script defer src="/__fnos/assets/update.js" data-trilium-fnos-manager></script>' +
+    '<p>正文</p>';
+  assert.equal(stripHostInjections(injected), '<p>正文</p>');
+
+  const empties =
+    '<figure class="image image_resized" style="width:50%;">' +
+    '<img src="/trilium-assets/a/b.jpg" width="10" height="10"></figure>' +
+    '<figure class="image"><img></figure><figure class="image"><img></figure>';
+  const cleaned = stripEmptyImageFigures(empties);
+  assert.equal(cleaned.match(/<figure/g).length, 1, 'only the source-less figure goes');
+  assert.match(cleaned, /b\.jpg/, 'a real image survives');
+
+  // A figure holding anything else, or an image with a source, must be left alone.
+  const keep = '<figure class="image"><img src="x.jpg"></figure>';
+  assert.equal(stripEmptyImageFigures(keep), keep);
+  const keepCaption = '<figure class="image"><img><figcaption>说明</figcaption></figure>';
+  assert.equal(stripEmptyImageFigures(keepCaption), keepCaption);
+
+  // Both transforms compose, and plain content is returned untouched.
+  assert.equal(sanitizeNoteHtml('<p>a</p>'), '<p>a</p>');
+  assert.equal(sanitizeNoteHtml(injected + empties).includes('fnos'), false);
+});
+
+test('no built page renders a source-less image', async () => {
+  const pages = await readdir(new URL('blog/', distRoot), { withFileTypes: true });
+  for (const page of pages.filter((entry) => entry.isDirectory())) {
+    const html = await readFile(new URL(`blog/${page.name}/index.html`, distRoot), 'utf8');
+    const { document } = new JSDOM(html).window;
+    const broken = [...document.querySelectorAll('.content img')].filter(
+      (img) => !img.getAttribute('src'),
+    );
+    assert.equal(broken.length, 0, `${page.name} renders an image without a source`);
+  }
 });
