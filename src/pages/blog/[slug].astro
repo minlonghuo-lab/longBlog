@@ -99,6 +99,10 @@ function formatDate(date: Date): string {
     <img id="image-lightbox-img" src="" alt="文章图片预览" />
   </div>
 
+  <script>
+    import '../../scripts/code-blocks.js';
+  </script>
+
   <script data-astro-rerun>
     (() => {
       const content = document.getElementById('post-content');
@@ -382,6 +386,17 @@ function formatDate(date: Date): string {
 </BaseLayout>
 
 <style is:global>
+  /* Trilium draws the collapsible arrow and the admonition icons from boxicons.
+     Only the seven glyphs the note content can use are subset into this file, so
+     the shapes match Trilium's without shipping the whole icon font. */
+  @font-face {
+    font-family: boxicons;
+    src: url('/fonts/boxicons-subset.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+  }
+
   .post-page-wrap {
     width: 100vw;
     margin-left: calc(50% - 50vw);
@@ -974,8 +989,23 @@ function formatDate(date: Date): string {
 
   .content p {
     margin: 0 0 1rem;
-    text-align: justify;
-    text-justify: inter-ideograph;
+  }
+
+  /* Trilium zeroes paragraphs nested in a list item, and CKEditor zeroes the first
+     and last one inside a table cell. Without these the cell keeps a stray bottom
+     margin and the list item gains a gap between its marker and its text. */
+  .content li p {
+    margin: 0;
+  }
+
+  .content td > p:first-of-type,
+  .content th > p:first-of-type {
+    margin-top: 0;
+  }
+
+  .content td > p:last-of-type,
+  .content th > p:last-of-type {
+    margin-bottom: 0;
   }
 
   .content h1,
@@ -1002,11 +1032,163 @@ function formatDate(date: Date): string {
     margin: 0.7rem 0 1rem;
   }
 
+  .content hr {
+    width: 100%;
+    height: 4px;
+    margin: 15px 0;
+    border: 0;
+    background: color-mix(in oklab, var(--border) 85%, transparent);
+  }
+
+  /* Trilium stores a collapsible block as a plain <details>, and deliberately keeps
+     its arrow out of the saved HTML: the data view draws it on the summary and lets
+     the native element handle the toggle. No script is involved. */
+  .content details.trilium-collapsible {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    margin: 1em 0;
+    border-radius: 8px;
+    background: var(--muted);
+    padding: 0.75rem 1rem 0.75rem 2rem;
+  }
+
+  .content details.trilium-collapsible > summary {
+    position: relative;
+    left: -1rem;
+    width: calc(100% + 2rem);
+    padding-left: 2rem;
+    cursor: pointer;
+    font-weight: 500;
+    outline: none;
+    list-style: none;
+  }
+
+  .content details.trilium-collapsible > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .content details.trilium-collapsible > summary::after {
+    display: block;
+    content: '';
+    z-index: -1;
+    position: absolute;
+    top: calc(0px - 0.75rem - 1px);
+    left: -1rem;
+    width: calc(100% + 2rem + 1px);
+    height: calc(100% + 1.5rem + 1px);
+    background: var(--muted);
+  }
+
+  .content details.trilium-collapsible > summary:hover::after {
+    background: color-mix(in oklab, var(--muted) 92%, var(--foreground));
+  }
+
+  .content details.trilium-collapsible[open] > summary {
+    margin-bottom: 1.5rem;
+  }
+
+  .content details.trilium-collapsible[open] > summary::after {
+    border-bottom: 2px solid color-mix(in oklab, var(--background) 70%, var(--foreground));
+  }
+
+  .content details.trilium-collapsible > *:last-child:not(summary) {
+    margin-bottom: 0;
+  }
+
+  .content details.trilium-collapsible > summary::before {
+    content: '\ea50';
+    position: absolute;
+    left: 0;
+    top: -0.05em;
+    width: 1lh;
+    height: 1lh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: boxicons;
+    cursor: pointer;
+    user-select: none;
+    transform: scale(1.3);
+    transition: transform 0.15s ease;
+  }
+
+  .content details.trilium-collapsible[open] > summary::before {
+    transform: scale(1.3) rotate(90deg);
+  }
+
+  /* Admonitions. Trilium stores <aside class="admonition <type>"> and colours the
+     icon and border from a per-type accent. */
+  .content .admonition {
+    --accent-color: var(--border);
+    position: relative;
+    overflow: hidden;
+    margin: 1.25em 0;
+    padding: 1em;
+    padding-inline-start: 2.5em;
+    border: 1px solid var(--accent-color);
+    border-radius: 0.5em;
+    background: var(--muted);
+  }
+
+  .content .admonition p:last-child {
+    margin-bottom: 0;
+  }
+
+  .content .admonition.note {
+    --accent-color: #69c7ff;
+  }
+
+  .content .admonition.tip {
+    --accent-color: #40c025;
+  }
+
+  .content .admonition.important {
+    --accent-color: #9839f7;
+  }
+
+  .content .admonition.caution {
+    --accent-color: #ff2e2e;
+  }
+
+  .content .admonition.warning {
+    --accent-color: #e2aa03;
+  }
+
+  .content .admonition::before {
+    position: absolute;
+    top: 1em;
+    inset-inline-start: 1em;
+    color: var(--accent-color);
+    font-family: boxicons;
+  }
+
+  .content .admonition.note::before {
+    content: '\eb21';
+  }
+
+  .content .admonition.tip::before {
+    content: '\ea0d';
+  }
+
+  .content .admonition.important::before {
+    content: '\ea7c';
+  }
+
+  .content .admonition.caution::before {
+    content: '\eac7';
+  }
+
+  .content .admonition.warning::before {
+    content: '\eac5';
+  }
+
   .content blockquote {
-    margin: 1rem 0;
-    padding: 0.75rem 0.95rem;
-    border-left: 3px solid color-mix(in oklab, var(--foreground) 22%, transparent);
-    background: color-mix(in oklab, var(--muted) 90%, white);
+    margin: 1em 0;
+    padding: 0 1.5em;
+    border-left: 5px solid color-mix(in oklab, var(--foreground) 22%, transparent);
+    font-style: italic;
+    overflow: hidden;
     overflow-wrap: anywhere;
     word-break: break-word;
   }
@@ -1025,8 +1207,66 @@ function formatDate(date: Date): string {
   }
 
   .content figure {
-    margin: 1.5rem auto;
+    margin: 0.9em auto;
     text-align: center;
+  }
+
+  /* Trilium/CKEditor: a plain image figure shrinks to its content, while a resized
+     one takes the percentage width stored inline on the figure and stretches its
+     image to fill it even when the image is intrinsically narrower. */
+  .content figure.image {
+    clear: both;
+    min-width: 50px;
+    display: table;
+  }
+
+  .content figure.image.image_resized {
+    display: block;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .content figure.image img {
+    display: block;
+    min-width: 100%;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  .content figure.image.image_resized img {
+    width: 100%;
+  }
+
+  .content .image.image-style-align-left {
+    float: left;
+    margin-right: 1.5em;
+  }
+
+  .content .image.image-style-align-right {
+    float: right;
+    margin-left: 1.5em;
+  }
+
+  .content .image.image-style-side {
+    float: right;
+    margin-left: 1.5em;
+    max-width: 50%;
+  }
+
+  .content .image.image-style-block-align-left {
+    margin-left: 0;
+    margin-right: auto;
+  }
+
+  .content .image.image-style-block-align-right {
+    margin-left: auto;
+    margin-right: 0;
+  }
+
+  .content .image.image-style-block-align-left,
+  .content .image.image-style-block-align-right {
+    max-width: calc(100% - 1.5em);
   }
 
   .content figure.table {
@@ -1036,7 +1276,7 @@ function formatDate(date: Date): string {
 
   .content img {
     display: block;
-    max-width: min(100%, 760px);
+    max-width: 100%;
     height: auto;
     border-radius: 0.55rem;
     margin: 0.9rem auto;
@@ -1121,9 +1361,15 @@ function formatDate(date: Date): string {
   .content th,
   .content td {
     border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
-    padding: 0.5rem 0.6rem;
+    padding: 8px;
     vertical-align: top;
     white-space: normal;
+    min-width: 120px;
+  }
+
+  .content th {
+    background: color-mix(in oklab, var(--muted) 92%, white);
+    font-weight: 600;
   }
 
   .content code,
@@ -1154,6 +1400,46 @@ function formatDate(date: Date): string {
     border-radius: 0.45rem;
     background: color-mix(in oklab, var(--muted) 94%, white);
     white-space: pre;
+    tab-size: 4;
+    position: relative;
+  }
+
+  /* Trilium appends this button to the <pre> at display time and reserves room for
+     it with :has(), so the code never sits underneath. */
+  .content pre > button.copy-button {
+    position: absolute;
+    top: 0.35em;
+    inset-inline-end: 0.35em;
+    width: 37px;
+    height: 35px;
+    padding: 5px;
+    border: 1px solid transparent;
+    border-radius: 0.3rem;
+    cursor: pointer;
+    font-size: 1.5em;
+    color: var(--muted-foreground);
+    background: color-mix(in oklab, var(--muted) 80%, transparent);
+  }
+
+  .content pre > button.copy-button::before {
+    content: '\ea84';
+    display: block;
+    font-family: boxicons;
+    font-weight: normal;
+    line-height: 1;
+  }
+
+  .content pre > button.copy-button:hover {
+    color: var(--foreground);
+    border-color: color-mix(in oklab, var(--foreground) 22%, transparent);
+  }
+
+  .content pre:has(> button.copy-button) {
+    padding-inline-end: calc(37px + 0.7em);
+  }
+
+  .content code.copyable-inline-code {
+    cursor: pointer;
   }
 
   .content pre code {
@@ -1168,9 +1454,90 @@ function formatDate(date: Date): string {
     line-break: auto;
   }
 
+  /* Trilium renders the token colours you pick in its own theme options, so this
+     palette is the blog's, carried on the same variables as the rest of the page. */
+  .content {
+    --hl-comment: #6b7280;
+    --hl-keyword: #a626a4;
+    --hl-string: #50a14f;
+    --hl-number: #986801;
+    --hl-title: #4078f2;
+    --hl-attr: #e45649;
+    --hl-type: #c18401;
+  }
+
+  html[data-theme='dark'] .content {
+    --hl-comment: #7f848e;
+    --hl-keyword: #c678dd;
+    --hl-string: #98c379;
+    --hl-number: #d19a66;
+    --hl-title: #61afef;
+    --hl-attr: #e06c75;
+    --hl-type: #e5c07b;
+  }
+
+  .content .hljs-comment,
+  .content .hljs-quote {
+    color: var(--hl-comment);
+    font-style: italic;
+  }
+
+  .content .hljs-keyword,
+  .content .hljs-selector-tag,
+  .content .hljs-literal,
+  .content .hljs-doctag,
+  .content .hljs-name {
+    color: var(--hl-keyword);
+  }
+
+  .content .hljs-string,
+  .content .hljs-regexp,
+  .content .hljs-addition {
+    color: var(--hl-string);
+  }
+
+  .content .hljs-number,
+  .content .hljs-symbol,
+  .content .hljs-bullet {
+    color: var(--hl-number);
+  }
+
+  .content .hljs-title,
+  .content .hljs-section {
+    color: var(--hl-title);
+  }
+
+  .content .hljs-attr,
+  .content .hljs-attribute,
+  .content .hljs-variable,
+  .content .hljs-template-variable,
+  .content .hljs-selector-attr,
+  .content .hljs-selector-class,
+  .content .hljs-selector-id {
+    color: var(--hl-attr);
+  }
+
+  .content .hljs-built_in,
+  .content .hljs-type,
+  .content .hljs-meta,
+  .content .hljs-params {
+    color: var(--hl-type);
+  }
+
+  .content .hljs-deletion {
+    color: var(--hl-attr);
+  }
+
+  .content .hljs-emphasis {
+    font-style: italic;
+  }
+
+  .content .hljs-strong {
+    font-weight: 600;
+  }
+
   html[data-theme='dark'] .content blockquote {
     border-left-color: rgba(255, 255, 255, 0.22);
-    background: rgba(255, 255, 255, 0.05);
   }
 
   html[data-theme='dark'] .content code {
