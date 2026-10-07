@@ -7,7 +7,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "cyZ6AgNjauV8",
     "slug": "记一次华为杯数学建模协作经验",
-    "updatedAt": "2026-10-07 15:57:40.469+0800",
+    "updatedAt": "2026-10-07 21:09:24.370+0800",
     "publishedAt": "2026-10-07 04:01:39.876+0800",
     "tags": [
       "数学建模",
@@ -18,7 +18,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "自动化"
     ],
     "pinned": false,
-    "syncHash": "78d75bb3a34eef616f7e07c5449a4092f8cef2bf715576f8c96e9d692d675d60",
+    "syncHash": "27bfccdf2ce74461f34412cae406f3954ff78e50a5caab27e8dbbcaf7d31edbb",
     "syncStatus": "published"
   },
   {
