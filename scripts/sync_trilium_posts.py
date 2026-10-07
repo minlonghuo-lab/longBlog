@@ -266,6 +266,25 @@ def download_attachment_by_etapi(attachment_id: str) -> Tuple[Optional[bytes], O
         return None, None
 
 
+def strip_manager_injections(html: str) -> Tuple[str, int]:
+    """Remove host-injected asset tags from note content.
+
+    The Trilium deployment serving this blog injects its own stylesheet and
+    script tag at the top of every note body. Those tags address the Trilium
+    host (`/__fnos/assets/...`), not the blog, so they must never be published:
+    on the blog they only produce 404 requests and stray DOM. Removal is
+    idempotent, and content without the marker is returned untouched.
+    """
+    if not html or "data-trilium-fnos-manager" not in html:
+        return html, 0
+    pattern = re.compile(
+        r"<link\b[^>]*data-trilium-fnos-manager[^>]*>\s*"
+        r"|<script\b[^>]*data-trilium-fnos-manager[^>]*>\s*(?:</script>)?\s*",
+        re.IGNORECASE,
+    )
+    return pattern.subn("", html)
+
+
 def find_attachment_urls(html: str) -> List[str]:
     pattern = re.compile(r'(https?://[^"\'\)\s]*/api/attachments/[^"\'\)\s]+|/api/attachments/[^"\'\)\s]+|api/attachments/[^"\'\)\s]+)')
     return sorted(set(pattern.findall(html or "")))
@@ -333,6 +352,7 @@ def build_post_record(note: dict, used_slugs: set, previous_slug_map: Dict[str, 
     attr_map = label_attrs(note.get("attributes", []) or [])
     title = (note.get("title") or "未命名").strip()
     html = get_text(f"/etapi/notes/{note_id}/content")
+    html, _ = strip_manager_injections(html)
     html_localized, local_assets, assets_changed = localize_attachments(html, note_id)
     explicit_slug = last_label_value(attr_map, "slug", "").strip()
     base_slug = explicit_slug or slugify(title)

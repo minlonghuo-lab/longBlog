@@ -1110,11 +1110,19 @@ function formatDate(date: Date): string {
     padding: 0.85rem;
     border-radius: 0.45rem;
     background: color-mix(in oklab, var(--muted) 94%, white);
+    white-space: pre;
   }
 
   .content pre code {
     background: transparent;
     padding: 0;
+    /* Restore the preformatted whitespace contract that `.content code` overrides
+       with `white-space: normal`. Without this, every newline and run of spaces
+       inside a code block collapses, destroying monospace ASCII diagrams. */
+    white-space: pre;
+    overflow-wrap: normal;
+    word-break: normal;
+    line-break: auto;
   }
 
   html[data-theme='dark'] .content blockquote {

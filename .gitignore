@@ -6,6 +6,10 @@ dist/
 # dependencies
 node_modules/
 
+# python bytecode from the Trilium sync scripts
+__pycache__/
+*.pyc
+
 # logs
 npm-debug.log*
 yarn-debug.log*
