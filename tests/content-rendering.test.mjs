@@ -16,15 +16,24 @@ async function readBuiltCss() {
   return parts.join('\n');
 }
 
-// Minimal extractor for flat CSS rules whose selector list contains `selector`
-// verbatim. Astro emits minified but unscoped selectors for these rules.
+// Minimal extractor for flat CSS rules whose selector list contains `selector`.
+// Astro emits minified but unscoped selectors for these rules, so combinators are
+// normalized before comparing rather than relying on the source spacing.
+function normalizeSelector(selector) {
+  return selector
+    .replace(/\s*([>+~])\s*/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function declarationsFor(css, selector) {
+  const wanted = normalizeSelector(selector);
   const found = [];
   const rule = /([^{}]+)\{([^{}]*)\}/g;
   let match;
   while ((match = rule.exec(css)) !== null) {
-    const selectors = match[1].split(',').map((part) => part.trim());
-    if (selectors.includes(selector)) found.push(match[2]);
+    const selectors = match[1].split(',').map(normalizeSelector);
+    if (selectors.includes(wanted)) found.push(match[2]);
   }
   return found;
 }
@@ -162,4 +171,76 @@ test('ASCII diagrams survive the pipeline byte for byte', async () => {
 
   // A collapsed block would render as one long line; the real diagram is many.
   assert.ok(text.split('\n').length > 10, 'the diagram should keep its line structure');
+});
+
+test('syntax highlighting follows the rules Trilium applies outside the app', async () => {
+  const html = await readFile(new URL('blog/近期让我眼前一亮的软件/index.html', distRoot), 'utf8');
+  const { document } = new JSDOM(html).window;
+
+  const highlighted = document.querySelectorAll('.content pre.hljs');
+  assert.ok(highlighted.length > 0, 'code blocks with a language must be highlighted');
+  assert.ok(
+    highlighted[0].querySelector('.hljs-comment, .hljs-string, .hljs-keyword'),
+    'highlighting must emit token spans',
+  );
+
+  // Trilium auto-detects a language only inside the app — its renderer guards that
+  // branch with `!isShare` — so `text-x-trilium-auto` blocks stay plain on the blog.
+  for (const pre of document.querySelectorAll('.content pre')) {
+    const code = pre.querySelector('code');
+    if (code?.className.includes('language-text-x-trilium-auto')) {
+      assert.ok(!pre.classList.contains('hljs'), 'auto blocks must not be highlighted');
+    }
+  }
+
+  // Highlighting must not disturb the preformatted whitespace contract.
+  const diagram = await readFile(
+    new URL('blog/记一次华为杯数学建模协作经验/index.html', distRoot),
+    'utf8',
+  );
+  const diagramDoc = new JSDOM(diagram).window.document;
+  const art = [...diagramDoc.querySelectorAll('.content pre code')].find((block) =>
+    block.textContent.includes('Windows 电脑'),
+  );
+  assert.match(art.textContent, /┌/, 'box drawing must survive highlighting');
+});
+
+test('the stylesheet carries the construct contracts Trilium defines', async () => {
+  const css = await readBuiltCss();
+  const rule = (selector) => declarationsFor(css, selector).join(';');
+
+  // Images fill their figure and are capped only by the content column.
+  assert.match(rule('.content figure.image img'), /min-width:\s*100%/, 'image fills its figure');
+  assert.match(
+    rule('.content figure.image.image_resized img'),
+    /width:\s*100%/,
+    'a resized image stretches to its figure',
+  );
+  assert.match(rule('.content img'), /max-width:\s*100%/, 'no pixel cap beyond the column');
+
+  // Table cells keep a floor width and the header stays distinguishable.
+  assert.match(rule('.content td'), /min-width:\s*120px/, 'cell floor width');
+  assert.ok(
+    declarationsFor(css, '.content th').some((block) => /background/.test(block)),
+    'header background',
+  );
+
+  // Constructs that previously had no rules at all.
+  assert.match(rule('.content hr'), /height:\s*4px/, 'hr rule');
+  assert.match(rule('.content details.trilium-collapsible'), /overflow:\s*hidden/, 'collapsible block');
+  assert.match(rule('.content .admonition'), /padding-inline-start/, 'admonition');
+
+  // Code-block furniture.
+  assert.match(rule('.content pre'), /tab-size:\s*4/, 'tab size matches Trilium');
+  assert.match(rule('.content pre'), /position:\s*relative/, 'anchor for the copy button');
+  assert.match(rule('.content pre > button.copy-button'), /position:\s*absolute/, 'copy button');
+});
+
+test('the icon font is emitted subset, not whole', async () => {
+  const font = await readFile(new URL('fonts/boxicons-subset.woff', distRoot));
+  // Only the glyphs the note content can reference are kept; the full boxicons
+  // font is ~115 KB, so anything near that means the subset step was lost.
+  assert.ok(font.byteLength > 500, 'the font must be present');
+  assert.ok(font.byteLength < 8000, `expected a subset, got ${font.byteLength} bytes`);
+  assert.equal(font.subarray(0, 4).toString('ascii'), 'wOFF', 'must be a woff file');
 });
