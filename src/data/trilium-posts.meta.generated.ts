@@ -105,7 +105,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "dpIN2qR0Q8lb",
     "slug": "个人博客longblog介绍",
-    "updatedAt": "2026-10-08 01:19:51.482+0800",
+    "updatedAt": "2026-10-08 01:20:18.705+0800",
     "publishedAt": "2026-04-02 23:28:06.320+0800",
     "tags": [
       "AI生成",
