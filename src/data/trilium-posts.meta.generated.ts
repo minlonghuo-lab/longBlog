@@ -89,7 +89,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "HuEZ8IbXjuPl",
     "slug": "详细拆解longblog自动化流程",
-    "updatedAt": "2026-09-14 14:37:02.187+0800",
+    "updatedAt": "2026-10-08 01:19:51.231+0800",
     "publishedAt": "2026-04-03 00:01:47.102+0800",
     "tags": [
       "AI生成",
@@ -99,13 +99,13 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "Webhook"
     ],
     "pinned": false,
-    "syncHash": "22a717f5cb49ccbcb6f7bec9888204614e88615204dee31c421aa0fba3b80cbd",
+    "syncHash": "6ffd5376e7974c50c3773f93d54cb01b6c3b710a1b10a0a9a7f86f78d7dd7298",
     "syncStatus": "published"
   },
   {
     "id": "dpIN2qR0Q8lb",
     "slug": "个人博客longblog介绍",
-    "updatedAt": "2026-09-14 14:37:21.649+0800",
+    "updatedAt": "2026-10-08 01:19:51.482+0800",
     "publishedAt": "2026-04-02 23:28:06.320+0800",
     "tags": [
       "AI生成",
@@ -115,7 +115,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "静态站点"
     ],
     "pinned": false,
-    "syncHash": "452b3c1538bbe2370416ce66e9e93a6a81b809ff0e27c4d95d57c96295ee5e0b",
+    "syncHash": "583b8257d6c3e394b920afefb68233b07dfd534056382615d47b07316546675d",
     "syncStatus": "published"
   },
   {
