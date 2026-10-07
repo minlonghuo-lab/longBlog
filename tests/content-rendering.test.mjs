@@ -306,3 +306,34 @@ test('the lightbox does not request the page it sits on', async () => {
     );
   }
 });
+
+test('the desktop TOC threshold agrees between stylesheet and script', async () => {
+  // The drawer is 264px and the centred paper only leaves that much from 1536px
+  // up; below it the stylesheet hides the sidebar. The two numbers live in
+  // different languages, so nothing else keeps them in step.
+  const source = await readFile(
+    new URL('../src/pages/blog/[slug].astro', import.meta.url),
+    'utf8',
+  );
+  const declared = source.match(/DESKTOP_TOC_MIN_WIDTH\s*=\s*(\d+)/);
+  assert.ok(declared, 'the script must declare the threshold');
+  const threshold = Number(declared[1]);
+
+  const css = await readBuiltCss();
+  const marker = css.indexOf('.post-sidebar{display:none}');
+  assert.ok(marker > -1, 'the stylesheet must hide the sidebar at some width');
+
+  // Minification rewrites `max-width: Npx` as the range form `width<=Npx`.
+  const before = css.slice(Math.max(0, marker - 4000), marker);
+  const queries = [
+    ...before.matchAll(/@media\s*\(\s*(?:max-width\s*:\s*|width\s*<=\s*)(\d+)\s*px\s*\)/g),
+  ];
+  assert.ok(queries.length > 0, 'the hide rule must sit inside a width query');
+
+  const hiddenBelow = Number(queries.at(-1)[1]);
+  assert.equal(
+    hiddenBelow + 1,
+    threshold,
+    `stylesheet hides below ${hiddenBelow}px but the script switches at ${threshold}px`,
+  );
+});
