@@ -95,6 +95,45 @@ test('published note content carries no Trilium host injections', async () => {
   }
 });
 
+test('embedded notes resolve to a link card instead of a blank placeholder', async () => {
+  const html = await readFile(
+    new URL('blog/基于tlock和cryptomator的时间胶囊/index.html', distRoot),
+    'utf8',
+  );
+  const { document } = new JSDOM(html).window;
+
+  // Trilium expands `.include-note` in the browser; published HTML must not ship
+  // the bare placeholder, which renders as an empty gap.
+  const placeholders = document.querySelectorAll('.content .include-note');
+  assert.equal(placeholders.length, 0, 'no unresolved embed placeholder should remain');
+
+  const card = document.querySelector('.content .include-note-card');
+  assert.ok(card, 'the embed should render as a card');
+  assert.equal(
+    card.getAttribute('href'),
+    '/blog/使用-cryptomator为云存储提供零知识加密',
+    'the card must link to the embedded note',
+  );
+  assert.match(card.textContent, /使用 Cryptomator/, 'the card names its target');
+  assert.ok(
+    card.querySelector('.include-note-card-summary')?.textContent.trim().length > 0,
+    'the card carries the target summary',
+  );
+});
+
+test('no built page ships an unresolved embed placeholder', async () => {
+  const pages = await readdir(new URL('blog/', distRoot), { withFileTypes: true });
+  for (const page of pages.filter((entry) => entry.isDirectory())) {
+    const html = await readFile(new URL(`blog/${page.name}/index.html`, distRoot), 'utf8');
+    const { document } = new JSDOM(html).window;
+    assert.equal(
+      document.querySelectorAll('.include-note').length,
+      0,
+      `${page.name} still has an unresolved embed placeholder`,
+    );
+  }
+});
+
 test('ASCII diagrams survive the pipeline byte for byte', async () => {
   const html = await readFile(
     new URL('blog/记一次华为杯数学建模协作经验/index.html', distRoot),
