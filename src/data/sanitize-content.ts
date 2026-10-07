@@ -2,11 +2,11 @@
  * Guards the note HTML the blog consumes.
  *
  * The sync script that produces `trilium-posts.content.generated.ts` runs from a
- * deployed copy on the server, so a fix there only takes effect once someone
- * redeploys it. These two transforms therefore live on the consuming side as
- * well: whatever the producer emits, the blog renders clean content.
+ * deployed copy inside the automation container, so a fix there only takes effect
+ * once the image is rebuilt. These two transforms therefore live on the consuming
+ * side as well: whatever the producer emits, the blog renders clean content.
  *
- * Both mirror transforms in `scripts/sync_trilium_posts.py`.
+ * Both mirror transforms in longblog-automation's `service/sync_trilium_posts.py`.
  */
 
 /** The Trilium host injects its own asset loader at the top of every note body. */
