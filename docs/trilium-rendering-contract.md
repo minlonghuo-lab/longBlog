@@ -4,6 +4,8 @@
 
 它把 Trilium 自己的渲染规则逐条查出来作为基准，再逐项对照博客现状，标出偏差。改样式前先看这里，不要凭感觉调。
 
+**契约类偏差已全部实现**（PR #21）。保留每节的"梳理时的状态"是为了说明哪些是后来补的、以及**哪些结论被实测推翻过** —— 2.3 表格宽度那条就是初版判断错了，实测记录留在原处。
+
 ## 依据的源码版本
 
 | 项 | 值 |
@@ -195,26 +197,21 @@ Trilium 的正文渲染由五层叠加而成，越靠后优先级越高：
 .ck-content table th { background-color: var(--background-secondary); font-weight: bold; }
 ```
 
-**硬性条件**：表格**撑满容器宽度**（`width: 100%`）；单元格有 **120px 最小宽**（防止窄列被压扁）；表头有背景色和粗体。
+**硬性条件**：单元格有 **120px 最小宽**（防止窄列被压扁）；表头有背景色和粗体；单元格内首尾段落的上下边距被清零。
 
-**博客现状**：
+**表格宽度是个容易搞错的点，这里留一次实测记录**（本仓库构建产物，内容列宽 883px）：
 
-```css
-.content figure.table { max-width: 100%; overflow-x: auto; }
-.content table        { width: max-content; max-width: 100%; margin: 1rem auto; font-size: .92rem; }
-.content th, .content td { border: 1px solid …; padding: .5rem .6rem; vertical-align: top; white-space: normal; }
-```
+| 方案 | 无内联宽度的表格实测宽度 |
+|---|---|
+| 博客原来的 `table { width: max-content }` | 494px |
+| `table { width: 100% }`，figure 保持 block | 883px（撑满整列） |
+| **Trilium 的真实规则**：`figure.table { display: table; margin: .9em auto }` + `figure.table > table { width: 100% }` | **494px** |
 
-**偏差**：
+只有第三行是 Trilium 的实际行为，结果与 `max-content` **完全一致**：`width: 100%` 撑满的是「收缩到内容宽度之后的 figure」，而不是整个内容列。所以**表格宽度不构成偏差**，博客保持原样即可。
 
-| # | 偏差 | 影响 |
-|---|---|---|
-| 1 | `width: max-content` 而非 `100%` | 表格按内容收缩而非撑满，观感差别明显 |
-| 2 | 缺 `min-width: 120px` | 窄列会被压得很扁 |
-| 3 | 缺 `th` 背景色 | 表头不够醒目 |
-| 4 | 缺 `td > p:first-of-type { margin-top: 0 }` / `:last-of-type { margin-bottom: 0 }` | 单元格内的 `<p>` 会多出约 1rem 下边距。**内容里有 27 个 `<td>` 和 4 个 `<th>` 含 `<p>`** |
+教训：只读规则文本会把这一条误判成差异（本文档初版就判错了），涉及尺寸的结论必须实测。
 
-第 4 条是容易被忽略但确实存在的一条：CKEditor 会清零单元格内首尾段落的上下边距，博客的 `.content p { margin: 0 0 1rem }` 没有对应处理。
+**已对齐**：单元格 `min-width: 120px`、表头背景色、单元格内首尾段落边距清零。
 
 ---
 
@@ -279,7 +276,7 @@ Trilium 的正文渲染由五层叠加而成，越靠后优先级越高：
 
 也就是说：**博客不应隐藏任何折叠的列表项内容。**
 
-**博客现状**：❌ **完全没有 `trilium-collapsible` 相关规则**。内容里已有 1 处折叠块，目前靠浏览器默认渲染（原生三角标记、无边框无背景），与 Trilium 的卡片外观差距明显。
+**博客现状**：✅ 已实现（含展开态的箭头旋转与分隔线）。纯 CSS + 原生 `<details>`，没有引入 JS。
 
 ---
 
@@ -343,7 +340,7 @@ Trilium 的正文渲染由五层叠加而成，越靠后优先级越高：
 .admonition.warning::before   { content: "\eac5"; }
 ```
 
-**博客现状**：❌ 无。当前内容里还没用到，但一旦在 Trilium 里插入提示框，博客会渲染成无样式的裸 `<aside>`。**另需注意：图标是 boxicons 字体，博客若要完全一致需要引入该字体，或换成等效的自绘图标。**
+**博客现状**：✅ 已实现 5 种类型。图标取自 boxicons，但**只把笔记内容可能引用的 7 个字形子集化**（`public/fonts/boxicons-subset.woff`，1.3 KB，完整字体 115 KB），字形轮廓与 Trilium 一致。子集里有 `\ea50`(chevron-right)、`\eb21`(info-circle)、`\ea0d`(bulb)、`\ea7c`(comment-error)、`\eac7`(error-circle)、`\eac5`(error)、`\ea84`(copy)。**若以后在 Trilium 里用到别的图标，需要重新子集化并补进这个文件。**
 
 ---
 
@@ -351,10 +348,10 @@ Trilium 的正文渲染由五层叠加而成，越靠后优先级越高：
 
 | 构造 | Trilium（第 1 层 CKEditor 为主） | 博客现状 | 判断 |
 |---|---|---|---|
-| 引用块 | `border-left: 5px solid #ccc; padding: 0 1.5em; font-style: italic; overflow: hidden` | `border-left: 3px; padding: .75rem .95rem; 加背景；无斜体` | 设计差异 |
-| 分隔线 | `hr { height: 4px; background: #dedede; border: 0; margin: 15px 0 }` | **无规则**，浏览器默认（1px 内凹线） | 偏差 |
-| 段落 | 由宿主决定；CKEditor 默认 `overflow-wrap: break-word; word-break: normal` | `text-align: justify` + `overflow-wrap: anywhere` | **偏差**：两端对齐是博客独有，Trilium 不这么做 |
-| 列表项内段落 | `.ck-content li p { margin: 0 !important }`（Trilium 覆盖） | `.content p { margin: 0 0 1rem }` 同样命中 | 偏差（当前内容仅 1 处 `<li>` 含 `<p>`） |
+| 引用块 | `border-left: 5px solid #ccc; padding: 0 1.5em; font-style: italic; overflow: hidden` | ✅ 已对齐到 5px + 斜体（仅保留博客自己的边框配色） | — |
+| 分隔线 | `hr { height: 4px; background: #dedede; border: 0; margin: 15px 0 }` | ✅ 已实现 | — |
+| 段落 | 由宿主决定；CKEditor 默认 `overflow-wrap: break-word; word-break: normal` | ✅ 已去掉两端对齐 | — |
+| 列表项内段落 | `.ck-content li p { margin: 0 !important }`（Trilium 覆盖） | ✅ 已补 | — |
 | 行内 code | `code:not(pre code) { padding: 2px 5px; overflow-wrap: break-word }` | `padding: .1em .3em; overflow-wrap: anywhere; word-break: break-all` | 接近；博客断行更激进 |
 | 标题 | CKEditor 用 em 相对字号，Trilium 分享主题给 h1–h6 加 `border-bottom` | 固定 rem 字号，无下边框 | 设计差异 |
 | 字体/字号/行高/配色 | **`inherit`**（明确交给宿主） | 博客自有版式 | 不属于契约 |
@@ -375,7 +372,12 @@ Trilium 的正文渲染由五层叠加而成，越靠后优先级越高：
 
 配套 CSS：`pre > button.copy-button { position: absolute; top: .35em; inset-inline-end: .35em }`，且 `pre:has(> button.copy-button) { padding-inline-end: calc(37px + .7em) }`（`style.css:721-743`）。
 
-**含义**：博客要完全一致，需要自己实现**构建时语法高亮**和**复制按钮（需前端 JS）**。这是功能缺口，不是 CSS 缺口——调样式解决不了。
+**含义**：博客要完全一致，需要自己实现**语法高亮**和**复制按钮**。这是功能缺口，不是 CSS 缺口——调样式解决不了。
+
+**已实现**，两处都与 Trilium 的做法有意不同或相同，理由如下：
+
+- **语法高亮**改成**构建时**预渲染（`src/data/syntax-highlight.ts`，接在 `src/data/posts.ts` 的内容管线上）。Trilium 在浏览器里跑，静态站预渲染更划算：没有运行时成本、禁用 JS 也能看到。语言映射沿用 Trilium 的规则：class 里是 MIME 形式，`text-x-trilium-auto` 表示自动检测，而 Trilium 的分享渲染**不做**自动检测（`applySingleBlockSyntaxHighlight` 的自动分支带 `!isShare`），所以这类块在博客上同样保持无高亮。
+- **复制按钮**沿用 Trilium 的做法，在页面加载后追加到 `<pre>` 上（`src/scripts/code-blocks.js`），并用 `:has()` 为它预留空间；行内 code 也支持点击复制。
 
 另外两项渲染时展开：
 
@@ -386,36 +388,38 @@ Trilium 的正文渲染由五层叠加而成，越靠后优先级越高：
 
 ## 四、总表
 
-| # | 构造 | 博客状态 | 性质 |
-|---|---|---|---|
-| 1 | 代码块空白 | ✅ 已对齐 | — |
-| 2 | 代码块 `tab-size: 4` | ❌ 缺失 | 契约 |
-| 3 | 图片 760px 上限 | ❌ 偏差 | 设计取舍 |
-| 4 | 图片撑满 figure（`min-width: 100%`） | ❌ 缺失 | 契约 |
-| 5 | 图片浮动对齐（`image-style-align-*`） | ❌ 缺失 | 契约 |
-| 6 | 表格宽度 `100%` | ❌ 偏差 | 设计取舍 |
-| 7 | `td/th` 最小宽 120px | ❌ 缺失 | 契约 |
-| 8 | `th` 表头背景 | ❌ 缺失 | 设计取舍 |
-| 9 | 单元格内段落边距清零 | ❌ 缺失 | 契约（影响 31 个单元格） |
-| 10 | 折叠块 `trilium-collapsible` | ❌ **完全缺失** | 契约 |
-| 11 | 内嵌笔记 | ✅ 已用引用卡片实现 | 本项目决定 |
-| 12 | 提示框 admonition | ❌ 缺失（含图标字体） | 契约 |
-| 13 | 分隔线 `hr` | ❌ 缺失 | 契约 |
-| 14 | 段落两端对齐 | ❌ 博客独有 | 设计取舍 |
-| 15 | 语法高亮 | ❌ 缺失 | **功能** |
-| 16 | 代码块复制按钮 | ❌ 缺失 | **功能** |
+下表是**契约刚梳理出来时**的差距快照。除标注外，其余均已在 `feat/trilium-rendering-parity`（PR #21）中实现。
+
+| # | 构造 | 梳理时的状态 | 性质 | 现在 |
+|---|---|---|---|---|
+| 1 | 代码块空白 | ✅ 已对齐 | — | ✅ |
+| 2 | 代码块 `tab-size: 4` | ❌ 缺失 | 契约 | ✅ |
+| 3 | 图片 760px 上限 | ❌ 偏差 | 设计取舍 | ✅ 已去掉 |
+| 4 | 图片撑满 figure（`min-width: 100%`） | ❌ 缺失 | 契约 | ✅ |
+| 5 | 图片浮动对齐（`image-style-align-*`） | ❌ 缺失 | 契约 | ✅ |
+| 6 | 表格宽度 `100%` | ❌ 偏差 | ~~设计取舍~~ | **判错了，无需改动**（见 2.3 实测） |
+| 7 | `td/th` 最小宽 120px | ❌ 缺失 | 契约 | ✅ |
+| 8 | `th` 表头背景 | ❌ 缺失 | 设计取舍 | ✅ |
+| 9 | 单元格内段落边距清零 | ❌ 缺失 | 契约（影响 31 个单元格） | ✅ |
+| 10 | 折叠块 `trilium-collapsible` | ❌ **完全缺失** | 契约 | ✅ 纯 CSS + 原生 `<details>` |
+| 11 | 内嵌笔记 | ✅ 已用引用卡片实现 | 本项目决定 | ✅ |
+| 12 | 提示框 admonition | ❌ 缺失（含图标字体） | 契约 | ✅ 含 7 字形子集字体 |
+| 13 | 分隔线 `hr` | ❌ 缺失 | 契约 | ✅ |
+| 14 | 段落两端对齐 | ❌ 博客独有 | 设计取舍 | ✅ 已去掉 |
+| 15 | 语法高亮 | ❌ 缺失 | **功能** | ✅ 改为构建时预渲染 |
+| 16 | 代码块复制按钮 | ❌ 缺失 | **功能** | ✅ 含行内 code 点击复制 |
 
 ---
 
 ## 五、怎么用这份文档
 
 - **改样式前**先查对应构造的"硬性条件"，那是 Trilium 侧的权威行为。
-- 表中**"设计取舍"**类是博客作者的有意选择，不构成 bug；**"契约"**类是 Trilium 的结构性行为，不改就会走样。
-- **"功能"**类需要写代码，不是改 CSS。
-- 复查方式：`node audit-render.mjs http://127.0.0.1:<port>` 扫全部文章的折叠/溢出/注入/图片加载；`node measure-images.mjs` 量化图片布局。
+- **"契约"**类是 Trilium 的结构性行为，不改就会走样；改版式时（字体、配色、间距）可以按博客自己的审美来 —— Trilium 把这几项显式设为 `inherit` 交给宿主。
+- **涉及尺寸的结论必须实测**，不能只读规则文本（见 2.3）。
+- 复查方式：`node audit-render.mjs http://127.0.0.1:<port>` 扫全部文章的折叠/溢出/注入/图片加载；`node measure-images.mjs` 量化图片布局；`node probe.mjs <url> <expr>` 在真实渲染里做 A/B。
 
 ### 验证状态说明
 
 - 2.1–2.4 的 CSS 规则与 2.5 的渲染流程：**已在源码中逐条核对**，附文件与行号。
-- 图片与表格偏差的具体数量（5 张图、31 个单元格）：**已在本仓库构建产物上实测**。
-- 2.6 提示框、2.7 中的 `hr` 与列表项段落：**源码已核对，但在博客上尚无实例**，影响面是推断值。
+- 图片、表格、单元格的影响数量，以及表格宽度的方案对比：**已在本仓库构建产物上实测**。
+- 2.6 提示框、2.7 中的 `hr` 与列表项段落：源码已核对，实现后**用合成夹具截图验证过**（内容里还没有实例，属构造可用性验证而非真实文章验证）。
