@@ -289,3 +289,20 @@ test('no built page renders a source-less image', async () => {
     assert.equal(broken.length, 0, `${page.name} renders an image without a source`);
   }
 });
+
+test('the lightbox does not request the page it sits on', async () => {
+  const pages = await readdir(new URL('blog/', distRoot), { withFileTypes: true });
+  for (const page of pages.filter((entry) => entry.isDirectory())) {
+    const html = await readFile(new URL(`blog/${page.name}/index.html`, distRoot), 'utf8');
+    const { document } = new JSDOM(html).window;
+    const lightboxImg = document.getElementById('image-lightbox-img');
+    assert.ok(lightboxImg, `${page.name} should render the lightbox`);
+    // `src=""` resolves to the document URL, so the browser fetches the page a
+    // second time to use as an image; the script sets the attribute on open.
+    assert.equal(
+      lightboxImg.hasAttribute('src'),
+      false,
+      `${page.name} lightbox ships a src attribute`,
+    );
+  }
+});

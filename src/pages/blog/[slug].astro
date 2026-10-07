@@ -96,7 +96,7 @@ function formatDate(date: Date): string {
 
   <div id="image-lightbox" class="image-lightbox" aria-hidden="true">
     <button id="image-lightbox-close" class="image-lightbox-close" type="button" aria-label="关闭预览">✕</button>
-    <img id="image-lightbox-img" src="" alt="文章图片预览" />
+    <img id="image-lightbox-img" alt="文章图片预览" />
   </div>
 
   <script>
@@ -300,7 +300,9 @@ function formatDate(date: Date): string {
         if (!(lightbox instanceof HTMLElement) || !(lightboxImg instanceof HTMLImageElement)) return;
         lightbox.classList.remove('open');
         lightbox.setAttribute('aria-hidden', 'true');
-        lightboxImg.src = '';
+        // An empty `src` resolves to the current document URL, so the browser
+        // fetches the page again; drop the attribute instead.
+        lightboxImg.removeAttribute('src');
         document.body.classList.remove('lightbox-open');
         document.body.style.overflow = mobileTocSheet?.classList.contains('open') ? 'hidden' : '';
       };
