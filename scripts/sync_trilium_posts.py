@@ -8,6 +8,7 @@ import mimetypes
 import subprocess
 import time
 from datetime import datetime, timezone, timedelta
+from html import escape as html_escape
 from typing import Dict, List, Optional, Tuple
 
 import requests
@@ -266,6 +267,89 @@ def download_attachment_by_etapi(attachment_id: str) -> Tuple[Optional[bytes], O
         return None, None
 
 
+def strip_manager_injections(html: str) -> Tuple[str, int]:
+    """Remove host-injected asset tags from note content.
+
+    The Trilium deployment serving this blog injects its own stylesheet and
+    script tag at the top of every note body. Those tags address the Trilium
+    host (`/__fnos/assets/...`), not the blog, so they must never be published:
+    on the blog they only produce 404 requests and stray DOM. Removal is
+    idempotent, and content without the marker is returned untouched.
+    """
+    if not html or "data-trilium-fnos-manager" not in html:
+        return html, 0
+    pattern = re.compile(
+        r"<link\b[^>]*data-trilium-fnos-manager[^>]*>\s*"
+        r"|<script\b[^>]*data-trilium-fnos-manager[^>]*>\s*(?:</script>)?\s*",
+        re.IGNORECASE,
+    )
+    return pattern.subn("", html)
+
+
+INCLUDE_NOTE_PATTERN = re.compile(
+    r'<(section|figure)\b([^>]*\bclass="[^"]*\binclude-note\b[^"]*"[^>]*)>(.*?)</\1>',
+    re.IGNORECASE | re.DOTALL,
+)
+NOTE_ID_ATTR = re.compile(r'data-note-id="([^"]+)"', re.IGNORECASE)
+
+
+def render_include_note_card(note_id: str, target: dict) -> str:
+    summary = str(target.get("summary") or "").strip()
+    summary_html = (
+        f'<span class="include-note-card-summary">{html_escape(summary, quote=True)}</span>'
+        if summary else ""
+    )
+    return (
+        f'<a class="include-note-card" href="/blog/{html_escape(str(target["slug"]), quote=True)}"'
+        f' data-note-id="{html_escape(note_id, quote=True)}">'
+        '<span class="include-note-card-label">相关文章</span>'
+        f'<span class="include-note-card-title">{html_escape(str(target.get("title") or ""), quote=True)}</span>'
+        f"{summary_html}</a>"
+    )
+
+
+def render_include_note_cards(html: str, index: Dict[str, dict]) -> Tuple[str, int]:
+    """Replace each embedded-note placeholder with a link card to the published post.
+
+    An embed stores only its target's id and is expanded by Trilium in the browser,
+    so published content has to resolve it here. A target outside `index` — a note
+    that is not published, or an attachment embed — is left untouched rather than
+    guessed at.
+    """
+    if not html or "include-note" not in html:
+        return html, 0
+    replaced = 0
+
+    def substitute(match: "re.Match[str]") -> str:
+        nonlocal replaced
+        note_id_match = NOTE_ID_ATTR.search(match.group(2))
+        if not note_id_match:
+            return match.group(0)
+        target = index.get(note_id_match.group(1))
+        if not target or not target.get("slug"):
+            return match.group(0)
+        replaced += 1
+        return render_include_note_card(note_id_match.group(1), target)
+
+    return INCLUDE_NOTE_PATTERN.sub(substitute, html), replaced
+
+
+def apply_include_note_cards(posts: List[dict]) -> int:
+    """Resolve embedded notes across the whole published set.
+
+    Runs once every post is built so a card can link to the final slug of a note
+    published in the same run, whatever order the two were processed in.
+    """
+    index = {str(post["id"]): post for post in posts if post.get("id") and post.get("slug")}
+    total = 0
+    for post in posts:
+        cleaned, replaced = render_include_note_cards(str(post.get("contentHtml") or ""), index)
+        if replaced:
+            post["contentHtml"] = cleaned
+            total += replaced
+    return total
+
+
 def find_attachment_urls(html: str) -> List[str]:
     pattern = re.compile(r'(https?://[^"\'\)\s]*/api/attachments/[^"\'\)\s]+|/api/attachments/[^"\'\)\s]+|api/attachments/[^"\'\)\s]+)')
     return sorted(set(pattern.findall(html or "")))
@@ -333,6 +417,7 @@ def build_post_record(note: dict, used_slugs: set, previous_slug_map: Dict[str, 
     attr_map = label_attrs(note.get("attributes", []) or [])
     title = (note.get("title") or "未命名").strip()
     html = get_text(f"/etapi/notes/{note_id}/content")
+    html, _ = strip_manager_injections(html)
     html_localized, local_assets, assets_changed = localize_attachments(html, note_id)
     explicit_slug = last_label_value(attr_map, "slug", "").strip()
     base_slug = explicit_slug or slugify(title)
@@ -814,6 +899,7 @@ def main():
             report["failed"].append({"id": note.get("noteId"), "title": note.get("title"), "error": str(e)[:300]})
 
     report["removedAssets"] = cleanup_removed_assets([item["id"] for item in report["removed"]])
+    report["includeCards"] = apply_include_note_cards(posts)
     write_generated_files(posts)
     report["gitChanged"] = git_has_changes()
     report["autoPushEnabled"] = AUTO_PUSH

@@ -1063,6 +1063,49 @@ function formatDate(date: Date): string {
     text-align: center;
   }
 
+  /* A note embedded in another note arrives as an empty placeholder; the sync
+     resolves it into this card so the reference is followable instead of blank. */
+  .content .include-note-card {
+    display: block;
+    margin: 1.35rem 0;
+    padding: 0.9rem 1.05rem;
+    border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+    border-radius: 0.5rem;
+    background: color-mix(in oklab, var(--muted) 94%, white);
+    text-decoration: none;
+    transition: border-color var(--transition-base), transform var(--transition-base);
+  }
+
+  .content .include-note-card:hover {
+    border-color: color-mix(in oklab, var(--foreground) 22%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .content .include-note-card-label {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--muted-foreground);
+  }
+
+  .content .include-note-card-title {
+    display: block;
+    margin-top: 0.3rem;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--foreground);
+  }
+
+  .content .include-note-card-summary {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    margin-top: 0.4rem;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--muted-foreground);
+  }
+
   .content table {
     width: max-content;
     max-width: 100%;
@@ -1110,11 +1153,19 @@ function formatDate(date: Date): string {
     padding: 0.85rem;
     border-radius: 0.45rem;
     background: color-mix(in oklab, var(--muted) 94%, white);
+    white-space: pre;
   }
 
   .content pre code {
     background: transparent;
     padding: 0;
+    /* Restore the preformatted whitespace contract that `.content code` overrides
+       with `white-space: normal`. Without this, every newline and run of spaces
+       inside a code block collapses, destroying monospace ASCII diagrams. */
+    white-space: pre;
+    overflow-wrap: normal;
+    word-break: normal;
+    line-break: auto;
   }
 
   html[data-theme='dark'] .content blockquote {
@@ -1129,6 +1180,15 @@ function formatDate(date: Date): string {
   html[data-theme='dark'] .content pre {
     background: rgba(8, 11, 19, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  html[data-theme='dark'] .content .include-note-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.09);
+  }
+
+  html[data-theme='dark'] .content .include-note-card:hover {
+    border-color: rgba(255, 255, 255, 0.22);
   }
 
   html[data-theme='dark'] .content th,
