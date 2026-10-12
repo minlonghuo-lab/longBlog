@@ -167,7 +167,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "4t7DdbbFdP02",
     "slug": "我的保研之旅",
-    "updatedAt": "2026-09-14 14:36:33.536+0800",
+    "updatedAt": "2026-10-12 16:33:55.001+0800",
     "publishedAt": "2026-03-09 19:04:33.813+0800",
     "tags": [
       "保研",
@@ -175,50 +175,49 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "经验分享"
     ],
     "pinned": false,
-    "syncHash": "aec3b6101bdf4a79c9adaf4b11d547c982aeff12f1e14efaeef417828aaff659",
+    "syncHash": "ed1a34e42b2fd9a94008d73532842a88dd8627de768e2e2317ea80aab8394035",
     "syncStatus": "published"
   },
   {
     "id": "F2ea4malPi8x",
     "slug": "远程访问nas心得",
-    "updatedAt": "2026-09-14 14:36:04.534+0800",
+    "updatedAt": "2026-10-12 16:33:54.608+0800",
     "publishedAt": "2026-03-08T02:14:50.366611-08:00",
     "tags": [
       "NAS",
       "安全性",
-      "远程访问",
-      "NAS"
+      "远程访问"
     ],
     "pinned": false,
-    "syncHash": "288047e130c1fcda00fd8f311afe0183c1d2b4ca893671a326911c34efbe6be2",
+    "syncHash": "71469064c74c2a1f6988af2bf1d6377541baf61c7fe670d6958027d5a74ff59f",
     "syncStatus": "published"
   },
   {
     "id": "wqP8s2pQuo0H",
     "slug": "分享一些docker项目",
-    "updatedAt": "2026-09-14 14:35:49.284+0800",
+    "updatedAt": "2026-10-12 16:33:54.510+0800",
     "publishedAt": "2026-03-07T02:14:50.366611-08:00",
     "tags": [
-      "DOCKER",
+      "Docker",
       "经验分享",
       "NAS"
     ],
     "pinned": false,
-    "syncHash": "4dd5421ce1c7cd4533889c01af262fe89376f61afe24c67c030cfdc88f8d5c2f",
+    "syncHash": "e3a24c34bf4b80653d2113a13d20317816ace93f42dd992fd25075ec82e1d322",
     "syncStatus": "published"
   },
   {
     "id": "4o1kCT4CizAt",
     "slug": "飞牛nas部署matrix",
-    "updatedAt": "2026-09-14 15:10:29.351+0800",
+    "updatedAt": "2026-10-12 16:33:54.372+0800",
     "publishedAt": "2026-02-19T02:14:50.366611-08:00",
     "tags": [
-      "DOCKER",
+      "Docker",
       "MATRIX",
       "NAS"
     ],
     "pinned": false,
-    "syncHash": "e0399a235c882ff4f243b0b047e6ab90afcdd4c835431e354ea3d79d20ce0986",
+    "syncHash": "0d82564bb409e121790cec7c907457af75b14c87f72110457b965303a8ee49f0",
     "syncStatus": "published"
   },
   {
