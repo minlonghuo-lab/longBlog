@@ -7,7 +7,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "cyZ6AgNjauV8",
     "slug": "记一次华为杯数学建模协作经验",
-    "updatedAt": "2026-10-12 16:12:47.669+0800",
+    "updatedAt": "2026-10-12 16:34:07.534+0800",
     "publishedAt": "2026-10-07 04:01:39.876+0800",
     "tags": [
       "数学建模",
@@ -18,13 +18,13 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "自动化"
     ],
     "pinned": false,
-    "syncHash": "b32780d6a4f0ebc019b2aa54d9b9b15c1baf7d3d975918217f3be9e34b794dcc",
+    "syncHash": "4c9b6bcf158a2d8de723c7a328e2422e567af6276f25cd246ef4b3ed800f10ef",
     "syncStatus": "published"
   },
   {
     "id": "y6WtEPfNytSp",
     "slug": "从微信对话到线上博客",
-    "updatedAt": "2026-09-14 14:37:40.618+0800",
+    "updatedAt": "2026-10-12 16:34:07.450+0800",
     "publishedAt": "2026-08-31 22:12:58.470+0800",
     "tags": [
       "Trilium",
@@ -35,13 +35,13 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "AI"
     ],
     "pinned": false,
-    "syncHash": "b994764cfc2107265bed8e7631dd1b05e05390484f4639f3346ed273d6137f95",
+    "syncHash": "f4f7c4e1ff5a95b7d3f28ed3283fe42db85a00dc00a7659f25ace22386aeeb7b",
     "syncStatus": "published"
   },
   {
     "id": "KgAdONn6xKlf",
     "slug": "overleaf部署实战指南",
-    "updatedAt": "2026-09-19 01:05:30.354+0800",
+    "updatedAt": "2026-10-12 16:34:07.368+0800",
     "publishedAt": "2026-08-30 17:37:19.626+0800",
     "tags": [
       "Overleaf",
@@ -51,13 +51,13 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "反向代理"
     ],
     "pinned": false,
-    "syncHash": "7adc081896af17b369740baffd46ea084c6d802efcb818f5ff685f5132dd56ba",
+    "syncHash": "9968917daa297cefb66ccfd32c438ae538e320a204e8bccb1759427893ca7f68",
     "syncStatus": "published"
   },
   {
     "id": "n3ke85XE28js",
     "slug": "擂辣椒烧排骨初尝",
-    "updatedAt": "2026-08-02 14:22:00.035+0800",
+    "updatedAt": "2026-10-12 16:34:07.224+0800",
     "publishedAt": "2026-08-02 14:22:00.035+0800",
     "tags": [
       "擂辣椒烧排骨",
@@ -67,13 +67,13 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "新手做菜"
     ],
     "pinned": false,
-    "syncHash": "d5df97fb1a2e15656bf3d37484d6531363334f8d13a598b65afa393bedd287f8",
+    "syncHash": "87e5fb45472085180bc378e552798fc6c7f113d355f2f9b4d50a56dd2a592a17",
     "syncStatus": "published"
   },
   {
     "id": "ykDuL5tkBQnG",
     "slug": "从数位板到inkscape零基础ui图标全流程",
-    "updatedAt": "2026-08-01 16:16:11.521+0800",
+    "updatedAt": "2026-10-12 16:34:07.126+0800",
     "publishedAt": "2026-08-01 16:00:53.480+0800",
     "tags": [
       "数位板",
@@ -83,13 +83,13 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "SVG"
     ],
     "pinned": false,
-    "syncHash": "65ef23a0860b2ca87294bfd583df580a0339fd3c6378377fbc34d5051115d4aa",
+    "syncHash": "6a9900dad3481ed38207268359e907bebf9380b969999c381ed20fe240395614",
     "syncStatus": "published"
   },
   {
     "id": "HuEZ8IbXjuPl",
     "slug": "详细拆解longblog自动化流程",
-    "updatedAt": "2026-10-08 01:19:51.231+0800",
+    "updatedAt": "2026-10-12 16:34:06.725+0800",
     "publishedAt": "2026-04-03 00:01:47.102+0800",
     "tags": [
       "AI生成",
@@ -99,13 +99,13 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "Webhook"
     ],
     "pinned": false,
-    "syncHash": "6ffd5376e7974c50c3773f93d54cb01b6c3b710a1b10a0a9a7f86f78d7dd7298",
+    "syncHash": "43f0f2211aa75314c7278218b2ba676627278e0c488d3f756d1631491ece72b1",
     "syncStatus": "published"
   },
   {
     "id": "dpIN2qR0Q8lb",
     "slug": "个人博客longblog介绍",
-    "updatedAt": "2026-10-08 01:20:18.705+0800",
+    "updatedAt": "2026-10-12 16:34:06.954+0800",
     "publishedAt": "2026-04-02 23:28:06.320+0800",
     "tags": [
       "AI生成",
@@ -115,13 +115,13 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "静态站点"
     ],
     "pinned": false,
-    "syncHash": "583b8257d6c3e394b920afefb68233b07dfd534056382615d47b07316546675d",
+    "syncHash": "ad3fd3ed60a06ab6b0c1c2dbde9b6ffa6ede4595fa13ae7e95ac015501cf04c9",
     "syncStatus": "published"
   },
   {
     "id": "vvEmuVooTDii",
     "slug": "我的建站史",
-    "updatedAt": "2026-09-14 14:37:12.012+0800",
+    "updatedAt": "2026-10-12 16:34:06.875+0800",
     "publishedAt": "2026-04-02 17:34:02.331+0800",
     "tags": [
       "Astro",
@@ -130,13 +130,13 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "技术选型"
     ],
     "pinned": false,
-    "syncHash": "55f484aa4e73f1aa2150492cf56f0a3ba030b6cff43460272c18a38b78d52996",
+    "syncHash": "b67a71ac160545d0f6f3cd0fc1b9fd05587852a4939624ebdb96d3c3ca44cac1",
     "syncStatus": "published"
   },
   {
     "id": "dDI26xYqquzY",
     "slug": "基于tlock和cryptomator的时间胶囊",
-    "updatedAt": "2026-09-14 14:36:52.797+0800",
+    "updatedAt": "2026-10-12 16:34:06.596+0800",
     "publishedAt": "2026-03-29T02:14:50.366611-08:00",
     "tags": [
       "时间胶囊",
@@ -144,7 +144,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
       "安全性"
     ],
     "pinned": false,
-    "syncHash": "cce329dff5b3871ed64a8ceb6d7e6edda1e9ed908ccef38458727de15d7f2f50",
+    "syncHash": "e3d9ece77683584f4ea78b2b2f9afffa17aa459a46c669312f4208383ec563ba",
     "syncStatus": "published"
   },
   {
@@ -195,7 +195,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "wqP8s2pQuo0H",
     "slug": "分享一些docker项目",
-    "updatedAt": "2026-10-12 16:33:54.510+0800",
+    "updatedAt": "2026-10-12 16:34:06.441+0800",
     "publishedAt": "2026-03-07T02:14:50.366611-08:00",
     "tags": [
       "Docker",
