@@ -307,6 +307,8 @@ Trilium 的正文渲染由五层叠加而成，越靠后优先级越高：
 
 **博客现状**：✅ 已由同步脚本解析成引用卡片（`render_include_note_cards`），这是本项目的有意选择（避免站内重复内容）。目标未发布时原样保留。
 
+卡片的 `href` 必须遵循路由约定 **`/blog/<noteId>/`**（见 [article-routing.md](article-routing.md)）：纯 ASCII、带结尾斜杠、用稳定的 noteId。**不要用 slug** —— 它可编辑，而且只保留给搜索与 `edgeone.json` 的迁移表；用它拼站内链接会让链接是否可用取决于那张一次性的重定向表，文章一改名就断。生成这段 HTML 的是 longblog-automation 的 `service/sync_trilium_posts.py`，改动要在那个仓库做。
+
 ---
 
 ### 2.6 提示框（admonition）

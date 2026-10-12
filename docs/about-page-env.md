@@ -1,6 +1,6 @@
 # About Terminal
 
-`/about` is a purely local terminal-style page. No new environment variables,
+`/about/` is a purely local terminal-style page. No new environment variables,
 server, shell, GitHub API or Trilium tree API are required.
 
 ## Commands
