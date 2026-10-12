@@ -167,7 +167,7 @@ export const triliumPostMetas: TriliumPostMetaRecord[] = [
   {
     "id": "4t7DdbbFdP02",
     "slug": "我的保研之旅",
-    "updatedAt": "2026-10-12 16:33:55.001+0800",
+    "updatedAt": "2026-10-12 16:34:31.063+0800",
     "publishedAt": "2026-03-09 19:04:33.813+0800",
     "tags": [
       "保研",
