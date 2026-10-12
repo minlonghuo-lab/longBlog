@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { JSDOM } from 'jsdom';
+import { getPostPath } from '../src/lib/routes.js';
 import {
   sanitizeNoteHtml,
   stripEmptyImageFigures,
@@ -111,7 +112,7 @@ test('published note content carries no Trilium host injections', async () => {
 
 test('embedded notes resolve to a link card instead of a blank placeholder', async () => {
   const html = await readFile(
-    new URL('blog/基于tlock和cryptomator的时间胶囊/index.html', distRoot),
+    new URL(`.${getPostPath('dDI26xYqquzY')}index.html`, distRoot),
     'utf8',
   );
   const { document } = new JSDOM(html).window;
@@ -125,7 +126,7 @@ test('embedded notes resolve to a link card instead of a blank placeholder', asy
   assert.ok(card, 'the embed should render as a card');
   assert.equal(
     card.getAttribute('href'),
-    '/blog/使用-cryptomator为云存储提供零知识加密',
+    getPostPath('2epdE8sgosX8'),
     'the card must link to the embedded note',
   );
   assert.match(card.textContent, /使用 Cryptomator/, 'the card names its target');
@@ -150,7 +151,7 @@ test('no built page ships an unresolved embed placeholder', async () => {
 
 test('ASCII diagrams survive the pipeline byte for byte', async () => {
   const html = await readFile(
-    new URL('blog/记一次华为杯数学建模协作经验/index.html', distRoot),
+    new URL(`.${getPostPath('cyZ6AgNjauV8')}index.html`, distRoot),
     'utf8',
   );
   const { document } = new JSDOM(html).window;
@@ -179,7 +180,7 @@ test('ASCII diagrams survive the pipeline byte for byte', async () => {
 });
 
 test('syntax highlighting follows the rules Trilium applies outside the app', async () => {
-  const html = await readFile(new URL('blog/近期让我眼前一亮的软件/index.html', distRoot), 'utf8');
+  const html = await readFile(new URL(`.${getPostPath('KyFrU3uItyRq')}index.html`, distRoot), 'utf8');
   const { document } = new JSDOM(html).window;
 
   const highlighted = document.querySelectorAll('.content pre.hljs');
@@ -200,7 +201,7 @@ test('syntax highlighting follows the rules Trilium applies outside the app', as
 
   // Highlighting must not disturb the preformatted whitespace contract.
   const diagram = await readFile(
-    new URL('blog/记一次华为杯数学建模协作经验/index.html', distRoot),
+    new URL(`.${getPostPath('cyZ6AgNjauV8')}index.html`, distRoot),
     'utf8',
   );
   const diagramDoc = new JSDOM(diagram).window.document;

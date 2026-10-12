@@ -1,10 +1,12 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { posts } from '../../data/posts';
+import { getPostRouteId, PAGE_PATHS } from '../../lib/routes.js';
 
 export function getStaticPaths() {
   return posts.map((post) => ({
-    params: { slug: post.slug },
+    // Validate noteId using the same helper as every article link.
+    params: { slug: getPostRouteId(post.id) },
     props: { post },
   }));
 }
@@ -54,7 +56,7 @@ function formatDate(date: Date): string {
       </aside>
 
       <article class="post-paper">
-        <a href="/blog" class="back-link">← 返回文章列表</a>
+        <a href={PAGE_PATHS.blog} class="back-link">← 返回文章列表</a>
 
         <header class="post-header" id="post-top">
           <h1>{post.title}</h1>

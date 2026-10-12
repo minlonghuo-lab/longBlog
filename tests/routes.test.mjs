@@ -1,0 +1,113 @@
+import assert from 'node:assert/strict';
+import { readFile, readdir, access } from 'node:fs/promises';
+import { test } from 'node:test';
+import { JSDOM } from 'jsdom';
+import { getPostPath, getPostRouteId, PAGE_PATHS } from '../src/lib/routes.js';
+
+const root = new URL('../', import.meta.url);
+const read = path => readFile(new URL(path, root), 'utf8');
+const source = await read('src/data/trilium-posts.meta.generated.ts');
+const start = source.indexOf('=', source.indexOf('export const triliumPostMetas'));
+const metas = JSON.parse(source.slice(start + 1).trim().replace(/;$/, ''));
+const config = JSON.parse(await read('edgeone.json'));
+
+test('article URLs use stable, case-preserving ASCII noteIds', () => {
+  assert.equal(getPostPath('cyZ6AgNjauV8'), '/blog/cyZ6AgNjauV8/');
+  assert.equal(getPostRouteId('A_b-1'), 'A_b-1');
+  for (const id of ['', '中文', '../secret', 'a/b', 'a?x=1', 'a#b', null]) {
+    assert.throws(() => getPostPath(id));
+  }
+  const post = { id: 'cyZ6AgNjauV8', slug: '旧中文标题' };
+  const before = getPostPath(post.id);
+  post.slug = '改名后的标题';
+  assert.equal(getPostPath(post.id), before);
+  assert.equal(new Set(metas.map(post => post.id)).size, metas.length);
+});
+
+test('every article builds to an ASCII directory with its Chinese content', async () => {
+  const folders = await readdir(new URL('dist/blog/', root), { withFileTypes: true });
+  assert.deepEqual(folders.filter(entry => entry.isDirectory()).map(entry => entry.name).sort(), metas.map(post => post.id).sort());
+  for (const post of metas) {
+    const html = await read(`dist${getPostPath(post.id)}index.html`);
+    const dom = new JSDOM(html);
+    assert.ok(dom.window.document.querySelector('.post-header h1')?.textContent.trim());
+    assert.match(dom.window.document.querySelector('#post-content').textContent, /[\u4e00-\u9fff]/);
+    assert.equal(dom.window.document.querySelector('.back-link').getAttribute('href'), PAGE_PATHS.blog);
+    dom.window.close();
+  }
+});
+
+test('navigation, cards, filters and terminal links point to existing directory pages', async () => {
+  for (const path of Object.values(PAGE_PATHS)) {
+    const dom = new JSDOM(await read(`dist${path}index.html`), { url: `https://longblog.test${path}` });
+    const { document } = dom.window;
+    const links = document.querySelectorAll('.nav-link, .post-link, .tag-link, .section-head a');
+    assert.ok(links.length);
+    for (const link of links) {
+      const url = new URL(link.getAttribute('href'), dom.window.location.href);
+      assert.ok(url.pathname.endsWith('/'), link.outerHTML);
+      assert.match(url.pathname, /^[\x00-\x7f]+$/);
+      await access(new URL(`dist${url.pathname}index.html`, root));
+    }
+    if (path === PAGE_PATHS.about) {
+      const template = document.querySelector('template[data-output="knowledge"]');
+      assert.equal(template.content.querySelector('a').getAttribute('href'), PAGE_PATHS.blog);
+    }
+    dom.window.close();
+  }
+});
+
+test('search still finds Chinese titles but emits the canonical noteId link', async () => {
+  const dom = new JSDOM(await read('dist/index.html'), { url: 'https://longblog.test/', runScripts: 'outside-only', pretendToBeVisual: true });
+  try {
+    const { document } = dom.window;
+    const script = [...document.scripts].find(node => node.textContent.includes('search-result-item'));
+    assert.ok(script);
+    dom.window.eval(script.textContent);
+    const input = document.querySelector('#search-input');
+    input.value = '我的建站史';
+    input.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    await new Promise(resolve => setTimeout(resolve, 120));
+    const link = document.querySelector('.search-result-item');
+    assert.ok(link, 'Chinese search remains functional');
+    assert.equal(link.getAttribute('href'), getPostPath(metas.find(post => post.slug === '我的建站史').id));
+  } finally { dom.window.close(); }
+});
+
+test('legacy raw/encoded URLs with and without slash have direct 301 mappings', async () => {
+  assert.equal(config.outputDirectory, 'dist');
+  assert.equal(config.buildCommand, 'npm run build');
+  assert.ok(config.redirects.length <= 100);
+  const mapping = new Map(config.redirects.map(rule => [rule.source, rule]));
+  assert.equal(mapping.size, config.redirects.length, 'no conflicting legacy paths');
+  // Check the permanent migration snapshot, not today's editable titles.
+  // Future noteId-only posts must not require a legacy Chinese redirect.
+  const aliases = new Map();
+  for (const rule of config.redirects) {
+    const slug = decodeURIComponent(rule.source.replace(/^\/blog\//, '').replace(/\/$/, ''));
+    const id = rule.destination.split('/')[2];
+    if (aliases.has(slug)) assert.equal(aliases.get(slug), id);
+    aliases.set(slug, id);
+  }
+  for (const [legacySlug, id] of aliases) {
+    for (const slug of new Set([legacySlug, encodeURIComponent(legacySlug)])) {
+      for (const suffix of ['', '/']) {
+        const rule = mapping.get(`/blog/${slug}${suffix}`);
+        assert.ok(rule, `missing alias: ${legacySlug}${suffix}`);
+        assert.equal(rule.statusCode, 301);
+        assert.equal(rule.destination, getPostPath(id));
+        assert.notEqual(rule.source, rule.destination, 'no self redirects');
+        assert.ok(rule.source.length <= 500);
+        assert.equal(mapping.has(rule.destination), false, 'no redirect chains or cycles');
+        if (metas.some(post => post.id === id)) {
+          await access(new URL(`dist${rule.destination}index.html`, root));
+        }
+      }
+    }
+  }
+  for (const name of ['blog', 'shuoshuo', 'friends', 'about']) {
+    assert.ok(config.rewrites.some(rule => rule.source === `/${name}` && rule.destination === `/${name}/index.html`));
+  }
+  assert.ok(config.rewrites.some(rule => rule.source === '/blog/:id' && rule.destination === '/blog/:id/index.html'));
+  assert.equal(config.rewrites.some(rule => rule.source === '/*'), false, 'no SPA fallback that serves home as every article');
+});

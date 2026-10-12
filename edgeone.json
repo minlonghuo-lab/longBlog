@@ -1,0 +1,352 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/blog/记一次华为杯数学建模协作经验",
+      "destination": "/blog/cyZ6AgNjauV8/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/记一次华为杯数学建模协作经验/",
+      "destination": "/blog/cyZ6AgNjauV8/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E8%AE%B0%E4%B8%80%E6%AC%A1%E5%8D%8E%E4%B8%BA%E6%9D%AF%E6%95%B0%E5%AD%A6%E5%BB%BA%E6%A8%A1%E5%8D%8F%E4%BD%9C%E7%BB%8F%E9%AA%8C",
+      "destination": "/blog/cyZ6AgNjauV8/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E8%AE%B0%E4%B8%80%E6%AC%A1%E5%8D%8E%E4%B8%BA%E6%9D%AF%E6%95%B0%E5%AD%A6%E5%BB%BA%E6%A8%A1%E5%8D%8F%E4%BD%9C%E7%BB%8F%E9%AA%8C/",
+      "destination": "/blog/cyZ6AgNjauV8/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/从微信对话到线上博客",
+      "destination": "/blog/y6WtEPfNytSp/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/从微信对话到线上博客/",
+      "destination": "/blog/y6WtEPfNytSp/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E4%BB%8E%E5%BE%AE%E4%BF%A1%E5%AF%B9%E8%AF%9D%E5%88%B0%E7%BA%BF%E4%B8%8A%E5%8D%9A%E5%AE%A2",
+      "destination": "/blog/y6WtEPfNytSp/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E4%BB%8E%E5%BE%AE%E4%BF%A1%E5%AF%B9%E8%AF%9D%E5%88%B0%E7%BA%BF%E4%B8%8A%E5%8D%9A%E5%AE%A2/",
+      "destination": "/blog/y6WtEPfNytSp/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/overleaf部署实战指南",
+      "destination": "/blog/KgAdONn6xKlf/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/overleaf部署实战指南/",
+      "destination": "/blog/KgAdONn6xKlf/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/overleaf%E9%83%A8%E7%BD%B2%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97",
+      "destination": "/blog/KgAdONn6xKlf/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/overleaf%E9%83%A8%E7%BD%B2%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/",
+      "destination": "/blog/KgAdONn6xKlf/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/擂辣椒烧排骨初尝",
+      "destination": "/blog/n3ke85XE28js/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/擂辣椒烧排骨初尝/",
+      "destination": "/blog/n3ke85XE28js/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E6%93%82%E8%BE%A3%E6%A4%92%E7%83%A7%E6%8E%92%E9%AA%A8%E5%88%9D%E5%B0%9D",
+      "destination": "/blog/n3ke85XE28js/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E6%93%82%E8%BE%A3%E6%A4%92%E7%83%A7%E6%8E%92%E9%AA%A8%E5%88%9D%E5%B0%9D/",
+      "destination": "/blog/n3ke85XE28js/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/从数位板到inkscape零基础ui图标全流程",
+      "destination": "/blog/ykDuL5tkBQnG/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/从数位板到inkscape零基础ui图标全流程/",
+      "destination": "/blog/ykDuL5tkBQnG/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E4%BB%8E%E6%95%B0%E4%BD%8D%E6%9D%BF%E5%88%B0inkscape%E9%9B%B6%E5%9F%BA%E7%A1%80ui%E5%9B%BE%E6%A0%87%E5%85%A8%E6%B5%81%E7%A8%8B",
+      "destination": "/blog/ykDuL5tkBQnG/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E4%BB%8E%E6%95%B0%E4%BD%8D%E6%9D%BF%E5%88%B0inkscape%E9%9B%B6%E5%9F%BA%E7%A1%80ui%E5%9B%BE%E6%A0%87%E5%85%A8%E6%B5%81%E7%A8%8B/",
+      "destination": "/blog/ykDuL5tkBQnG/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/详细拆解longblog自动化流程",
+      "destination": "/blog/HuEZ8IbXjuPl/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/详细拆解longblog自动化流程/",
+      "destination": "/blog/HuEZ8IbXjuPl/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E8%AF%A6%E7%BB%86%E6%8B%86%E8%A7%A3longblog%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%81%E7%A8%8B",
+      "destination": "/blog/HuEZ8IbXjuPl/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E8%AF%A6%E7%BB%86%E6%8B%86%E8%A7%A3longblog%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%81%E7%A8%8B/",
+      "destination": "/blog/HuEZ8IbXjuPl/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/个人博客longblog介绍",
+      "destination": "/blog/dpIN2qR0Q8lb/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/个人博客longblog介绍/",
+      "destination": "/blog/dpIN2qR0Q8lb/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2longblog%E4%BB%8B%E7%BB%8D",
+      "destination": "/blog/dpIN2qR0Q8lb/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2longblog%E4%BB%8B%E7%BB%8D/",
+      "destination": "/blog/dpIN2qR0Q8lb/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/我的建站史",
+      "destination": "/blog/vvEmuVooTDii/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/我的建站史/",
+      "destination": "/blog/vvEmuVooTDii/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E6%88%91%E7%9A%84%E5%BB%BA%E7%AB%99%E5%8F%B2",
+      "destination": "/blog/vvEmuVooTDii/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E6%88%91%E7%9A%84%E5%BB%BA%E7%AB%99%E5%8F%B2/",
+      "destination": "/blog/vvEmuVooTDii/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/基于tlock和cryptomator的时间胶囊",
+      "destination": "/blog/dDI26xYqquzY/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/基于tlock和cryptomator的时间胶囊/",
+      "destination": "/blog/dDI26xYqquzY/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E5%9F%BA%E4%BA%8Etlock%E5%92%8Ccryptomator%E7%9A%84%E6%97%B6%E9%97%B4%E8%83%B6%E5%9B%8A",
+      "destination": "/blog/dDI26xYqquzY/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E5%9F%BA%E4%BA%8Etlock%E5%92%8Ccryptomator%E7%9A%84%E6%97%B6%E9%97%B4%E8%83%B6%E5%9B%8A/",
+      "destination": "/blog/dDI26xYqquzY/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/近期让我眼前一亮的软件",
+      "destination": "/blog/KyFrU3uItyRq/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/近期让我眼前一亮的软件/",
+      "destination": "/blog/KyFrU3uItyRq/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E8%BF%91%E6%9C%9F%E8%AE%A9%E6%88%91%E7%9C%BC%E5%89%8D%E4%B8%80%E4%BA%AE%E7%9A%84%E8%BD%AF%E4%BB%B6",
+      "destination": "/blog/KyFrU3uItyRq/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E8%BF%91%E6%9C%9F%E8%AE%A9%E6%88%91%E7%9C%BC%E5%89%8D%E4%B8%80%E4%BA%AE%E7%9A%84%E8%BD%AF%E4%BB%B6/",
+      "destination": "/blog/KyFrU3uItyRq/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/我的保研之旅",
+      "destination": "/blog/4t7DdbbFdP02/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/我的保研之旅/",
+      "destination": "/blog/4t7DdbbFdP02/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E6%88%91%E7%9A%84%E4%BF%9D%E7%A0%94%E4%B9%8B%E6%97%85",
+      "destination": "/blog/4t7DdbbFdP02/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E6%88%91%E7%9A%84%E4%BF%9D%E7%A0%94%E4%B9%8B%E6%97%85/",
+      "destination": "/blog/4t7DdbbFdP02/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/远程访问nas心得",
+      "destination": "/blog/F2ea4malPi8x/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/远程访问nas心得/",
+      "destination": "/blog/F2ea4malPi8x/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AEnas%E5%BF%83%E5%BE%97",
+      "destination": "/blog/F2ea4malPi8x/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AEnas%E5%BF%83%E5%BE%97/",
+      "destination": "/blog/F2ea4malPi8x/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/分享一些docker项目",
+      "destination": "/blog/wqP8s2pQuo0H/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/分享一些docker项目/",
+      "destination": "/blog/wqP8s2pQuo0H/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E5%88%86%E4%BA%AB%E4%B8%80%E4%BA%9Bdocker%E9%A1%B9%E7%9B%AE",
+      "destination": "/blog/wqP8s2pQuo0H/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E5%88%86%E4%BA%AB%E4%B8%80%E4%BA%9Bdocker%E9%A1%B9%E7%9B%AE/",
+      "destination": "/blog/wqP8s2pQuo0H/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/飞牛nas部署matrix",
+      "destination": "/blog/4o1kCT4CizAt/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/飞牛nas部署matrix/",
+      "destination": "/blog/4o1kCT4CizAt/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E9%A3%9E%E7%89%9Bnas%E9%83%A8%E7%BD%B2matrix",
+      "destination": "/blog/4o1kCT4CizAt/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E9%A3%9E%E7%89%9Bnas%E9%83%A8%E7%BD%B2matrix/",
+      "destination": "/blog/4o1kCT4CizAt/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/使用-cryptomator为云存储提供零知识加密",
+      "destination": "/blog/2epdE8sgosX8/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/使用-cryptomator为云存储提供零知识加密/",
+      "destination": "/blog/2epdE8sgosX8/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E4%BD%BF%E7%94%A8-cryptomator%E4%B8%BA%E4%BA%91%E5%AD%98%E5%82%A8%E6%8F%90%E4%BE%9B%E9%9B%B6%E7%9F%A5%E8%AF%86%E5%8A%A0%E5%AF%86",
+      "destination": "/blog/2epdE8sgosX8/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E4%BD%BF%E7%94%A8-cryptomator%E4%B8%BA%E4%BA%91%E5%AD%98%E5%82%A8%E6%8F%90%E4%BE%9B%E9%9B%B6%E7%9F%A5%E8%AF%86%E5%8A%A0%E5%AF%86/",
+      "destination": "/blog/2epdE8sgosX8/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/关于对教程主义的思考",
+      "destination": "/blog/VOsmZSt8PWpI/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/关于对教程主义的思考/",
+      "destination": "/blog/VOsmZSt8PWpI/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E5%85%B3%E4%BA%8E%E5%AF%B9%E6%95%99%E7%A8%8B%E4%B8%BB%E4%B9%89%E7%9A%84%E6%80%9D%E8%80%83",
+      "destination": "/blog/VOsmZSt8PWpI/",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/%E5%85%B3%E4%BA%8E%E5%AF%B9%E6%95%99%E7%A8%8B%E4%B8%BB%E4%B9%89%E7%9A%84%E6%80%9D%E8%80%83/",
+      "destination": "/blog/VOsmZSt8PWpI/",
+      "statusCode": 301
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/blog",
+      "destination": "/blog/index.html"
+    },
+    {
+      "source": "/shuoshuo",
+      "destination": "/shuoshuo/index.html"
+    },
+    {
+      "source": "/friends",
+      "destination": "/friends/index.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about/index.html"
+    },
+    {
+      "source": "/blog/:id",
+      "destination": "/blog/:id/index.html"
+    },
+    {
+      "source": "/blog/:id/",
+      "destination": "/blog/:id/index.html"
+    }
+  ]
+}

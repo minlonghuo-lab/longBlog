@@ -1,6 +1,7 @@
 ---
 import { aboutProfile as profile, knowledgeTopics, aboutProjects, aboutHistory } from '../../data/about';
 import '../../styles/about-console.css';
+import { PAGE_PATHS } from '../../lib/routes.js';
 const commands = ['profile', 'knowledge', 'projects', 'history', 'clear'];
 ---
 
@@ -28,7 +29,7 @@ const commands = ['profile', 'knowledge', 'projects', 'history', 'clear'];
       <p id="about-command-help" class="terminal-help" data-terminal-help hidden>点击命令或回车执行<span> · ↑↓ 历史 · Tab 补全</span></p>
       <p class="terminal-sr-only" data-terminal-announcement role="status" aria-live="polite" aria-atomic="true"></p>
     </div>
-    <noscript><p class="terminal-fallback">开启 JavaScript 后可使用交互命令。<a href="/blog">阅读文章 →</a> · <a href="https://github.com/minlonghuo-lab" target="_blank" rel="noopener noreferrer">GitHub ↗</a></p></noscript>
+    <noscript><p class="terminal-fallback">开启 JavaScript 后可使用交互命令。<a href={PAGE_PATHS.blog}>阅读文章 →</a> · <a href="https://github.com/minlonghuo-lab" target="_blank" rel="noopener noreferrer">GitHub ↗</a></p></noscript>
     <template data-command-template>
       <div class="terminal-prompt" data-command-line>
         <span class="terminal-identity"><span class="terminal-user">{profile.user}</span>@<span class="terminal-host">{profile.host}</span></span><span class="terminal-path">~ &gt;</span><span class="terminal-command"></span>
@@ -64,7 +65,7 @@ const commands = ['profile', 'knowledge', 'projects', 'history', 'clear'];
       <div class="terminal-text-output">
         <h3>knowledge /</h3>
         <dl class="terminal-topic-list">{knowledgeTopics.map(topic => <div><dt>{topic.name}/</dt><dd>{topic.description}</dd></div>)}</dl>
-        <p class="terminal-copy">一些持续整理中的主题。</p><a href="/blog" class="terminal-link">阅读全部文章 →</a>
+        <p class="terminal-copy">一些持续整理中的主题。</p><a href={PAGE_PATHS.blog} class="terminal-link">阅读全部文章 →</a>
       </div>
     </template>
     <template data-output="projects">

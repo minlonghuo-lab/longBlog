@@ -54,7 +54,7 @@ test('five commands, aliases, clear, append and bounded output', () => {
       assert.equal(f.transcript.lastElementChild.querySelector('.terminal-command').textContent, command);
       assert.ok(f.transcript.lastElementChild.children.length > 1);
     }
-    assert.ok(f.transcript.querySelector('a[href="/blog"]'));
+    assert.ok(f.transcript.querySelector('a[href="/blog/"]'));
     f.submit('clear');
     assert.equal(f.transcript.children.length, 0);
     f.submit('profile');
