@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PostItem from '../components/PostItem.astro';
 import { getHomePosts, getSortedPosts } from '../data/posts';
 import { AUTHOR, AUTHOR_INTRO, SOCIAL_LINKS, SITE_TITLE } from '../consts';
+import { getPostPath, PAGE_PATHS } from '../lib/routes.js';
 
 const allPosts = getSortedPosts();
 const displayPosts = getHomePosts(10);
@@ -21,6 +22,7 @@ const FALLING_SEGMENTS = [
   INTRO_REST.join(','),
 ].filter(Boolean);
 const searchPosts = allPosts.map((post) => ({
+  href: getPostPath(post.id),
   slug: post.slug,
   title: post.title,
   summary: post.summary,
@@ -103,13 +105,13 @@ const searchPosts = allPosts.map((post) => ({
   <section class="posts-section">
     <div class="section-head">
       <h2>最新文章</h2>
-      <a href="/blog">查看全部 →</a>
+      <a href={PAGE_PATHS.blog}>查看全部 →</a>
     </div>
 
     <div>
       {displayPosts.map(post => (
         <PostItem
-          slug={post.slug}
+          id={post.id}
           title={post.title}
           publishedAt={post.publishedAt}
           tags={post.tags}
@@ -166,7 +168,7 @@ const searchPosts = allPosts.map((post) => ({
       }
 
       results.innerHTML = items.map((post) => `
-        <a class="search-result-item" href="/blog/${encodeURIComponent(post.slug)}">
+        <a class="search-result-item" href="${escapeHtml(post.href)}">
           <div class="search-result-title">${escapeHtml(post.title)}</div>
         </a>
       `).join('');

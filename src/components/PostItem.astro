@@ -1,13 +1,14 @@
 ---
+import { getPostPath } from '../lib/routes.js';
 interface Props {
   title: string;
   publishedAt?: string | Date;
   tags: string[];
-  slug: string;
+  id: string;
   pinned?: boolean;
 }
 
-const { title, publishedAt, tags, slug, pinned } = Astro.props;
+const { title, publishedAt, tags, id, pinned } = Astro.props;
 
 let postDate: Date;
 if (publishedAt) {
@@ -26,7 +27,7 @@ function formatDate(d: Date): string {
 ---
 
 <article class="post-item">
-  <a href={`/blog/${slug}`} class="post-link">
+  <a href={getPostPath(id)} class="post-link">
     <div class="post-main">
       <div class="post-title-row">
         <h2 class="post-title">{title}</h2>

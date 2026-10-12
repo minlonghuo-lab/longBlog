@@ -6,7 +6,7 @@ import { JSDOM } from 'jsdom';
 // Use Astro's generated pages so selectors, SSR visibility and hydration stay in sync.
 const pages = {};
 for (const route of ['', 'blog', 'shuoshuo', 'friends', 'about']) {
-  pages[`/${route}`] = await readFile(new URL(`../dist/${route ? route + '/' : ''}index.html`, import.meta.url), 'utf8');
+  pages[`/${route}${route ? '/' : ''}`] = await readFile(new URL(`../dist/${route ? route + '/' : ''}index.html`, import.meta.url), 'utf8');
 }
 const dom = new JSDOM(pages['/'], { url: 'https://longblog.test/', pretendToBeVisual: true });
 const { window } = dom;
@@ -58,7 +58,7 @@ async function settleRequests() {
 }
 function swap(path) {
   const url = new URL(path, window.location.origin);
-  const next = new window.DOMParser().parseFromString(pages[url.pathname], 'text/html');
+  const next = new window.DOMParser().parseFromString(pages[url.pathname.endsWith('/') ? url.pathname : `${url.pathname}/`], 'text/html');
   const event = new window.Event('astro:before-swap');
   Object.defineProperty(event, 'newDocument', { value: next });
   document.dispatchEvent(event);

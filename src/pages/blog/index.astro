@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PostItem from '../../components/PostItem.astro';
 import { getSortedPosts, getAllTags } from '../../data/posts';
+import { PAGE_PATHS } from '../../lib/routes.js';
 
 const posts = getSortedPosts();
 const tags = getAllTags();
@@ -22,11 +23,11 @@ const hiddenTags = tags.slice(7);
     <div class="tag-hint">TAG FILTER</div>
 
     <div class="tag-row" id="tag-row">
-      <a href="/blog" data-tag="" class:list={["tag-link", { active: !selectedTag }]}>全部</a>
+      <a href={PAGE_PATHS.blog} data-tag="" class:list={["tag-link", { active: !selectedTag }]}>全部</a>
 
       {visibleTags.map(tag => (
         <a
-          href={`/blog?tag=${encodeURIComponent(tag.name)}`}
+          href={`${PAGE_PATHS.blog}?tag=${encodeURIComponent(tag.name)}`}
           data-tag={tag.name}
           class:list={["tag-link", { active: selectedTag === tag.name }]}
         >
@@ -40,7 +41,7 @@ const hiddenTags = tags.slice(7);
           <div class="tag-extra" id="tag-extra" hidden>
             {hiddenTags.map(tag => (
               <a
-                href={`/blog?tag=${encodeURIComponent(tag.name)}`}
+                href={`${PAGE_PATHS.blog}?tag=${encodeURIComponent(tag.name)}`}
                 data-tag={tag.name}
                 class:list={["tag-link", { active: selectedTag === tag.name }]}
               >
@@ -62,7 +63,7 @@ const hiddenTags = tags.slice(7);
           title={post.title}
           publishedAt={post.publishedAt}
           tags={post.tags}
-          slug={post.slug}
+          id={post.id}
           pinned={post.pinned}
         />
       </div>

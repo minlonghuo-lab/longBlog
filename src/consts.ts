@@ -1,4 +1,5 @@
 // Site Configuration
+import { PAGE_PATHS } from './lib/routes.js';
 const env = import.meta.env;
 
 export const SITE_TITLE = env.PUBLIC_SITE_TITLE || 'longBlog';
@@ -34,8 +35,8 @@ export const UMAMI_WEBSITE_ID = env.PUBLIC_UMAMI_WEBSITE_ID || 'a6048160-1a40-41
 // Navigation
 export const NAV_ITEMS = [
   { name: '主页', href: '/' },
-  { name: '文章', href: '/blog' },
-  { name: '说说', href: '/shuoshuo' },
-  { name: '友链', href: '/friends' },
-  { name: '关于', href: '/about' },
+  { name: '文章', href: PAGE_PATHS.blog },
+  { name: '说说', href: PAGE_PATHS.shuoshuo },
+  { name: '友链', href: PAGE_PATHS.friends },
+  { name: '关于', href: PAGE_PATHS.about },
 ];
