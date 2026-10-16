@@ -22,6 +22,7 @@ export function initMemosPage() {
   let refreshedAt = 0;
   let refreshTimer;
   const nodeSignatures = new WeakMap();
+  const pendingRemovals = new Map();
 
   let cursor = '';
   let offset = 0;
@@ -200,14 +201,67 @@ export function initMemosPage() {
     return article;
   }
 
+  function captureReadingAnchor() {
+    if (window.scrollY <= 0 || listEl.getBoundingClientRect().top >= 0) return null;
+    const node = [...listEl.children].find(node => {
+      if (!memoStore.has(node.dataset.memoKey) || pendingRemovals.has(node.dataset.memoKey)) return false;
+      const rect = node.getBoundingClientRect();
+      return rect.bottom > 100 && rect.top < window.innerHeight;
+    });
+    return node ? { key: node.dataset.memoKey, top: node.getBoundingClientRect().top } : null;
+  }
+
+  function restoreReadingAnchor(anchor) {
+    if (!anchor) return;
+    const node = [...listEl.children].find(node => node.dataset.memoKey === anchor.key);
+    const delta = node ? node.getBoundingClientRect().top - anchor.top : 0;
+    // The site uses smooth scrolling; anchoring must happen within this frame.
+    if (delta) window.scrollBy({ top: delta, behavior: 'instant' });
+  }
+
+  function updateListStatus() {
+    emptyEl.style.display = !memoStore.size && !pendingRemovals.size ? 'block' : 'none';
+    endEl.style.display = !hasMore && memoStore.size ? 'block' : 'none';
+  }
+
+  function cancelRemoval(key) {
+    const pending = pendingRemovals.get(key);
+    if (!pending) return;
+    window.clearTimeout(pending.timer);
+    pending.node.removeEventListener('animationend', pending.onEnd);
+    pendingRemovals.delete(key);
+    pending.node.classList.remove('memo-item-exit');
+    pending.node.removeAttribute('aria-hidden');
+    pending.node.inert = false;
+  }
+
+  function removeCard(node, animate) {
+    const key = node.dataset.memoKey;
+    if (pendingRemovals.has(key)) return;
+    if (!animate) { node.remove(); return; }
+    const finish = () => {
+      if (disposed || !pendingRemovals.has(key)) return;
+      const anchor = captureReadingAnchor();
+      cancelRemoval(key);
+      node.remove();
+      updateListStatus();
+      restoreReadingAnchor(anchor);
+    };
+    const onEnd = event => {
+      if (event.target === node && event.animationName === 'memo-exit') finish();
+    };
+    node.classList.remove('memo-item-enter');
+    node.classList.add('memo-item-exit');
+    node.setAttribute('aria-hidden', 'true');
+    node.inert = true;
+    node.addEventListener('animationend', onEnd);
+    // Also finish when animations are disabled/cancelled while the card exits.
+    pendingRemovals.set(key, { node, onEnd, timer: window.setTimeout(finish, 450) });
+  }
+
   function renderAllMemos({ animate = false, preserveScroll = false } = {}) {
     const shouldAnimate = animate && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    // Keep the card being read in place when newer entries arrive above it.
-    const anchor = preserveScroll && window.scrollY > 0 && listEl.getBoundingClientRect().top < 0
-      ? [...listEl.children].find(node => node.getBoundingClientRect().bottom > 100)
-      : null;
-    const anchorKey = anchor?.dataset.memoKey;
-    const anchorTop = anchor?.getBoundingClientRect().top;
+    const anchor = preserveScroll ? captureReadingAnchor() : null;
     const items = [...memoStore.values()].sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -217,7 +271,17 @@ export function initMemosPage() {
 
     // Retain unchanged cards (especially decoded thumbnails) during refresh/pagination.
     const existing = new Map(Array.from(listEl.children).map(node => [node.dataset.memoKey, node]));
-    items.forEach((memo, index) => {
+    // Leave outgoing cards in their original position until the fade finishes.
+    for (const [key, node] of existing) {
+      if (!memoStore.has(key)) removeCard(node, shouldAnimate);
+      else cancelRemoval(key);
+    }
+    const nextActive = node => {
+      while (node && pendingRemovals.has(node.dataset.memoKey)) node = node.nextElementSibling;
+      return node;
+    };
+    let position = nextActive(listEl.firstElementChild);
+    items.forEach(memo => {
       const key = memoKeyOf(memo);
       const signature = JSON.stringify(memo);
       let node = existing.get(key);
@@ -226,6 +290,7 @@ export function initMemosPage() {
         const updated = renderMemo(memo);
         updated.dataset.memoKey = key;
         nodeSignatures.set(updated, signature);
+        if (position === node) position = updated;
         if (node) node.replaceWith(updated);
         node = updated;
       }
@@ -234,20 +299,11 @@ export function initMemosPage() {
         node.addEventListener('animationend', () => node.classList.remove('memo-item-enter'),
           { once: true, signal: controller.signal });
       }
-      if (listEl.children[index] !== node) listEl.insertBefore(node, listEl.children[index] || null);
-      existing.delete(key);
+      if (position !== node) listEl.insertBefore(node, position);
+      position = nextActive(node.nextElementSibling);
     });
-    for (const node of existing.values()) node.remove();
-
-    emptyEl.style.display = items.length ? 'none' : 'block';
-    endEl.style.display = !hasMore && items.length ? 'block' : 'none';
-
-    if (anchorKey) {
-      const current = [...listEl.children].find(node => node.dataset.memoKey === anchorKey);
-      const delta = current ? current.getBoundingClientRect().top - anchorTop : 0;
-      // The site uses smooth scrolling; anchoring must happen within this frame.
-      if (delta) window.scrollBy({ top: delta, behavior: 'instant' });
-    }
+    updateListStatus();
+    restoreReadingAnchor(anchor);
   }
 
   function mergeMemos(memos, options) {
@@ -285,9 +341,9 @@ export function initMemosPage() {
     const timeout = window.setTimeout(abort, 15000);
     try {
       const resp = await fetch(url, { cache: 'no-store', signal: request.signal });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      // 旧路径在新版实例上会被前端路由接管并返回 HTML，这里显式拦掉
       const contentType = resp.headers.get('content-type') || '';
+      if (!resp.ok) throw Object.assign(new Error(`HTTP ${resp.status}`), { status: resp.status, contentType });
+      // 旧路径在新版实例上会被前端路由接管并返回 HTML，这里显式拦掉
       if (!contentType.includes('json')) throw new Error(`Unexpected content-type: ${contentType}`);
       return await resp.json();
     } finally {
@@ -337,14 +393,32 @@ export function initMemosPage() {
       const at = typeof target?.offset === 'number' ? target.offset : offset;
       const qs = new URLSearchParams({ limit: String(pageSize), offset: String(at) });
       const data = await requestJson(`${apiBase}/api/v1/memo?${qs.toString()}`);
-      return { memos: Array.isArray(data) ? data : [], nextToken: '' };
+      if (!Array.isArray(data)) throw new Error('Invalid memo list');
+      return { memos: data, nextToken: '' };
     }
 
     const token = typeof target?.cursor === 'string' ? target.cursor : cursor;
     const qs = new URLSearchParams({ pageSize: String(pageSize) });
     if (token) qs.set('pageToken', token);
     const data = await requestJson(`${apiBase}/api/v1/memos?${qs.toString()}`);
-    return { memos: Array.isArray(data?.memos) ? data.memos : [], nextToken: data?.nextPageToken || '' };
+    if (!Array.isArray(data?.memos)) throw new Error('Invalid memo list');
+    return { memos: data.memos, nextToken: data?.nextPageToken || '' };
+  }
+
+  async function noLongerPublic(memo) {
+    const id = String(memo.id || memo.name || '').replace(/^memos?\//, '');
+    if (!id) return false;
+    try {
+      const endpoint = modernApi ? 'memo' : 'memos';
+      const result = await requestJson(`${apiBase}/api/v1/${endpoint}/${encodeURIComponent(id)}`);
+      const raw = result?.memo || result;
+      // A valid detail may now be archived/private. Malformed responses and
+      // transport failures never count as evidence that a post was deleted.
+      return raw && (raw.id !== undefined || raw.name) && memoKeyOf(raw) === memoKeyOf(memo)
+        && visibleMemos([raw]).length === 0;
+    } catch (error) {
+      return [403, 404, 410].includes(error.status) && error.contentType?.includes('json');
+    }
   }
 
   // 取当前分页位置，不传参即使用当前进度
@@ -447,16 +521,27 @@ export function initMemosPage() {
       if (disposed) return;
       const memos = visibleMemos(data.memos);
       const visibleKeys = new Set(memos.map(memoKeyOf));
+      const returnedKeys = new Set(data.memos.map(memoKeyOf));
       const complete = modernApi ? data.memos.length < size : !data.nextToken;
+      const removed = new Set();
       for (const raw of data.memos) {
         const key = memoKeyOf(raw);
-        if (!visibleKeys.has(key)) memoStore.delete(key);
+        if (!visibleKeys.has(key)) removed.add(key);
       }
-      if (complete) {
-        for (const key of memoStore.keys()) {
-          if (!visibleKeys.has(key)) memoStore.delete(key);
+      const missing = [...memoStore.values()].filter(memo => !returnedKeys.has(memoKeyOf(memo)));
+      if (complete) missing.forEach(memo => removed.add(memoKeyOf(memo)));
+      else {
+        // New posts can push a loaded card outside this prefix. Check missing
+        // cards individually before removing them, with bounded concurrency.
+        for (let i = 0; i < missing.length; i += 3) {
+          if (disposed) return;
+          await Promise.all(missing.slice(i, i + 3).map(async memo => {
+            if (await noLongerPublic(memo)) removed.add(memoKeyOf(memo));
+          }));
         }
       }
+      if (disposed) return;
+      removed.forEach(key => memoStore.delete(key));
       offset = modernApi ? data.memos.length : 0;
       cursor = data.nextToken;
       hasMore = modernApi ? !complete : Boolean(cursor);
@@ -561,6 +646,7 @@ export function initMemosPage() {
     };
     disposed = true;
     window.clearTimeout(refreshTimer);
+    for (const key of [...pendingRemovals.keys()]) cancelRemoval(key);
     controller.abort();
     io.disconnect();
     document.body.classList.remove('lightbox-open');

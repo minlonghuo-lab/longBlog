@@ -35,12 +35,17 @@ const memosApiBase = MEMOS_URL;
   .memos-list { display: flex; flex-direction: column; gap: 2.55rem; }
   .memo-item { position: relative; padding-left: 2.04rem; }
   .memo-item-enter { animation: memo-enter 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+  .memo-item-exit { animation: memo-exit 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both; pointer-events: none; }
   @keyframes memo-enter {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  @keyframes memo-exit {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-6px); }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .memo-item-enter { animation: none; }
+    .memo-item-enter, .memo-item-exit { animation: none; }
   }
   .timeline-line { position: absolute; left: 0.36rem; top: 0; bottom: -2.55rem; width: 1px; background: color-mix(in oklab, var(--border) 92%, transparent); }
   .timeline-dot { position: absolute; left: 0.15rem; top: 0.49rem; width: 0.43rem; height: 0.43rem; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 28%, transparent); }
