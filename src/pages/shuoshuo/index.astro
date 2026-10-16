@@ -17,7 +17,7 @@ const memosApiBase = MEMOS_URL;
     <div id="memos-loading" class="memos-status">加载中...</div>
     <div id="memos-end" class="memos-status" style="display:none;">- END -</div>
     <div id="memos-empty" class="memos-status" style="display:none;">暂无内容</div>
-    <div id="memos-error" class="memos-status" style="display:none;">加载失败，请稍后刷新重试</div>
+    <div id="memos-error" class="memos-status" style="display:none;">加载失败，稍后将自动重试</div>
 
     <div id="memos-sentinel" class="memos-sentinel"></div>
   </section>
@@ -31,9 +31,17 @@ const memosApiBase = MEMOS_URL;
 
 
 <style is:global>
-  .memos-wrap { padding-bottom: 4.5rem; }
+  .memos-wrap { padding-bottom: 4.5rem; overflow-anchor: none; }
   .memos-list { display: flex; flex-direction: column; gap: 2.55rem; }
   .memo-item { position: relative; padding-left: 2.04rem; }
+  .memo-item-enter { animation: memo-enter 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+  @keyframes memo-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .memo-item-enter { animation: none; }
+  }
   .timeline-line { position: absolute; left: 0.36rem; top: 0; bottom: -2.55rem; width: 1px; background: color-mix(in oklab, var(--border) 92%, transparent); }
   .timeline-dot { position: absolute; left: 0.15rem; top: 0.49rem; width: 0.43rem; height: 0.43rem; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 28%, transparent); }
   .memo-meta { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.02em; color: color-mix(in oklab, var(--muted-foreground) 78%, transparent); margin-bottom: 0.62rem; line-height: 1.2; }

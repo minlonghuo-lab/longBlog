@@ -20,18 +20,19 @@ export function initMemosPage() {
   const controller = new AbortController();
   let disposed = false;
   let refreshedAt = 0;
+  let refreshTimer;
   const nodeSignatures = new WeakMap();
 
   let cursor = '';
   let offset = 0;
   let hasMore = true;
   let loading = false;
-  const seen = new Set();
   const memoStore = new Map();
 
   const PAGE_SIZE = 10;
   const CACHE_KEY = `LONG_BLOG_MEMOS_CACHE_V3:${memosApiBase}`;
   const CACHE_TTL = 30 * 1000;
+  const REFRESH_INTERVAL = 30 * 1000;
 
   // 新版（v1.0.0）用 /api/v1/memo 偏移分页，旧版用 /api/v1/memos 游标分页
   // null = 尚未探测，true = 新接口，false = 旧接口
@@ -199,11 +200,19 @@ export function initMemosPage() {
     return article;
   }
 
-  function renderAllMemos() {
+  function renderAllMemos({ animate = false, preserveScroll = false } = {}) {
+    const shouldAnimate = animate && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    // Keep the card being read in place when newer entries arrive above it.
+    const anchor = preserveScroll && window.scrollY > 0 && listEl.getBoundingClientRect().top < 0
+      ? [...listEl.children].find(node => node.getBoundingClientRect().bottom > 100)
+      : null;
+    const anchorKey = anchor?.dataset.memoKey;
+    const anchorTop = anchor?.getBoundingClientRect().top;
     const items = [...memoStore.values()].sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
-      return (b.displayTs || b.createdTs) - (a.displayTs || a.createdTs);
+      return (b.displayTs || b.createdTs) - (a.displayTs || a.createdTs)
+        || memoKeyOf(b).localeCompare(memoKeyOf(a), undefined, { numeric: true });
     });
 
     // Retain unchanged cards (especially decoded thumbnails) during refresh/pagination.
@@ -212,12 +221,18 @@ export function initMemosPage() {
       const key = memoKeyOf(memo);
       const signature = JSON.stringify(memo);
       let node = existing.get(key);
+      const isNew = !node;
       if (!node || nodeSignatures.get(node) !== signature) {
         const updated = renderMemo(memo);
         updated.dataset.memoKey = key;
         nodeSignatures.set(updated, signature);
         if (node) node.replaceWith(updated);
         node = updated;
+      }
+      if (shouldAnimate && isNew) {
+        node.classList.add('memo-item-enter');
+        node.addEventListener('animationend', () => node.classList.remove('memo-item-enter'),
+          { once: true, signal: controller.signal });
       }
       if (listEl.children[index] !== node) listEl.insertBefore(node, listEl.children[index] || null);
       existing.delete(key);
@@ -226,15 +241,21 @@ export function initMemosPage() {
 
     emptyEl.style.display = items.length ? 'none' : 'block';
     endEl.style.display = !hasMore && items.length ? 'block' : 'none';
+
+    if (anchorKey) {
+      const current = [...listEl.children].find(node => node.dataset.memoKey === anchorKey);
+      const delta = current ? current.getBoundingClientRect().top - anchorTop : 0;
+      // The site uses smooth scrolling; anchoring must happen within this frame.
+      if (delta) window.scrollBy({ top: delta, behavior: 'instant' });
+    }
   }
 
-  function mergeMemos(memos) {
+  function mergeMemos(memos, options) {
     for (const memo of memos) {
       const memoKey = memoKeyOf(memo);
-      seen.add(memoKey);
       memoStore.set(memoKey, memo);
     }
-    renderAllMemos();
+    renderAllMemos(options);
   }
 
   function getCachedFirstPage() {
@@ -252,17 +273,27 @@ export function initMemosPage() {
 
   function setCachedFirstPage(data) {
     try {
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: refreshedAt, data }));
     } catch {}
   }
 
   async function requestJson(url) {
-    const resp = await fetch(url, { cache: 'no-store', signal: controller.signal });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    // 旧路径在新版实例上会被前端路由接管并返回 HTML，这里显式拦掉
-    const contentType = resp.headers.get('content-type') || '';
-    if (!contentType.includes('json')) throw new Error(`Unexpected content-type: ${contentType}`);
-    return await resp.json();
+    const request = new AbortController();
+    const abort = () => request.abort();
+    if (controller.signal.aborted) abort();
+    controller.signal.addEventListener('abort', abort, { once: true });
+    const timeout = window.setTimeout(abort, 15000);
+    try {
+      const resp = await fetch(url, { cache: 'no-store', signal: request.signal });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      // 旧路径在新版实例上会被前端路由接管并返回 HTML，这里显式拦掉
+      const contentType = resp.headers.get('content-type') || '';
+      if (!contentType.includes('json')) throw new Error(`Unexpected content-type: ${contentType}`);
+      return await resp.json();
+    } finally {
+      window.clearTimeout(timeout);
+      controller.signal.removeEventListener('abort', abort);
+    }
   }
 
   // 探测实例版本：新版 /api/v1/memo 返回 JSON 数组，旧版 /api/v1/memos 返回 { memos: [...] }
@@ -341,10 +372,11 @@ export function initMemosPage() {
     }
   }
 
-  // 整页都不可见时不能无限翻下去，但也绝不能直接判定到底。
-  // 只有连续多页没有任何新内容（正常情况说明分页参数没推进）才停止。
-  const MAX_EMPTY_PAGES = 3;
-  let emptyPageStreak = 0;
+  // Guard servers that ignore paging parameters without stopping on already
+  // loaded (but different) pages after a live update rebases the cursor.
+  const MAX_REPEATED_PAGES = 3;
+  let repeatedPageStreak = 0;
+  let previousPageKeys = '';
 
   async function loadMore() {
     if (disposed || !hasMore || loading) return;
@@ -356,9 +388,7 @@ export function initMemosPage() {
       const data = await fetchPage(PAGE_SIZE);
       if (disposed) return;
       const memos = visibleMemos(data.memos);
-      const beforeCount = seen.size;
-      mergeMemos(memos);
-      const addedCount = seen.size - beforeCount;
+      mergeMemos(memos, { animate: true });
 
       // 首屏请求（offset 仍为 0）才写缓存；后续翻页不覆盖，避免把进度写回起点
       const isFirstPage = modernApi ? offset === 0 : !cursor;
@@ -366,12 +396,14 @@ export function initMemosPage() {
         refreshedAt = Date.now();
       }
 
-      // 去重后没有新增内容时，允许继续翻页，避免把「整页都不可见」误判成到底
-      if (addedCount === 0) emptyPageStreak += 1;
-      else emptyPageStreak = 0;
+      // A refresh can move the paging boundary back over already loaded entries.
+      // Stop only when the server repeats the SAME page, not merely known IDs.
+      const pageKeys = JSON.stringify(data.memos.map(memoKeyOf));
+      repeatedPageStreak = pageKeys === previousPageKeys ? repeatedPageStreak + 1 : 0;
+      previousPageKeys = pageKeys;
 
       advancePagination(data.memos.length, data.nextToken);
-      if (emptyPageStreak >= MAX_EMPTY_PAGES) hasMore = false;
+      if (repeatedPageStreak >= MAX_REPEATED_PAGES) hasMore = false;
 
       setCachedFirstPage({ memos: [...memoStore.values()], offset, cursor, hasMore });
 
@@ -383,13 +415,63 @@ export function initMemosPage() {
     } catch (err) {
       if (disposed) return;
       loadingEl.style.display = 'none';
-      errorEl.textContent = '加载失败，请稍后刷新重试';
+      errorEl.textContent = '加载失败，稍后将自动重试';
       errorEl.style.display = 'block';
       console.error('[memos] load error:', err);
       return;
     } finally {
       loading = false;
       if (hasMore) loadingEl.style.display = 'none';
+    }
+  }
+
+  function scheduleRefresh(delay = REFRESH_INTERVAL) {
+    window.clearTimeout(refreshTimer);
+    if (disposed || document.visibilityState === 'hidden' || window.navigator.onLine === false) return;
+    refreshTimer = window.setTimeout(refreshLatest, delay);
+  }
+
+  async function refreshLatest() {
+    window.clearTimeout(refreshTimer);
+    if (disposed || document.visibilityState === 'hidden' || window.navigator.onLine === false) return;
+    if (loading || document.body.classList.contains('lightbox-open')) {
+      scheduleRefresh(1000);
+      return;
+    }
+    loading = true;
+    try {
+      // Revalidate the loaded prefix in one request. Rebase pagination to that
+      // prefix's actual end so even a burst larger than one page cannot skip posts.
+      const size = Math.max(PAGE_SIZE, offset, memoStore.size);
+      const data = await fetchPageAt({ offset: 0, cursor: '' }, size);
+      if (disposed) return;
+      const memos = visibleMemos(data.memos);
+      const visibleKeys = new Set(memos.map(memoKeyOf));
+      const complete = modernApi ? data.memos.length < size : !data.nextToken;
+      for (const raw of data.memos) {
+        const key = memoKeyOf(raw);
+        if (!visibleKeys.has(key)) memoStore.delete(key);
+      }
+      if (complete) {
+        for (const key of memoStore.keys()) {
+          if (!visibleKeys.has(key)) memoStore.delete(key);
+        }
+      }
+      offset = modernApi ? data.memos.length : 0;
+      cursor = data.nextToken;
+      hasMore = modernApi ? !complete : Boolean(cursor);
+      previousPageKeys = '';
+      repeatedPageStreak = 0;
+      mergeMemos(memos, { animate: true, preserveScroll: true });
+      refreshedAt = Date.now();
+      setCachedFirstPage({ memos: [...memoStore.values()], offset, cursor, hasMore });
+      loadingEl.style.display = 'none';
+      errorEl.style.display = 'none';
+    } catch {
+      // Keep the current list and pagination on failure; the next check retries.
+    } finally {
+      loading = false;
+      scheduleRefresh();
     }
   }
 
@@ -404,26 +486,7 @@ export function initMemosPage() {
       mergeMemos(cached.memos);
       loadingEl.style.display = 'none';
       if (Date.now() - refreshedAt < CACHE_TTL) return;
-      // Show the restored list immediately; refresh only changed cards in the background.
-      loading = true;
-      try {
-        // 固定从第 0 页取，用来刷新最新内容；
-        // 这只是「覆盖前 N 条」，不代表分页进度，所以不能推进 offset，
-        // 否则会整页跳过（例如已加载到 20，刷新后又从 30 开始）。
-        const data = await fetchPageAt({ offset: 0, cursor: '' }, PAGE_SIZE);
-        if (disposed) return;
-        mergeMemos(visibleMemos(data.memos));
-        if (modernApi ? offset === 0 : !cursor) {
-          // 还没有任何分页进度，用这一页建立初始进度
-          hasMore = data.memos.length >= PAGE_SIZE;
-        }
-        refreshedAt = Date.now();
-        setCachedFirstPage({ memos: [...memoStore.values()], offset, cursor, hasMore });
-      } catch {
-        // The restored content remains usable when the refresh is unavailable.
-      } finally {
-        loading = false;
-      }
+      await refreshLatest();
     } else {
       await loadMore();
     }
@@ -473,8 +536,19 @@ export function initMemosPage() {
   // boot() restores cached content synchronously before the transition captures this page.
   const bootPromise = boot();
   bootPromise.finally(() => {
-    if (!disposed) io.observe(sentinelEl);
+    if (!disposed) {
+      io.observe(sentinelEl);
+      scheduleRefresh(refreshedAt ? Math.max(0, REFRESH_INTERVAL - (Date.now() - refreshedAt)) : REFRESH_INTERVAL);
+    }
   });
+
+  window.addEventListener('focus', refreshLatest, { signal: controller.signal });
+  window.addEventListener('online', refreshLatest, { signal: controller.signal });
+  window.addEventListener('offline', () => window.clearTimeout(refreshTimer), { signal: controller.signal });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') window.clearTimeout(refreshTimer);
+    else refreshLatest();
+  }, { signal: controller.signal });
 
   return () => {
     memoSession = {
@@ -486,6 +560,7 @@ export function initMemosPage() {
       ts: refreshedAt,
     };
     disposed = true;
+    window.clearTimeout(refreshTimer);
     controller.abort();
     io.disconnect();
     document.body.classList.remove('lightbox-open');
