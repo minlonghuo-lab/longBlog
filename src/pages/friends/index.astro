@@ -2,7 +2,13 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import FriendCard from '../../components/FriendCard.astro';
 import { friendLinks } from '../../data/friends';
-import { CONTACT_EMAIL } from '../../consts';
+import { PAGE_PATHS } from '../../lib/routes.js';
+const siteInfo = [
+  { key: '站点名称', value: 'longBlog' },
+  { key: '站点地址', value: 'https://huowenlong.com/' },
+  { key: '站点头像', value: 'https://huowenlong.com/favicon.svg' },
+  { key: '站点描述', value: '记录所看所思所得' },
+];
 ---
 
 <BaseLayout title="友链" description="友情链接与站点推荐">
@@ -30,14 +36,22 @@ import { CONTACT_EMAIL } from '../../consts';
     )}
   </section>
 
-  <section class="apply-section">
+  <section class="apply-section" aria-labelledby="apply-title">
     <div class="apply-info">
-      <h3>申请友链</h3>
-      <p>
-        欢迎交换友链，可直接
-        <a href={`mailto:${CONTACT_EMAIL}`} class="inline-mail-link">发送邮件联系我</a>。
-      </p>
+      <h2 id="apply-title">申请友链</h2>
+      <p>欢迎交换友链，以下是本站信息，可直接复制使用。</p>
     </div>
+    <div class="site-info" data-friend-site-info>
+      <div class="site-info-toolbar">
+        <div class="site-info-caption"><span class="site-info-lights" aria-hidden="true"><i></i><i></i><i></i></span><span>YAML</span></div>
+        <button class="site-info-copy" type="button" data-copy-site-info disabled aria-label="复制本站友链信息">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/></svg>
+          <span data-copy-label role="status" aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre tabindex="0" aria-label="本站友链信息"><code data-site-info-code>{siteInfo.map((field, index) => <Fragment><span class="site-info-key">{field.key}:</span>{' '}<span class:list={{ 'site-info-url': field.value.startsWith('https://') }}>{field.value}</span>{index < siteInfo.length - 1 ? '\n' : ''}</Fragment>)}</code></pre>
+    </div>
+    <p class="apply-contact">申请友链可前往<a href={PAGE_PATHS.about} class="terminal-link">个人终端</a>给我留言，输入 <code>chat</code> 即可开始。</p>
   </section>
 </BaseLayout>
 
@@ -75,27 +89,86 @@ import { CONTACT_EMAIL } from '../../consts';
     gap: 1rem;
   }
 
-  @media (min-width: 640px) {
-    .apply-section {
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-    }
-  }
-
-  .apply-info h3 {
+  .apply-info h2 {
     margin: 0 0 0.3rem;
     font-family: var(--font-sans);
-    font-size: 0.9rem;
+    font-size: 1rem;
   }
 
-  .apply-info p {
+  .apply-info p, .apply-contact {
     margin: 0;
     font-size: 0.875rem;
     color: var(--muted-foreground);
+    line-height: 1.9;
   }
 
-  .inline-mail-link {
+  .site-info {
+    --site-info-key: #43773d;
+    --site-info-url: #1466b6;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: .85rem;
+    background: color-mix(in srgb, var(--background) 96%, var(--muted-foreground));
+    font-family: var(--font-mono);
+  }
+
+  :global(html[data-theme='dark']) .site-info {
+    --site-info-key: #a6cd98;
+    --site-info-url: #8bbafa;
+  }
+
+  .site-info-toolbar, .site-info-caption, .site-info-lights, .site-info-copy {
+    display: flex;
+    align-items: center;
+  }
+
+  .site-info-toolbar {
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .35rem .8rem .35rem 1.15rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: .72rem;
+  }
+
+  .site-info-caption { gap: .9rem; }
+  .site-info-lights { gap: .4rem; }
+  .site-info-lights i { width: .5rem; height: .5rem; border-radius: 50%; background: #f56559; }
+  .site-info-lights i:nth-child(2) { background: #f4c14d; }
+  .site-info-lights i:nth-child(3) { background: #5bbf50; }
+  .site-info-copy {
+    justify-content: center;
+    gap: .4rem;
+    min-height: 44px;
+    padding: .35rem .55rem;
+    border: 0;
+    border-radius: .4rem;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  .site-info-copy:hover { background: var(--muted); color: var(--foreground); }
+  .site-info-copy:disabled { cursor: default; opacity: .6; }
+  .site-info pre {
+    margin: 0;
+    padding: 1.15rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font: .8rem/2 var(--font-mono);
+  }
+  .site-info pre code { font: inherit; }
+  .site-info-key { color: var(--site-info-key); }
+  .site-info-url { color: var(--site-info-url); }
+  .site-info-copy:focus-visible, .site-info pre:focus-visible {
+    outline: 2px solid var(--site-info-url);
+    outline-offset: -3px;
+  }
+  .apply-contact code { font: .8rem var(--font-mono); color: var(--foreground); }
+
+  .terminal-link {
     color: var(--foreground);
     text-decoration: underline;
     text-underline-offset: 0.16rem;
@@ -103,9 +176,13 @@ import { CONTACT_EMAIL } from '../../consts';
     transition: color var(--transition-base), text-decoration-color var(--transition-base);
   }
 
-  .inline-mail-link:hover,
-  .inline-mail-link:focus-visible {
+  .terminal-link:hover,
+  .terminal-link:focus-visible {
     color: var(--foreground);
     text-decoration-color: currentColor;
   }
 </style>
+
+<script>
+  import '../../scripts/friend-site-info.js';
+</script>
