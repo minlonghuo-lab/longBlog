@@ -145,22 +145,30 @@ export function mountAboutConsole(root, { loadChat = () => import('./terminal-ch
     if (focusInput) input.focus({ preventScroll: true });
   };
 
-  form.addEventListener('submit', event => { event.preventDefault(); if (!composing) execute(input.value, true); }, { signal });
-  input.addEventListener('compositionstart', () => { composing = true; }, { signal });
-  input.addEventListener('compositionend', () => { composing = false; }, { signal });
+  // An already-open tab can retain a pre-chat bundle across ClientRouter swaps.
+  // Own terminal input in capture phase before its legacy bubbling handlers run.
+  const ownInput = handler => event => { event.stopImmediatePropagation(); handler(event); };
+  const inputOptions = { signal, capture: true };
+  form.addEventListener('submit', ownInput(event => { event.preventDefault(); if (!composing) execute(input.value, true); }), inputOptions);
+  input.addEventListener('compositionstart', ownInput(() => { composing = true; }), inputOptions);
+  input.addEventListener('compositionend', ownInput(() => { composing = false; }), inputOptions);
   root.addEventListener('click', event => {
     const action = event.target.closest?.('button[data-chat-action]');
     if (action && root.contains(action)) {
+      event.stopImmediatePropagation();
       if (action.dataset.chatAction === 'exit') exitChat();
       else chat?.clearScreen();
       return;
     }
     const button = event.target.closest?.('button[data-command]');
-    if (button && root.contains(button)) execute(button.dataset.command);
-  }, { signal });
-  input.addEventListener('input', () => { sizeInput(); hideSuggestions(); }, { signal });
+    if (button && root.contains(button)) {
+      event.stopImmediatePropagation();
+      execute(button.dataset.command);
+    }
+  }, inputOptions);
+  input.addEventListener('input', ownInput(() => { sizeInput(); hideSuggestions(); }), inputOptions);
   inputShell?.addEventListener('click', () => input.focus({ preventScroll: true }), { signal });
-  input.addEventListener('keydown', event => {
+  input.addEventListener('keydown', ownInput(event => {
     if (event.isComposing || event.keyCode === 229) return;
     if (mode === 'chat') return;
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
@@ -179,7 +187,7 @@ export function mountAboutConsole(root, { loadChat = () => import('./terminal-ch
         announcement.textContent = `匹配命令：${matches.join('、')}。继续输入或点击选择。`;
       }
     } else if (event.key === 'Escape') hideSuggestions();
-  }, { signal });
+  }), inputOptions);
 
   root.querySelectorAll('[data-terminal-form], [data-terminal-shortcuts], [data-terminal-help]').forEach(node => { node.hidden = false; });
   updateTheme(); sizeInput();
@@ -187,8 +195,11 @@ export function mountAboutConsole(root, { loadChat = () => import('./terminal-ch
 }
 
 const lifecycles = new WeakMap();
+const installationKey = Symbol.for('longBlog.aboutConsole.installation');
 export function installAboutConsole(document = globalThis.document, options) {
   if (lifecycles.has(document)) return lifecycles.get(document);
+  // Module-local WeakMaps do not deduplicate different hashed bundle versions.
+  document[installationKey]?.();
   let currentRoot = null;
   let dispose = null;
   const cleanup = () => { dispose?.(); dispose = null; currentRoot = null; };
@@ -210,7 +221,8 @@ export function installAboutConsole(document = globalThis.document, options) {
     document.defaultView.removeEventListener('pagehide', onPageHide);
     document.defaultView.removeEventListener('pageshow', setup);
     lifecycles.delete(document);
+    if (document[installationKey] === uninstall) delete document[installationKey];
   };
-  lifecycles.set(document, uninstall); setup();
+  lifecycles.set(document, uninstall); document[installationKey] = uninstall; setup();
   return uninstall;
 }
