@@ -1,7 +1,8 @@
 # About Terminal
 
-`/about/` is a purely local terminal-style page. No new environment variables,
-server, shell, GitHub API or Trilium tree API are required.
+`/about/` keeps all ordinary terminal commands local. The optional `chat` mode
+uses a separate CloudBase service. See [terminal-chat.md](terminal-chat.md) for
+private configuration, deployment, limits and verification.
 
 ## Commands
 
@@ -10,9 +11,11 @@ server, shell, GitHub API or Trilium tree API are required.
 - `projects`: confirmed public projects.
 - `history`: author-provided milestones; initially empty, not fabricated.
 - `clear`: clear visible output (including the initial profile), retain command recall.
+- `chat`: enter author messaging; `exit`, `quit` or `:q` returns to local commands.
 
 Enter executes, Up/Down recalls commands, Tab completes a prefix.
-All five commands also have tappable entries; mobile visitors need no keyboard.
+All six commands have tappable entries. Chat replaces these with exit/clear controls
+and keeps message text out of ordinary command recall and completion.
 Keep at most 30 output blocks and 100 commands, only during the current visit.
 Command input is rendered as text, never evaluated or executed as a shell.
 

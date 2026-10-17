@@ -1,0 +1,8 @@
+{
+  "name": "terminal-chat-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "index.js",
+  "dependencies": { "@cloudbase/node-sdk": "3.18.3" }
+}

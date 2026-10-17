@@ -2,11 +2,12 @@
 import { aboutProfile as profile, knowledgeTopics, aboutProjects, aboutHistory } from '../../data/about';
 import '../../styles/about-console.css';
 import { PAGE_PATHS } from '../../lib/routes.js';
-const commands = ['profile', 'knowledge', 'projects', 'history', 'clear'];
+const commands = ['profile', 'knowledge', 'projects', 'history', 'clear', 'chat'];
+const chatApi = import.meta.env.PUBLIC_TERMINAL_CHAT_API_URL || '';
 ---
 
 <div class="about-console-wrap">
-  <section class="about-console" data-about-console aria-label="longBlog Terminal">
+  <section class="about-console" data-about-console data-chat-api={chatApi} aria-label="longBlog Terminal">
     <header class="terminal-titlebar">
       <div class="terminal-lights" aria-hidden="true"><span></span><span></span><span></span></div>
       <h2>longBlog Terminal</h2>
@@ -25,6 +26,10 @@ const commands = ['profile', 'knowledge', 'projects', 'history', 'clear'];
       <div class="terminal-suggestions" data-command-suggestions aria-label="命令补全建议" hidden></div>
       <nav class="terminal-shortcuts" data-terminal-shortcuts aria-label="可执行命令" hidden>
         {commands.map(command => <button type="button" data-command={command}>{command}</button>)}
+      </nav>
+      <nav class="terminal-shortcuts terminal-chat-shortcuts" data-chat-shortcuts aria-label="聊天操作" hidden>
+        <button type="button" data-chat-action="exit">退出聊天 ↵ exit</button>
+        <button type="button" data-chat-action="clear">清空屏幕</button>
       </nav>
       <p id="about-command-help" class="terminal-help" data-terminal-help hidden>点击命令或回车执行<span> · ↑↓ 历史 · Tab 补全</span></p>
       <p class="terminal-sr-only" data-terminal-announcement role="status" aria-live="polite" aria-atomic="true"></p>
