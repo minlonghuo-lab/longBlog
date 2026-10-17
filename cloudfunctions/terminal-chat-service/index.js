@@ -31,6 +31,7 @@ exports.main = async event => {
       }
       service = createService({
         store: createStore(),
+        runtimeClientIP: () => process.env.TCB_SOURCE_IP || process.env.WX_CLIENTIP || '',
         signingKey: process.env.CHAT_SIGNING_KEY,
         apiBaseUrl: process.env.CHAT_API_BASE_URL,
         allowedOrigins: (process.env.CHAT_ALLOWED_ORIGINS || 'https://huowenlong.com').split(',').map(value => value.trim()).filter(Boolean),

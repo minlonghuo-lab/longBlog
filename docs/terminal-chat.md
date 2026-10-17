@@ -139,8 +139,10 @@ retaining the session. `exit`, `quit` and `:q` restore local commands.
 - Hourly cleanup removes up to 100 expired rows per table per run. Access expires
   immediately even if physical deletion lags behind a cleanup backlog.
 
-Only gateway-provided source IP metadata is trusted, never a visitor's forwarded
-header prefix. If metadata is unavailable, requests share a conservative fallback
+The Event runtime's `TCB_SOURCE_IP` / `WX_CLIENTIP` is read at request time and
+takes precedence over gateway event metadata. No visitor-supplied forwarded header
+is trusted. The deployed environment was checked to create a distinct hashed IP
+bucket rather than falling back to the shared bucket. If metadata is unavailable, requests share a conservative fallback
 bucket. Gateway limits are still needed for high-volume polling or invalid traffic.
 
 Messages commit before the webhook request, which has a five-second timeout. Saved

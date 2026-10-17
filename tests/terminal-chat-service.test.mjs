@@ -7,14 +7,14 @@ import { createMemoryStore } from './helpers/terminal-chat-memory-store.cjs';
 
 const hex = bytes => randomBytes(bytes).toString('hex');
 const visitor = () => ({ sessionId: hex(16), token: hex(32) });
-function fixture({ notificationFails = false } = {}) {
+function fixture({ notificationFails = false, runtimeIP = '' } = {}) {
   const notifications = [];
   const reports = [];
   let time = 1800000000000;
   const store = createMemoryStore();
   const signingKey = hex(32);
   const service = createService({ store, signingKey, apiBaseUrl: 'https://chat.test/terminal-chat', allowedOrigins: ['https://huowenlong.com'],
-    now: () => time, replyHtml: '<html>reply</html>', replyJs: '// reply', report: code => reports.push(code),
+    now: () => time, replyHtml: '<html>reply</html>', replyJs: '// reply', report: code => reports.push(code), runtimeClientIP: () => runtimeIP,
     async notify(value) { notifications.push(value); if (notificationFails) throw new Error('secret webhook detail'); },
   });
   const request = async (path, { method = 'GET', body, token = '', origin = 'https://huowenlong.com', ip = '203.0.113.1', raw } = {}) => {
@@ -109,6 +109,12 @@ test('24-hour reply tokens expire independently of seven-day visitor sessions', 
   f.advance(86400001);
   assert.equal((await f.reply(author)).statusCode, 401); assert.equal((await f.poll(user)).statusCode, 200);
   f.advance(7 * 86400000); assert.equal((await f.poll(user)).statusCode, 410); assert.equal((await f.send(user)).statusCode, 410);
+});
+
+test('CloudBase runtime IP takes precedence over caller-supplied HTTP event metadata', async () => {
+  const f = fixture({ runtimeIP: '203.0.113.9' });
+  for (let i = 0; i < 5; i++) assert.equal((await f.send(visitor(), 'hello', hex(16), { ip: `198.51.100.${i + 1}` })).statusCode, 200);
+  assert.equal((await f.send(visitor(), 'hello', hex(16), { ip: '198.51.100.99' })).statusCode, 429);
 });
 
 test('pagination drains more than fifty replies sharing the same timestamp without loss', async () => {

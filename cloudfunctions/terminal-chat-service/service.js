@@ -9,7 +9,7 @@ const equal = (a, b) => typeof a === 'string' && typeof b === 'string' && Buffer
 const fail = (status, message) => { const error = new Error(message); error.status = status; throw error; };
 const publicMessage = message => ({ id: message.clientId, sender: message.sender, text: message.text, createdAt: message.createdAt, sequence: message.sequence });
 
-function createService({ store, signingKey, apiBaseUrl, allowedOrigins, notify, now = Date.now, replyHtml, replyJs, report = () => {} }) {
+function createService({ store, signingKey, apiBaseUrl, allowedOrigins, notify, now = Date.now, replyHtml, replyJs, report = () => {}, runtimeClientIP = () => '' }) {
   if (!/^[a-f0-9]{64,}$/.test(signingKey || '')) throw new Error('CHAT_SIGNING_KEY must contain at least 32 random bytes as hex');
   const base = new URL(apiBaseUrl);
   if (base.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(base.hostname)) throw new Error('CHAT_API_BASE_URL must use HTTPS');
@@ -90,7 +90,7 @@ function createService({ store, signingKey, apiBaseUrl, allowedOrigins, notify, 
         if (!body || typeof body !== 'object' || Array.isArray(body)) fail(400, '请求内容格式错误。');
       }
       if (method === 'POST' && path === '/chat/send') {
-        const candidate = event.requestContext?.sourceIp || event.requestContext?.http?.sourceIp || '';
+        const candidate = runtimeClientIP() || event.requestContext?.sourceIp || event.requestContext?.http?.sourceIp || '';
         const ip = isIP(candidate) ? candidate : '';
         return respond(200, await append({ sessionId: body.sessionId, messageId: body.messageId, text: body.message, token, sender: 'user', ip }));
       }
