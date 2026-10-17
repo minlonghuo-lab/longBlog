@@ -79,21 +79,18 @@ test('article pages keep every internal link on the canonical directory URL', as
   }
 });
 
-test('search still finds Chinese titles but emits the canonical noteId link', async () => {
-  const dom = new JSDOM(await read('dist/index.html'), { url: 'https://longblog.test/', runScripts: 'outside-only', pretendToBeVisual: true });
-  try {
-    const { document } = dom.window;
-    const script = [...document.scripts].find(node => node.textContent.includes('search-result-item'));
-    assert.ok(script);
-    dom.window.eval(script.textContent);
-    const input = document.querySelector('#search-input');
-    input.value = '我的建站史';
-    input.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-    await new Promise(resolve => setTimeout(resolve, 120));
-    const link = document.querySelector('.search-result-item');
-    assert.ok(link, 'Chinese search remains functional');
-    assert.equal(link.getAttribute('href'), getPostPath(metas.find(post => post.slug === '我的建站史').id));
-  } finally { dom.window.close(); }
+test('Pagefind indexes article bodies with their Chinese titles and stable routes', async () => {
+  for (const post of metas) {
+    const dom = new JSDOM(await read(`dist${getPostPath(post.id)}index.html`));
+    const doc = dom.window.document;
+    assert.ok(doc.querySelector('[data-pagefind-body] #post-content'));
+    assert.equal(doc.querySelector('[data-pagefind-meta="title"]').textContent, doc.querySelector('h1').textContent);
+    dom.window.close();
+  }
+  const home = new JSDOM(await read('dist/index.html'));
+  assert.equal(home.window.document.querySelector('[data-pagefind-body]'), null);
+  assert.ok(home.window.document.querySelector('#search-input'));
+  home.window.close();
 });
 
 test('legacy raw/encoded URLs with and without slash have direct 301 mappings', async () => {

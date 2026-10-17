@@ -1,10 +1,11 @@
 import { initBlogList } from './blog-list.js';
 import { initMemosPage } from './memos.js';
+import { initSearch } from './search.js';
 
 let cleanup = [];
 
 function initPage() {
-  cleanup = [initBlogList(), initMemosPage()].filter(Boolean);
+  cleanup = [initBlogList(), initMemosPage(), initSearch()].filter(Boolean);
 }
 
 // after-swap runs inside Astro's view-transition update callback. The new

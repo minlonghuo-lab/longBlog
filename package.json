@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
     "astro": "astro",
     "test:unit": "node --test tests/*.test.mjs",
@@ -20,6 +20,7 @@
     "matter-js": "^0.20.0"
   },
   "devDependencies": {
-    "jsdom": "26.1.0"
+    "jsdom": "26.1.0",
+    "pagefind": "1.5.2"
   }
 }

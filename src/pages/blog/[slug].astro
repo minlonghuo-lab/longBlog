@@ -2,6 +2,8 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { posts } from '../../data/posts';
 import { getPostRouteId, PAGE_PATHS } from '../../lib/routes.js';
+import { createArticleSchema } from '../../lib/seo.js';
+import { AUTHOR, SITE_TITLE } from '../../consts';
 
 export function getStaticPaths() {
   return posts.map((post) => ({
@@ -12,6 +14,7 @@ export function getStaticPaths() {
 }
 
 const { post } = Astro.props;
+const articleSchema = createArticleSchema(post, Astro.site, AUTHOR, SITE_TITLE);
 
 const optimizedContentHtml = post.contentHtml.replace(/<img\b([^>]*)>/gi, (_match, attributes) => {
   const clean = attributes
@@ -30,7 +33,7 @@ function formatDate(date: Date): string {
 }
 ---
 
-<BaseLayout title={post.title} description={post.summary || `${post.title} - longBlog`}>
+<BaseLayout title={post.title} description={articleSchema.description} structuredData={articleSchema}>
   <div class="reading-progress" aria-hidden="true">
     <div id="reading-progress-bar" class="reading-progress-bar"></div>
   </div>
@@ -55,16 +58,16 @@ function formatDate(date: Date): string {
         </div>
       </aside>
 
-      <article class="post-paper">
-        <a href={PAGE_PATHS.blog} class="back-link">← 返回文章列表</a>
+      <article class="post-paper" data-pagefind-body>
+        <a href={PAGE_PATHS.blog} class="back-link" data-pagefind-ignore>← 返回文章列表</a>
 
         <header class="post-header" id="post-top">
-          <h1>{post.title}</h1>
+          <h1 data-pagefind-meta="title">{post.title}</h1>
           {post.summary && <p class="summary">{post.summary}</p>}
 
           <div class="meta">
-            <time>发布：{formatDate(post.publishedAt)}</time>
-            <time>更新：{formatDate(post.updatedAt)}</time>
+            <time datetime={post.publishedAt.toISOString()} data-pagefind-ignore>发布：{formatDate(post.publishedAt)}</time>
+            <time datetime={post.updatedAt.toISOString()} data-pagefind-ignore>更新：{formatDate(post.updatedAt)}</time>
             <div class="tags">
               {post.tags.map((tag) => <span>#{tag}</span>)}
             </div>
