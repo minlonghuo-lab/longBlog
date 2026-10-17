@@ -33,8 +33,13 @@ docker compose up -d
 想先验证效果可以免重建（服务每次同步都新起 python3 进程，不用重启）：
 
 ```sh
+docker cp service/asset_cleanup.py longblog-automation:/app/service/
 docker cp service/sync_trilium_posts.py longblog-automation:/app/service/
 ```
+
+两条命令在 `longblog-automation` 仓库执行，先复制新依赖，再复制同步入口。正式更新仍建议重建镜像，避免临时改动在容器重建后丢失。
+
+同步服务在完整成功的同步后按正文引用回收当前文章目录中的旧生成附件；失败或附件未完成本地化时跳过回收。品牌素材、友链图标和其他静态素材不参与这项回收。
 
 ## 为什么本仓库不再保留脚本副本
 

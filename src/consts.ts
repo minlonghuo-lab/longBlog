@@ -19,7 +19,6 @@ export const SOCIAL_LINKS = [
 
 // Public service URLs
 export const MEMOS_URL = (env.PUBLIC_MEMOS_URL || '').replace(/\/$/, '');
-export const SITE_URL = (env.PUBLIC_SITE_URL || '').trim();
 
 // Footer / ICP / links
 export const ICP_URL = env.PUBLIC_ICP_URL || 'https://beian.miit.gov.cn/';

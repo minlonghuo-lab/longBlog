@@ -35,7 +35,6 @@
 - `TRILIUM_BASE_URL`
 - `TRILIUM_ETAPI_TOKEN`
 - `TRILIUM_BLOG_ROOT_NOTE_ID`
-- `TRILIUM_PUBLISH_WEBHOOK_SECRET`
 - `DEEPSEEK_API_BASE`
 - `DEEPSEEK_API_KEY`
 - `LONGBLOG_DEEPSEEK_MODEL`
@@ -56,7 +55,6 @@
 - `PUBLIC_SITE_AUTHOR_INTRO`
 - `PUBLIC_SITE_GITHUB`
 - `PUBLIC_SITE_EMAIL`
-- `PUBLIC_SITE_URL`
 - `PUBLIC_ICP_URL`
 - `PUBLIC_ICP_TEXT`
 - `PUBLIC_FOOTER_POWERED_TRILIUM_URL`
@@ -97,13 +95,12 @@
 ### 你自己日常改自动化/同步/AI 密钥
 直接改：
 - Pages 环境变量
-- 服务器运行态中的 `runtime/env.sh`
+- 独立 `longblog-automation` 部署目录中的 `.env` / 容器环境变量（不同于本博客的公开 `.env`）
 
 ---
 
-## 六、`.env.example`
+## 六、正式站点地址
 
-`.env.example` 仅保留为模板说明文件，用于参考字段结构。
+正式域名统一在 `astro.config.mjs` 的 `site` 中配置。canonical 和文章 JSON-LD 均使用这个地址。已移除不被消费的 `PUBLIC_SITE_URL` 配置，避免出现两个不一致的域名入口。
 
-真正生产前端构建读取的是：
-- `.env`
+仓库公开前端配置直接维护在 `.env`；当前仓库不提供 `.env.example`。

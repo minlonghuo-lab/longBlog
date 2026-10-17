@@ -99,7 +99,7 @@ Trilium 的正文渲染由五层叠加而成，越靠后优先级越高：
 **博客现状**：✅ 已对齐。`.content pre` 与 `.content pre code` 均为 `white-space: pre`，`overflow-x: auto`。
 
 **遗留偏差**：
-- 博客**没有设 `tab-size: 4`**。用 Tab 缩进的代码块在博客上会按浏览器默认（8）渲染，比 Trilium 宽一倍。当前内容用空格缩进，暂未暴露。
+- **梳理时缺少 `tab-size: 4`，现已补齐并有回归测试。** 原先用 Tab 缩进的代码块会按浏览器默认（8）渲染，比 Trilium 宽一倍；此处保留历史原因。
 - 博客**没有 `min-width: 200px`**（Trilium 也把它 `unset` 了，所以这一条两边一致，无需处理）。
 
 ---
@@ -418,7 +418,7 @@ Trilium 的正文渲染由五层叠加而成，越靠后优先级越高：
 - **改样式前**先查对应构造的"硬性条件"，那是 Trilium 侧的权威行为。
 - **"契约"**类是 Trilium 的结构性行为，不改就会走样；改版式时（字体、配色、间距）可以按博客自己的审美来 —— Trilium 把这几项显式设为 `inherit` 交给宿主。
 - **涉及尺寸的结论必须实测**，不能只读规则文本（见 2.3）。
-- 复查方式：`node audit-render.mjs http://127.0.0.1:<port>` 扫全部文章的折叠/溢出/注入/图片加载；`node measure-images.mjs` 量化图片布局；`node probe.mjs <url> <expr>` 在真实渲染里做 A/B。
+- 当前可复现的自动检查：运行 `npm test`，构建站点并执行 `tests/content-rendering.test.mjs` 等回归测试。历史尺寸测量使用的临时脚本未随仓库交付；需要复核实际布局时，运行 `npm run preview` 并在浏览器检查对应文章，自动测试不能替代真实尺寸测量。
 
 ### 验证状态说明
 

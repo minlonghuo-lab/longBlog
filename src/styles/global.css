@@ -301,24 +301,7 @@ a {
   }
 }
 
-/* ===== 章节间距 ===== */
-.section {
-  padding-top: 5rem;
-}
-
-@media (min-width: 768px) {
-  .section {
-    padding-top: 5rem;
-  }
-}
-
 /* ===== 分隔线 ===== */
 .divider {
   border-bottom: 1px solid var(--border);
 }
-
-/* ===== 底部留白 ===== */
-.pb-section {
-  padding-bottom: 5rem;
-}
-

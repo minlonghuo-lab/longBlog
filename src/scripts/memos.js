@@ -166,8 +166,8 @@ export function initMemosPage() {
     article.className = 'memo-item';
 
     const imageGridHTML = images.length
-      ? `<div class="memo-images memo-images-${Math.min(images.length, 9)}" style="--thumb-size:4.8rem;max-width:15.2rem;">${images
-          .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}" style="width:4.8rem;height:4.8rem;max-width:4.8rem;max-height:4.8rem;" aria-label="查看大图"><img src="${escapeHTML(img)}" loading="lazy" alt="图片缩略图" style="width:100%;height:100%;object-fit:cover;" /></button>`)
+      ? `<div class="memo-images memo-images-${Math.min(images.length, 9)}">${images
+          .map((img) => `<button class="memo-img-btn" data-img="${escapeHTML(img)}" aria-label="查看大图"><img src="${escapeHTML(img)}" loading="lazy" alt="图片缩略图" /></button>`)
           .join('')}</div>`
       : '';
 

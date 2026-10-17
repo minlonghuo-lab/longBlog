@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readdir, readFile } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { JSDOM } from 'jsdom';
 import { getPostPath } from '../src/lib/routes.js';
@@ -14,6 +14,26 @@ import {
 // stylesheet contract or the published note data drifts.
 
 const distRoot = new URL('../dist/', import.meta.url);
+
+test('all article attachment links resolve to retained local files', async () => {
+  const pages = await readdir(new URL('blog/', distRoot), { withFileTypes: true });
+  const attachments = new Set();
+  for (const page of pages.filter(entry => entry.isDirectory())) {
+    const dom = new JSDOM(await readFile(new URL(`blog/${page.name}/index.html`, distRoot), 'utf8'));
+    for (const element of dom.window.document.querySelectorAll('[src], [href]')) {
+      for (const attribute of ['src', 'href']) {
+        const value = element.getAttribute(attribute);
+        if (!value?.startsWith('/trilium-assets/')) continue;
+        const path = new URL(value, 'https://huowenlong.com').pathname;
+        attachments.add(path);
+        await access(new URL(`../public${path}`, import.meta.url));
+        await access(new URL(`.${path}`, distRoot));
+      }
+    }
+    dom.window.close();
+  }
+  assert.ok(attachments.size > 0, 'published article images are checked');
+});
 
 async function readBuiltCss() {
   const dir = new URL('_astro/', distRoot);
