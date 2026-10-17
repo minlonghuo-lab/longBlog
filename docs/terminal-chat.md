@@ -124,10 +124,15 @@ changing text under an existing ID returns 409. Polling is one non-overlapping
 timeout chain, with 4 → 15 → 30 second idle backoff. Hidden pages pause; exit and
 Astro navigation abort requests. Send errors preserve retryable local rows.
 
+The terminal starts empty and focuses its prompt on entry. `help` reveals only
+`profile`, `clear` and `chat`; command buttons appear only in help output.
+The terminal viewport has a stable responsive height and contains its own scrolling
+and screen-reader announcements, so growing output does not enlarge the page.
+
 Session storage keeps at most 100 cached messages in the current tab. Ordinary page
 entry does not reconnect; re-enter `chat` to resume. Private message text never
-enters shell history or command completion. `clear` in chat clears the display,
-retaining the session. `exit`, `quit` and `:q` restore local commands.
+enters shell history or command completion. The chat clear-screen button clears
+the display, retaining the session. `exit`, `quit` and `:q` restore local commands.
 
 ## Limits and retention
 

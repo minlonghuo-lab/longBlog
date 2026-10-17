@@ -50,8 +50,7 @@ test('navigation, cards, filters and terminal links point to existing directory 
       await access(new URL(`dist${url.pathname}index.html`, root));
     }
     if (path === PAGE_PATHS.about) {
-      const template = document.querySelector('template[data-output="knowledge"]');
-      assert.equal(template.content.querySelector('a').getAttribute('href'), PAGE_PATHS.blog);
+      assert.equal(document.querySelector('noscript a').getAttribute('href'), PAGE_PATHS.blog);
     }
     dom.window.close();
   }

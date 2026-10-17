@@ -5,6 +5,10 @@ import { JSDOM } from 'jsdom';
 import { installAboutConsole, COMMANDS } from '../src/scripts/about-console.js';
 
 const html = await readFile(new URL('../dist/about/index.html', import.meta.url), 'utf8');
+function submitCommand(root, value) {
+  root.querySelector('input').value = value;
+  root.querySelector('form').dispatchEvent(new root.ownerDocument.defaultView.Event('submit', { bubbles: true, cancelable: true }));
+}
 function fixture() {
   const dom = new JSDOM(html, { url: 'https://longblog.test/about', pretendToBeVisual: true });
   const { document } = dom.window;
@@ -39,33 +43,42 @@ test('server-rendered terminal starts clear and ships no legacy graph', () => {
   dom.window.close();
 });
 
-test('local commands, aliases, shortcuts, clear, append and bounded output', () => {
+test('only three commands are discoverable through help; output and history stay bounded', () => {
   const f = fixture();
   try {
     assert.equal(f.root.querySelector('form').hidden, false);
     assert.equal(f.transcript.children.length, 0, 'default state matches clear');
     assert.equal(f.input.value, '');
-    assert.notEqual(f.document.activeElement, f.input, 'no autofocus / soft keyboard on entry');
-    assert.deepEqual([...f.root.querySelectorAll('nav [data-command]')].map(b => b.dataset.command), COMMANDS);
-    for (const command of ['knowledge', 'projects', 'history', 'profile', 'fastfetch', 'whoami']) {
+    assert.equal(f.document.activeElement, f.input, 'ready to type on entry');
+    assert.equal(f.root.querySelector('[data-terminal-shortcuts]'), null);
+    assert.equal(f.root.querySelector('[data-command]'), null, 'commands are hidden until help');
+    assert.match(f.root.querySelector('[data-terminal-help]').textContent, /输入 help 获取相关命令/);
+    assert.deepEqual(COMMANDS, ['profile', 'clear', 'chat']);
+    f.submit('help');
+    assert.deepEqual([...f.transcript.querySelectorAll('[data-command]')].map(b => b.dataset.command), COMMANDS);
+    for (const command of ['profile', 'PROFILE']) {
       const count = f.transcript.children.length;
       f.submit(command);
       assert.equal(f.transcript.children.length, count + 1);
       assert.equal(f.transcript.lastElementChild.querySelector('.terminal-command').textContent, command);
       assert.ok(f.transcript.lastElementChild.children.length > 1);
     }
-    assert.ok(f.transcript.querySelector('a[href="/blog/"]'));
-    f.submit('clear');
+    for (const command of ['knowledge', 'projects', 'history', 'fastfetch', 'whoami']) {
+      f.submit(command);
+      assert.match(f.transcript.lastElementChild.querySelector('.terminal-error').textContent, /输入 help/);
+    }
+    f.root.querySelector('[data-command="clear"]').click();
     assert.equal(f.transcript.children.length, 0);
     f.submit('profile');
     assert.ok(f.transcript.querySelector('[data-profile-output]'));
-    for (let i = 0; i < 110; i++) f.submit('knowledge');
+    for (let i = 0; i < 110; i++) f.submit(`unknown-${i}`);
     assert.equal(f.transcript.children.length, 30);
     for (let i = 0; i < 105; i++) f.key('ArrowUp');
-    assert.equal(f.input.value, 'knowledge');
-    f.root.querySelector('[data-command="projects"]').focus();
-    f.root.querySelector('[data-command="projects"]').click();
-    assert.notEqual(f.document.activeElement, f.input, 'tap shortcut must not open a software keyboard');
+    assert.equal(f.input.value, 'unknown-10');
+    f.submit('help');
+    f.root.querySelector('[data-command="profile"]').focus();
+    f.root.querySelector('[data-command="profile"]').click();
+    assert.equal(f.document.activeElement, f.input, 'help command returns focus to the prompt');
   } finally { f.cleanup(); }
 });
 
@@ -88,16 +101,17 @@ test('arbitrary and prototype-name commands are rendered safely as text', () => 
 test('history keeps draft; Tab completion never traps focus; composition ignored', () => {
   const f = fixture();
   try {
-    f.submit('projects'); f.submit('history');
+    f.submit('profile'); f.submit('help');
     f.input.value = 'draft';
-    f.key('ArrowUp'); assert.equal(f.input.value, 'history');
-    f.key('ArrowUp'); assert.equal(f.input.value, 'projects');
+    f.key('ArrowUp'); assert.equal(f.input.value, 'help');
+    f.key('ArrowUp'); assert.equal(f.input.value, 'profile');
     f.key('ArrowDown'); f.key('ArrowDown'); assert.equal(f.input.value, 'draft');
-    f.input.value = 'kno'; assert.equal(f.key('Tab').defaultPrevented, true);
-    assert.equal(f.input.value, 'knowledge');
+    f.input.value = 'pro'; assert.equal(f.key('Tab').defaultPrevented, true);
+    assert.equal(f.input.value, 'profile');
     assert.equal(f.key('Tab').defaultPrevented, false, 'complete command lets focus leave');
     f.input.value = ''; assert.equal(f.key('Tab').defaultPrevented, false);
-    f.input.value = 'pro'; f.key('Tab');
+    f.input.value = 'h'; f.key('Tab'); assert.equal(f.input.value, 'help');
+    f.input.value = 'c'; f.key('Tab');
     assert.equal(f.root.querySelector('[data-command-suggestions]').hidden, false);
     f.key('Escape'); assert.equal(f.root.querySelector('[data-command-suggestions]').hidden, true);
     assert.equal(f.key('Tab', { shiftKey: true }).defaultPrevented, false);
@@ -127,8 +141,11 @@ test('repeated ClientRouter entry mounts once and releases detached handlers', a
     installAboutConsole(f.document);
     f.document.dispatchEvent(new f.dom.window.Event('astro:page-load'));
     f.document.dispatchEvent(new f.dom.window.Event('astro:page-load'));
-    f.submit('projects');
+    f.submit('profile');
     assert.equal(f.transcript.children.length, 1);
+    f.root.querySelector('#theme-toggle').focus();
+    f.dom.window.dispatchEvent(new f.dom.window.PageTransitionEvent('pageshow', { persisted: true }));
+    assert.equal(f.document.activeElement, f.input, 'restoring the about page restores typing focus');
     for (let i = 0; i < 3; i++) {
       const oldRoot = f.document.querySelector('[data-about-console]');
       const oldTranscript = oldRoot.querySelector('[data-terminal-transcript]');
@@ -136,13 +153,15 @@ test('repeated ClientRouter entry mounts once and releases detached handlers', a
       f.document.dispatchEvent(new f.dom.window.Event('astro:before-swap'));
       f.document.body.replaceChildren();
       f.document.dispatchEvent(new f.dom.window.Event('astro:page-load'));
-      oldRoot.querySelector('[data-command="projects"]').click();
+      submitCommand(oldRoot, 'profile');
       assert.equal(oldTranscript.children.length, count, 'old click handler cleaned');
       const parsed = new f.dom.window.DOMParser().parseFromString(html, 'text/html');
       f.document.body.replaceWith(f.document.adoptNode(parsed.body));
       f.document.dispatchEvent(new f.dom.window.Event('astro:page-load'));
       f.document.dispatchEvent(new f.dom.window.Event('astro:page-load'));
-      f.document.querySelector('[data-command="knowledge"]').click();
+      const currentRoot = f.document.querySelector('[data-about-console]');
+      assert.equal(f.document.activeElement, currentRoot.querySelector('input'));
+      submitCommand(currentRoot, 'help');
       assert.equal(f.document.querySelector('[data-terminal-transcript]').children.length, 1);
     }
     f.document.querySelector('[data-command="profile"]').click();
@@ -166,7 +185,7 @@ test('different bundle instances replace the previous document lifecycle', async
   try {
     oldStop(); // A retired module must not uninstall the active one.
     document.dispatchEvent(new dom.window.Event('astro:page-load'));
-    document.querySelector('[data-command="chat"]').click();
+    submitCommand(document.querySelector('[data-about-console]'), 'chat');
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(oldLoads, 0);
     assert.equal(newLoads, 1);
@@ -174,7 +193,7 @@ test('different bundle instances replace the previous document lifecycle', async
     const parsed = new dom.window.DOMParser().parseFromString(html, 'text/html');
     document.body.replaceWith(document.adoptNode(parsed.body));
     document.dispatchEvent(new dom.window.Event('astro:page-load'));
-    document.querySelector('[data-command="chat"]').click();
+    submitCommand(document.querySelector('[data-about-console]'), 'chat');
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(oldLoads, 0, 'retired page-load listener cannot remount');
     assert.equal(newLoads, 2);
@@ -202,6 +221,7 @@ test('terminal owns clicks, submitted text and input even with pre-upgrade handl
     }) }) });
     if (!legacyFirst) attachLegacy();
     try {
+      submitCommand(root, 'help');
       root.querySelector('[data-command="chat"]').click();
       await new Promise(resolve => setImmediate(resolve));
       assert.equal(entries, 1);
@@ -218,8 +238,9 @@ test('terminal owns clicks, submitted text and input even with pre-upgrade handl
       assert.deepEqual(sent, ['留言']);
       assert.equal(input.value, '');
       root.querySelector('[data-chat-action="exit"]').click();
-      root.querySelector('[data-command="projects"]').click();
-      assert.equal(root.querySelectorAll('[data-terminal-block]').length, 1);
+      root.querySelector('[data-command="profile"]').click();
+      assert.equal(root.querySelectorAll('[data-terminal-block]').length, 2);
+      assert.equal(root.querySelectorAll('[data-profile-output]').length, 1);
       assert.equal(legacyCalls, 0);
     } finally { stop(); dom.window.close(); }
   }
