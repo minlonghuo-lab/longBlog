@@ -3,7 +3,8 @@ import { aboutProfile as profile, knowledgeTopics, aboutProjects, aboutHistory }
 import '../../styles/about-console.css';
 import { PAGE_PATHS } from '../../lib/routes.js';
 const commands = ['profile', 'knowledge', 'projects', 'history', 'clear', 'chat'];
-const chatApi = import.meta.env.PUBLIC_TERMINAL_CHAT_API_URL || '';
+// Public endpoint only. An explicitly empty build override disables messaging.
+const chatApi = import.meta.env.PUBLIC_TERMINAL_CHAT_API_URL ?? 'https://shuoshuo.huowenlong.com/terminal-chat';
 ---
 
 <div class="about-console-wrap">

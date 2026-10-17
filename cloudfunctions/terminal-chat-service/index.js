@@ -1,16 +1,26 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const cloudbase = require('@cloudbase/node-sdk');
-const { createCloudStore } = require('./store');
+const { tcb } = require('tencentcloud-sdk-nodejs-tcb');
+const { createPostgresStore } = require('./postgres-store');
 const { createService } = require('./service');
-const { cleanupExpired } = require('./cleanup');
 let service;
+function createStore() {
+  const client = new tcb.v20180608.Client({
+    region: 'ap-shanghai',
+    credential: {
+      secretId: process.env.TENCENTCLOUD_SECRETID,
+      secretKey: process.env.TENCENTCLOUD_SECRETKEY,
+      token: process.env.TENCENTCLOUD_SESSIONTOKEN,
+    },
+    profile: { httpProfile: { reqTimeout: 8, endpoint: 'tcb.tencentcloudapi.com' } },
+  });
+  return createPostgresStore(sql => client.ExecutePGSql({ EnvId: process.env.CHAT_CLOUDBASE_ENV_ID, Sql: sql }));
+}
 
 exports.main = async event => {
   if (!event.httpMethod && event.Type === 'Timer' && event.TriggerName === 'terminal-chat-cleanup') {
     try {
-      const app = cloudbase.init({ env: cloudbase.SYMBOL_CURRENT_ENV });
-      return await cleanupExpired(app.database());
+      return await createStore().cleanupExpired();
     } catch { throw new Error('terminal-chat cleanup failed'); }
   }
   try {
@@ -19,9 +29,8 @@ exports.main = async event => {
       if (webhook.origin !== 'https://qyapi.weixin.qq.com' || webhook.pathname !== '/cgi-bin/webhook/send' || !webhook.searchParams.get('key')) {
         throw new Error('Invalid WeCom webhook');
       }
-      const app = cloudbase.init({ env: cloudbase.SYMBOL_CURRENT_ENV });
       service = createService({
-        store: createCloudStore(app.database()),
+        store: createStore(),
         signingKey: process.env.CHAT_SIGNING_KEY,
         apiBaseUrl: process.env.CHAT_API_BASE_URL,
         allowedOrigins: (process.env.CHAT_ALLOWED_ORIGINS || 'https://huowenlong.com').split(',').map(value => value.trim()).filter(Boolean),

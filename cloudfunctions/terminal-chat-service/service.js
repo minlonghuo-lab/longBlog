@@ -40,11 +40,6 @@ function createService({ store, signingKey, apiBaseUrl, allowedOrigins, notify, 
     if (authorOnly || !VISITOR_KEY.test(token) || !equal(session.visitorKeyHash, digest(token))) fail(403, '会话凭证无效。');
     return session;
   };
-  const spendRate = async (tx, id, limit, endAt) => {
-    const value = await tx.getSession(id);
-    if ((value?.count || 0) >= limit) fail(429, '发送太频繁，请稍后再试。');
-    await tx.putSession(id, { kind: 'rate', count: (value?.count || 0) + 1, purgeAfter: new Date(endAt) });
-  };
   const append = async ({ sessionId, messageId, text, token, sender, ip }) => {
     if (typeof sessionId !== 'string' || !ID.test(sessionId) || typeof messageId !== 'string' || !ID.test(messageId)) fail(400, '消息参数无效。');
     if (typeof text !== 'string' || !text.trim() || text.length > 500) fail(400, '每条消息需要包含 1～500 字。');
@@ -53,38 +48,8 @@ function createService({ store, signingKey, apiBaseUrl, allowedOrigins, notify, 
     if (sender === 'author' && parseAuthor(token).sessionId !== sessionId) fail(403, '无权回复这个会话。');
     const timestamp = now();
     const documentId = digest(`${sessionId}:${sender}:${messageId}`);
-    const result = await store.transaction(async tx => {
-      let session = await tx.getSession(sessionId);
-      if (session && (session.kind !== 'session' || (sender === 'user' && !equal(session.visitorKeyHash, digest(token))))) fail(403, '会话凭证无效。');
-      if (session?.expiresAt <= timestamp) fail(410, '会话已过期。');
-      if (!session && sender === 'author') fail(404, '会话不存在。');
-      const existing = await tx.getMessage(documentId);
-      if (existing) {
-        if (existing.text !== text) fail(409, '消息编号已被使用，请重新输入消息。');
-        return { message: existing, created: false, expiresAt: session.expiresAt };
-      }
-      if (sender === 'user') {
-        // Gateway source IP only. Never trust a visitor-supplied X-Forwarded-For prefix.
-        const ipHash = createHmac('sha256', signingKey).update(ip || 'unknown-gateway-ip').digest('hex');
-        const minute = Math.floor(timestamp / 60000);
-        await spendRate(tx, `rate_send_${ipHash}_${minute}`, 20, timestamp + 2 * DAY);
-        if (!session) {
-          const hour = Math.floor(timestamp / 3600000);
-          await spendRate(tx, `rate_create_${ipHash}_${hour}`, 5, timestamp + 2 * DAY);
-          session = { kind: 'session', visitorKeyHash: digest(token), createdAt: timestamp, expiresAt: timestamp + 7 * DAY, sequence: 0, lastUserMessageAt: 0 };
-        }
-        if (timestamp - session.lastUserMessageAt < 2000) fail(429, '请间隔两秒再发送下一条留言。');
-        session.lastUserMessageAt = timestamp;
-      }
-      if (session.sequence >= 200) fail(429, '本次对话已达到消息上限。');
-      session.sequence++;
-      session.purgeAfter = new Date(session.expiresAt);
-      const message = { sessionId, clientId: messageId, sender, text, createdAt: timestamp, sequence: session.sequence,
-        notification: sender === 'user' ? 'pending' : 'none', purgeAfter: new Date(session.expiresAt) };
-      await tx.putMessage(documentId, message);
-      await tx.putSession(sessionId, session);
-      return { message, created: true, expiresAt: session.expiresAt };
-    });
+    const result = await store.appendMessage({ sessionId, messageId, text, sender, timestamp, documentId,
+      visitorKeyHash: digest(token), ipHash: createHmac('sha256', signingKey).update(ip || 'unknown-gateway-ip').digest('hex') });
     let notification = result.message.notification;
     if (sender === 'user' && result.created) {
       try {

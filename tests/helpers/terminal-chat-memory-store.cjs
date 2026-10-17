@@ -1,32 +1,20 @@
-// Deterministic transactional double for service tests and local end-to-end preview.
+// In-memory PostgreSQL runs the production migration/functions, not a JS reimplementation.
+const { PGlite } = require('@electric-sql/pglite');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+const { createPostgresStore } = require('../../cloudfunctions/terminal-chat-service/postgres-store');
+const schemaSQL = readFileSync(join(__dirname, '../../cloudfunctions/terminal-chat-service/schema.sql'), 'utf8');
+let sharedDatabase;
+let nextSchema = 0;
 function createMemoryStore() {
-  let sessions = new Map();
-  let messages = new Map();
-  let queue = Promise.resolve();
-  const clone = value => value == null ? null : structuredClone(value);
-  return {
-    getSession: async id => clone(sessions.get(id)),
-    transaction(work) {
-      const operation = queue.then(async () => {
-        const nextSessions = structuredClone(sessions);
-        const nextMessages = structuredClone(messages);
-        const result = await work({
-          getSession: async id => clone(nextSessions.get(id)),
-          putSession: async (id, value) => { nextSessions.set(id, clone(value)); },
-          getMessage: async id => clone(nextMessages.get(id)),
-          putMessage: async (id, value) => { nextMessages.set(id, clone(value)); },
-        });
-        sessions = nextSessions; messages = nextMessages;
-        return result;
-      });
-      queue = operation.catch(() => {});
-      return operation;
-    },
-    async listMessages(sessionId, cursor, limit) {
-      return [...messages.values()].filter(value => value.sessionId === sessionId && value.sequence > cursor)
-        .sort((a, b) => a.sequence - b.sequence).slice(0, limit).map(clone);
-    },
-    async setNotification(id, notification) { messages.get(id).notification = notification; },
+  const schema = `terminal_chat_test_${++nextSchema}`;
+  sharedDatabase ??= PGlite.create();
+  const ready = sharedDatabase.then(async pg => { await pg.exec(schemaSQL.replaceAll('terminal_chat', schema)); return pg; });
+  const executeSQL = async sql => {
+    const pg = await ready;
+    const result = await pg.query(sql.replaceAll('terminal_chat', schema), [], { rowMode: 'array' });
+    return { Rows: result.rows.map(row => JSON.stringify(row)), Columns: result.fields.map(field => field.name), AffectedRows: result.affectedRows };
   };
+  return { ...createPostgresStore(executeSQL), executeSQL };
 }
 module.exports = { createMemoryStore };

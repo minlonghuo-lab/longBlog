@@ -1,24 +1,21 @@
 # Terminal chat v1
 
-The blog remains an Astro static site. `chat` lazily loads a small browser module;
-all ordinary commands remain local. Production calls one CloudBase **Event**
-function through an HTTP access service. No CloudBase client SDK is shipped.
+The blog remains a static Astro site. Ordinary terminal commands stay local;
+`chat` lazily loads the messaging client. Production uses one CloudBase Event
+function exposed through the HTTP gateway, enterprise WeChat notifications and a
+mobile reply page. No cloud SDK is shipped to visitors.
 
-## Confirmed deployment target
+## Deployment target
 
-- Environment: `memos-d5gadal6x556878b4`
-- Region: `ap-shanghai`
-- New function: `terminal-chat-service`, Node.js 20.19, 256 MB, 20 seconds.
-- New HTTP access-service prefix: `/terminal-chat`.
-- Notifications: an enterprise WeChat **group webhook**, with a link to the mobile reply page.
-- Same-tab continuity: `sessionStorage`, 100 cached messages. Ordinary page entry
-  does not connect; the visitor must explicitly enter `chat` again.
-- Session expiration: seven days from the first saved message. Author links expire
-  after 24 hours and grant read/reply access only to their own session.
+- Environment: `memos-d5gadal6x556878b4`, region `ap-shanghai`.
+- Existing database: **PostgreSQL** (`pgdb-nqzdym55`), not a document database.
+- Private schema: `terminal_chat`, with `sessions` and `messages` tables.
+- Function: `terminal-chat-service`, Node.js 20.19, 256 MB, 20-second timeout.
+- HTTP prefix: `/terminal-chat`, on the existing custom domain `shuoshuo.huowenlong.com`.
+- API: `https://shuoshuo.huowenlong.com/terminal-chat`.
 
-Deployment is pending CloudBase CLI login and the private WeCom webhook. An
-environment ID alone does not authorize cloud API calls. Local verification uses
-an in-memory double; it does not prove the real database or WeCom delivery works.
+The existing Memos root route, tables, schema permissions and gateway-wide
+policies stay unchanged. A separate chat path is added on the same custom domain. `schema.sql` creates only the private chat objects.
 
 ## Local verification
 
@@ -28,10 +25,11 @@ npm test
 npm run preview:chat
 ```
 
-Open `http://127.0.0.1:8787/about/`, enter `chat` and send a message. The local-only
-`http://127.0.0.1:8787/__preview/notifications` endpoint exposes the simulated
-notification links. Open one to reply, then return to the visitor tab. This server
-binds to loopback, has no persistent storage, and must never be deployed.
+Open `http://127.0.0.1:8787/about/`, enter `chat`, and send a message. Local simulated
+notification links are at `/__preview/notifications`; open one to reply. This
+loopback-only preview uses an in-memory PostgreSQL engine (PGlite), running the
+**same SQL migration and transaction functions** as production. It never contacts
+WeCom or Tencent Cloud and must never be deployed.
 
 ## Private configuration
 
@@ -39,149 +37,130 @@ binds to loopback, has no persistent storage, and must never be deployed.
 npm run chat:prepare
 ```
 
-The first run creates `.env.terminal-chat.local` with a random signing key and
-restricts file permissions to the current user. It intentionally exits with a
-missing-field message until `WECOM_BOT_WEBHOOK` has been filled in locally.
-Do not paste credentials into issues, PRs, chat, public environment variables, or
-the repository's tracked `.env`. Only these private variables go on the function:
+On first use, this creates `.env.terminal-chat.local` with a random signing key and
+owner-only file permissions. Fill `WECOM_BOT_WEBHOOK` locally and run it again to
+generate `.cloudbase/terminal-chat.deploy.json`. Both private files are ignored by
+Git. Do not put secrets in the repository's tracked `.env`, PRs or chat.
 
-| Variable | Purpose |
+| Variable | Scope |
 | --- | --- |
-| `CHAT_API_BASE_URL` | Actual HTTPS gateway prefix; verify the domain in the existing environment |
-| `CHAT_ALLOWED_ORIGINS` | Comma-separated exact blog origins; defaults to `https://huowenlong.com` |
-| `CHAT_SIGNING_KEY` | At least 32 random bytes encoded as hex; used to sign scoped author links and hash IP buckets |
-| `WECOM_BOT_WEBHOOK` | Private `https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=…` URL |
+| `CHAT_API_BASE_URL` | Function only; exact verified HTTPS gateway prefix |
+| `CHAT_ALLOWED_ORIGINS` | Function only; exact blog origins, comma-separated |
+| `CHAT_SIGNING_KEY` | Function only; at least 32 random bytes as hex |
+| `WECOM_BOT_WEBHOOK` | Function only; private WeCom group message-push URL |
+| `CHAT_CLOUDBASE_ENV_ID` | Function only; filled by the preparation script |
+| `PUBLIC_TERMINAL_CHAT_API_URL` | Public blog build override; never a secret |
 
-After filling in the missing values, run `npm run chat:prepare` again. It creates
-the ignored, private `.cloudbase/terminal-chat.deploy.json`. The public example
-and committed `cloudbaserc.chat.json` never contain credentials. Keep the signing
-key stable across deployments; rotating it invalidates existing author links.
+The Event runtime supplies temporary `TENCENTCLOUD_SECRETID`,
+`TENCENTCLOUD_SECRETKEY` and `TENCENTCLOUD_SESSIONTOKEN`. The official scoped
+Tencent Cloud TCB SDK calls `ExecutePGSql` with the fixed environment ID. No
+permanent cloud key or database password is configured. Keep the signing key stable
+across deployments; rotating it invalidates existing author links.
 
-## Prepare isolated cloud resources
+## PostgreSQL setup and deployment
 
-In the **existing environment's document database**, create only these collections.
-Do not change Memos collections, SQL tables, environment-wide permissions or existing routes.
+Inspect the target environment and existing resources first. Apply
+`cloudfunctions/terminal-chat-service/schema.sql` as a transaction through the
+CloudBase SQL console or `ExecutePGSql`. The script is idempotent for these objects:
 
-| Collection | Browser security rules | Indexes |
-| --- | --- | --- |
-| `terminal_chat_sessions` | `{"read":false,"write":false}` | `purgeAfter` ascending |
-| `terminal_chat_messages` | `{"read":false,"write":false}` | `sessionId` ascending + `sequence` ascending (unique); `purgeAfter` ascending |
+- A private `terminal_chat` schema with PUBLIC access revoked.
+- `sessions`: session metadata and hashed rate buckets, indexed by expiry.
+- `messages`: message JSON, session and sequence columns, a unique session/sequence
+  index, and an expiry index.
+- Row-level security on both tables, no public policies or grants.
+- `SECURITY INVOKER` SQL functions for transactional append and rate accounting;
+  function EXECUTE permissions are revoked from PUBLIC. No SECURITY DEFINER API
+  or public PostgREST resource is introduced.
 
-Both collections are accessed only by the server SDK. Set the **specific**
-`terminal-chat-service` function's client SDK invoke permission to false; preserve
-all other function rules. Anonymous HTTP access is intentional: visitor capability
-keys and signed author tokens are validated inside the function.
+The function executes as the environment's server-side SQL role, which owns these
+new objects. SQL structure and identifiers are fixed. Values are encoded into
+base64 literals because ExecutePGSql does not expose bind parameters. The atomic
+append function takes consistently ordered transaction advisory locks, validates
+session ownership, deduplicates message IDs, applies limits and allocates a server
+sequence number. Failed appends roll back the message **and** rate counters.
 
-Session records store a SHA-256 digest of a 256-bit visitor key, a server-issued
-sequence counter and expiration. The sessions collection also holds short-lived,
-HMAC-hashed IP rate counters. No raw IP or User-Agent is stored.
-Messages store sender, plain text, client ID, sequence, creation/expiration and
-notification state. Their deterministic document IDs make retries idempotent.
-
-The same function has an hourly `terminal-chat-cleanup` timer. It removes up to 50
-expired documents per collection per run in bounded batches. Seven-day expiration
-is enforced by authorization immediately; physical deletion happens on subsequent
-cleanup runs and can lag during a backlog. No TTL-index support is assumed.
-
-## Deploy after login
-
-The commands below were checked against CloudBase CLI 3.8.7. Run from the repo root:
+After CLI login and private configuration:
 
 ```sh
 npm exec --yes --package=@cloudbase/cli@3.8.7 -- tcb login
 npm run chat:prepare
 npm exec --yes --package=@cloudbase/cli@3.8.7 -- tcb --config-file .cloudbase/terminal-chat.deploy.json -e memos-d5gadal6x556878b4 -r ap-shanghai fn deploy terminal-chat-service
-npm exec --yes --package=@cloudbase/cli@3.8.7 -- tcb -e memos-d5gadal6x556878b4 -r ap-shanghai service create -p /terminal-chat -f terminal-chat-service
 ```
 
-This is an Event function exposed through an HTTP access service, **not** an HTTP
-web-server function: do not pass `--httpFn` or add `scf_bootstrap`. It uses the
-Event runtime's server SDK credentials. Check for an existing function/route before
-deploying; do not force-overwrite an unrelated resource. Verify the new timer and
-collection rules in the console after deployment.
+This is an **Event** function served by an HTTP gateway route. Do not pass
+`--httpFn` or add `scf_bootstrap`. Add `/terminal-chat` on the existing custom domain `shuoshuo.huowenlong.com`,
+forwarding to the new function, with path transmission enabled and gateway auth
+disabled. Set total QPS to 30 and per-client IP QPS to 10. Application capability credentials still protect data. Preserve
+all existing routes and authorization policies. Verify the hourly
+`terminal-chat-cleanup` timer after deployment.
 
-Check the actual gateway URL matches `CHAT_API_BASE_URL`, including its prefix.
-Restrict gateway traffic for `/terminal-chat/*` separately where supported. Application
-limits are two seconds between user messages, 20 sends per source IP per minute,
-five new sessions per source IP per hour, 200 messages per session and 500 UTF-16
-code units per message. The source IP comes from gateway `requestContext.sourceIp`
-(or `requestContext.http.sourceIp`); if absent, requests share a conservative
-fallback bucket. Confirm the real event shape during cloud integration. A visitor's
-`X-Forwarded-For` value is not trusted. These limits do not replace gateway limits
-for high-volume polling or invalid unauthenticated requests.
+## Browser behavior and API
 
-## Enable the blog last
+The public endpoint defaults to the deployed custom-domain URL above. An explicitly
+empty `PUBLIC_TERMINAL_CHAT_API_URL` build override disables chat requests with a
+clear unavailable notice. The system default domain is unsuitable for the reply
+page because it forces HTML downloads; no new DNS record is needed for this setup. Entering chat
+alone creates no session or backend request. A cryptographically random session ID
+(16 bytes) and visitor key (32 bytes) are created with the first send.
 
-Only after cloud send, notification and mobile reply work, set this **public build**
-variable in the blog deployment settings and rebuild:
-
-```dotenv
-PUBLIC_TERMINAL_CHAT_API_URL=https://memos-d5gadal6x556878b4.ap-shanghai.app.tcloudbase.com/terminal-chat
-```
-
-Use the verified gateway URL if it differs from this expected URL. This is the only
-new `PUBLIC_` variable. When absent, `chat` displays an unavailable notice and sends
-no requests; the rest of the terminal continues to work.
-
-## API contract
-
-All API responses are `Cache-Control: no-store`. Credentials use the Authorization
-header, never query parameters. Author links carry their token in the URL fragment;
-the mobile page removes it from the address bar immediately and keeps it in that
-tab's session storage. It has no analytics or external assets, a restrictive CSP,
-`Referrer-Policy: no-referrer`, and no-index metadata.
-
-| Endpoint | Credential | Input/result |
+| Endpoint | Authorization | Contract |
 | --- | --- | --- |
-| `POST /chat/send` | `Bearer <64-char visitor key>` | `{sessionId,messageId,message}`; creates a session atomically with its first message |
-| `GET /chat/poll?sessionId=…&cursor=0` | Visitor key or scoped author token | `{messages:[{id,sender,text,createdAt,sequence}],cursor,hasMore}`; page size 50 |
-| `POST /chat/reply` | `Bearer <signed author token>` | `{sessionId,messageId,message}`; visitor keys cannot write as author |
-| `GET /reply` | No data until token validation | Mobile HTML |
-| `GET /reply.js` | Public | Mobile client script |
+| `POST /chat/send` | `Bearer <visitor key>` | `{sessionId,messageId,message}`; creates first message and session atomically |
+| `GET /chat/poll?sessionId=…&cursor=0` | Visitor key or scoped author token | `{messages:[{id,sender,text,createdAt,sequence}],cursor,hasMore}` |
+| `POST /chat/reply` | Scoped author token only | `{sessionId,messageId,message}` |
+| `GET /reply` | Data requires a token | Mobile reply HTML |
+| `GET /reply.js` | Public | Same-origin script |
 
-IDs are 16 cryptographically random bytes as 32 hex characters. A retry must use
-the same message ID and text. Reusing an ID for different text returns 409. Cursors
-are server sequence numbers, not browser timestamps; multiple messages in the same
-millisecond and paginated results cannot be skipped.
+The database stores only a SHA-256 digest of the visitor key. Author tokens are
+HMAC-signed, valid for 24 hours and confined to one session. They travel in URL
+fragments, which the mobile page removes immediately; subsequent API calls use
+Authorization headers. The reply page has a restrictive CSP, no external assets
+or analytics, no-index metadata and a no-referrer policy. API responses are no-store.
+All message text is inserted using `textContent`.
 
-## Notification and failure behavior
+Server sequence cursors avoid client clock skew and missed same-millisecond
+messages. Fifty-message pages drain until caught up. A retry reuses its message ID;
+changing text under an existing ID returns 409. Polling is one non-overlapping
+timeout chain, with 4 → 15 → 30 second idle backoff. Hidden pages pause; exit and
+Astro navigation abort requests. Send errors preserve retryable local rows.
 
-The message is committed before the webhook is called, with a five-second webhook
-timeout. The API acknowledges a saved message even if notification fails; the
-browser does not claim the author read it. Notification errors are stored as
-`notification: failed`, with a code-only function log. First version has no durable
-notification retry worker: a runtime crash after commit can also leave `pending`.
-Inspect failed/pending records in the server console; new visitor messages produce
-fresh notifications and reply links. Repeated client retries never send duplicate
-notifications for an already stored message.
+Session storage keeps at most 100 cached messages in the current tab. Ordinary page
+entry does not reconnect; re-enter `chat` to resume. Private message text never
+enters shell history or command completion. `clear` in chat clears the display,
+retaining the session. `exit`, `quit` and `:q` restore local commands.
 
-Visitor polling uses one non-overlapping timeout chain (4 → 15 → 30 seconds while
-idle), pauses when hidden, and aborts on exit/navigation. Poll failures back off
-and show a reconnect notice after repeated failures. Send errors retain the original
-message ID for retry; a subsequent poll reconciles an ambiguous send result.
-Messages are inserted via `textContent`; no visitor/author HTML is rendered.
+## Limits and retention
 
-## Acceptance and rollback
+- Up to 500 UTF-16 code units per message, 200 messages per session.
+- At least two seconds between visitor sends.
+- At most 20 visitor sends per source IP per minute and five new sessions per IP
+  per hour. IP buckets are HMAC-hashed; no raw IP or User-Agent is stored.
+- Session access expires seven days after the first message.
+- Hourly cleanup removes up to 100 expired rows per table per run. Access expires
+  immediately even if physical deletion lags behind a cleanup backlog.
 
-- Verify profile, aliases, projects, knowledge, history and clear send **zero chat requests**.
-- Enter chat without sending: no session or cloud request is created.
-- Send a real test message; confirm stored record, mobile WeCom notification and scoped reply URL.
-- Reply from a phone; confirm author output in the original browser without a false online/read claim.
-- Leave the page, reply, return to the same tab and enter chat; confirm missed replies appear once.
-- Simulate a dropped send response, retry, and verify only one message/notification exists.
-- Exit or navigate repeatedly; verify requests stop and no detached handlers update old output.
-- Attempt another session's key, a visitor key at `/chat/reply`, an expired link and an invalid origin; all must fail.
-- Check the hourly cleanup, actual gateway source-IP shape, rate limits and index query performance in CloudBase.
+Only gateway-provided source IP metadata is trusted, never a visitor's forwarded
+header prefix. If metadata is unavailable, requests share a conservative fallback
+bucket. Gateway limits are still needed for high-volume polling or invalid traffic.
 
-For rollback, remove `PUBLIC_TERMINAL_CHAT_API_URL` and rebuild first; then disable
-only the chat gateway route/timer if needed. Do not delete existing Memos resources.
+Messages commit before the webhook request, which has a five-second timeout. Saved
+messages remain acknowledged if notification fails; failure state is recorded and
+logs contain codes only. A crash can leave `notification: pending`. The first
+version has no durable notification retry worker; new visitor messages create new
+notifications and fresh links. Client retries do not duplicate notifications.
 
-The pinned official `@cloudbase/node-sdk` dependency currently inherits npm audit
-advisories in its database and HTTP dependencies. Request URLs, document fields and
-query operators are constructed by this service, not supplied by visitors. Recheck
-the vendor's patched SDK before cloud deployment; do not run a broad `npm audit fix
---force` against the existing blog or replace SDK internals blindly.
+## Cloud acceptance and rollback
 
-Official references: [HTTP access](https://docs.cloudbase.net/service/access-cloud-function),
-[transactions](https://github.com/TencentCloudBase/node-sdk/blob/master/docs/database/database.md),
+Verify actual database row formats, runtime temporary credentials, gateway path and
+IP event shape, CORS, phone notification/reply, scoped permissions, duplicate retry,
+missed replies, timer invocation, and no changes to existing Memos routes. Local
+PGlite tests do not replace these cloud checks.
+
+To disable the browser integration, blank the public API setting and rebuild. If
+necessary, disable only the chat route and timer. Do not alter existing Memos
+resources. Keep private configuration and function environment variables out of
+all published artifacts.
+
+Official references: [PostgreSQL ExecutePGSql](https://cloud.tencent.com/document/api/876/130469),
+[HTTP function access](https://docs.cloudbase.net/service/access-cloud-function),
 [function deployment](https://docs.cloudbase.net/cli-v1/functions/deploy).

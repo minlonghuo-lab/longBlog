@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { randomBytes } from 'node:crypto';
 import { createService } from '../cloudfunctions/terminal-chat-service/service.js';
-import { createCloudStore } from '../cloudfunctions/terminal-chat-service/store.js';
-import { cleanupExpired } from '../cloudfunctions/terminal-chat-service/cleanup.js';
+import { createPostgresStore } from '../cloudfunctions/terminal-chat-service/postgres-store.js';
 import { createMemoryStore } from './helpers/terminal-chat-memory-store.cjs';
 
 const hex = bytes => randomBytes(bytes).toString('hex');
@@ -122,31 +121,29 @@ test('pagination drains more than fifty replies sharing the same timestamp witho
   assert.equal((await f.poll(user, 999)).statusCode, 400);
 });
 
-test('CloudBase adapter handles transaction vs query shapes, strips _id and surfaces SDK errors', async () => {
-  let error = false; const written = [];
-  const ref = { async get() { return error ? { code: 'DATABASE_REQUEST_FAILED' } : { data: { _id: 'sid', sequence: 3 } }; },
-    async set(value) { written.push(value); return {}; }, async update() { return { updated: 1 }; } };
-  const db = { collection: () => ({ doc: () => ref }), runTransaction: fn => fn(db) };
-  const store = createCloudStore(db);
-  const result = await store.transaction(async tx => { const session = await tx.getSession('sid'); await tx.putSession('sid', session); return session.sequence; });
-  assert.equal(result, 3); assert.deepEqual(written, [{ sequence: 3 }]);
-  ref.get = async () => ({ data: [{ _id: 'sid', sequence: 4 }] }); assert.deepEqual(await store.getSession('sid'), { sequence: 4 });
-  ref.get = async () => ({ code: 'DATABASE_REQUEST_FAILED' }); await assert.rejects(store.getSession('sid'), { code: 'DATABASE_REQUEST_FAILED' });
-  ref.set = async () => ({ code: 'DATABASE_TRANSACTION_CONFLICT' });
-  await assert.rejects(store.transaction(tx => tx.putSession('sid', {})), { code: 'DATABASE_TRANSACTION_CONFLICT' });
+test('SQL values are encoded, CloudBase row shapes decode, and database errors propagate', async () => {
+  const queries = [];
+  const store = createPostgresStore(async sql => { queries.push(sql); return { Rows: [JSON.stringify([JSON.stringify({kind:'session',sequence:3})])] }; });
+  assert.deepEqual(await store.getSession("'; DROP SCHEMA public CASCADE; --"), {kind:'session',sequence:3});
+  assert.doesNotMatch(queries[0], /DROP SCHEMA/);
+  assert.match(queries[0], /convert_from\(decode/);
+  const failing = createPostgresStore(async () => { throw new Error('Database unavailable'); });
+  await assert.rejects(failing.getSession('id'), /Database unavailable/);
 });
 
-test('retention cleanup only touches its two collections, uses expiry queries and bounds batch size', async () => {
-  const removed = []; const queries = []; let concurrent = 0; let maximum = 0;
-  const db = { command: { lte: date => ({ before: date }) }, collection(name) {
-    assert.ok(['terminal_chat_messages', 'terminal_chat_sessions'].includes(name));
-    return {
-      where(query) { queries.push(query); return { limit(value) { assert.equal(value, 50); return { async get() {
-        return { data: Array.from({ length: 23 }, (_, index) => ({ _id: `${name}_${index}` })) };
-      } }; } }; },
-      doc(id) { return { async remove() { concurrent++; maximum = Math.max(maximum, concurrent); await new Promise(resolve => setImmediate(resolve)); removed.push(id); concurrent--; return { deleted: 1 }; } }; },
-    };
-  } };
-  assert.deepEqual(await cleanupExpired(db, 1800000000000), { deleted: 46 });
-  assert.equal(removed.length, 46); assert.ok(maximum <= 10); assert.equal(queries[0].purgeAfter.before.getTime(), 1800000000000);
+test('retention cleanup uses real PostgreSQL expiry and never deletes active sessions', async () => {
+  const f = fixture(); const user = visitor(); await f.send(user);
+  assert.deepEqual(await f.store.cleanupExpired(1800000000000), {deleted:0});
+  assert.deepEqual(await f.store.cleanupExpired(1800000000000 + 3 * 86400000), {deleted:2}, 'expired rate buckets only');
+  assert.equal((await f.poll(user)).data.messages.length, 1);
+  assert.deepEqual(await f.store.cleanupExpired(1800000000000 + 8 * 86400000), {deleted:2});
+  assert.equal((await f.poll(user)).statusCode, 404);
+});
+
+test('private PostgreSQL schema enables RLS and exposes no PUBLIC privileges', async () => {
+  const store = createMemoryStore();
+  const result = await store.executeSQL("SELECT relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='terminal_chat' AND relname IN ('sessions','messages')");
+  assert.equal(result.Rows.length, 2); assert.ok(result.Rows.every(row => JSON.parse(row)[0] === true));
+  const grants = await store.executeSQL("SELECT nspacl::text FROM pg_namespace WHERE nspname='terminal_chat'");
+  assert.doesNotMatch(JSON.parse(grants.Rows[0])[0], /[,{]=U/);
 });

@@ -1,4 +1,9 @@
 (() => {
+  // Opening another notification in an existing reply tab is a same-document
+  // navigation; reload so the new scoped credential is read and cleared too.
+  window.addEventListener('hashchange', () => {
+    if (new URLSearchParams(location.hash.slice(1)).has('token')) location.reload();
+  });
   const base = new URL('./', location.href);
   const storageKey = `LONG_BLOG_AUTHOR_REPLY:${base.pathname}`;
   let token = new URLSearchParams(location.hash.slice(1)).get('token');

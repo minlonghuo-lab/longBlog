@@ -27,8 +27,8 @@ if (missing.length) {
   const webhook = new URL(values.WECOM_BOT_WEBHOOK);
   if (webhook.origin !== 'https://qyapi.weixin.qq.com' || webhook.pathname !== '/cgi-bin/webhook/send' || !webhook.searchParams.get('key')) throw new Error('企业微信 Webhook 格式不正确');
   const config = JSON.parse(await readFile(resolve(root, 'cloudbaserc.chat.json'), 'utf8'));
-  config.functionRoot = resolve(root, config.functionRoot);
   config.functions[0].envVariables = Object.fromEntries(required.map(key => [key, values[key]]));
+  config.functions[0].envVariables.CHAT_CLOUDBASE_ENV_ID = config.envId;
   await mkdir(resolve(root, '.cloudbase'), { recursive: true, mode: 0o700 });
   const target = resolve(root, '.cloudbase/terminal-chat.deploy.json');
   await writeFile(target, `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 });

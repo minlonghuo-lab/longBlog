@@ -22,6 +22,7 @@
     "matter-js": "^0.20.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
     "jsdom": "26.1.0",
     "pagefind": "1.5.2"
   }

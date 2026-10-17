@@ -4,5 +4,7 @@
   "private": true,
   "type": "commonjs",
   "main": "index.js",
-  "dependencies": { "@cloudbase/node-sdk": "3.18.3" }
+  "dependencies": {
+    "tencentcloud-sdk-nodejs-tcb": "4.1.321"
+  }
 }

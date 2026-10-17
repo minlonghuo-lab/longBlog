@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { test } from 'node:test';
+import { test, before } from 'node:test';
 import { JSDOM } from 'jsdom';
 import { installAboutConsole } from '../src/scripts/about-console.js';
 import * as chatModule from '../src/scripts/terminal-chat.js';
@@ -8,6 +8,7 @@ import { createService } from '../cloudfunctions/terminal-chat-service/service.j
 import { createMemoryStore } from './helpers/terminal-chat-memory-store.cjs';
 
 const html = await readFile(new URL('../dist/about/index.html', import.meta.url), 'utf8');
+before(async () => { await createMemoryStore().getSession('warmup'); });
 const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(resolve => setImmediate(resolve)); };
 function backend() {
   const notifications = []; let time = Date.now();
