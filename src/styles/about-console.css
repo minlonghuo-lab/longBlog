@@ -137,7 +137,6 @@ html[data-theme='dark'] .terminal-sun { display: block; }
   .terminal-profile-info { width: 100%; }
   .terminal-fields > div { grid-template-columns: 4.6rem minmax(0, 1fr); }
   .terminal-profile-name { font-size: .84rem; }
-  .terminal-input-shell input { font-size: 16px; }
 }
 @media (pointer: coarse) {
   .terminal-theme { min-width: 44px; min-height: 44px; }
