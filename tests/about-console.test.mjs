@@ -154,6 +154,77 @@ test('repeated ClientRouter entry mounts once and releases detached handlers', a
   } finally { f.cleanup(); }
 });
 
+test('different bundle instances replace the previous document lifecycle', async () => {
+  const previous = await import('../src/scripts/about-console.js?bundle=previous');
+  const next = await import('../src/scripts/about-console.js?bundle=next');
+  const dom = new JSDOM(html, { url: 'https://longblog.test/about/', pretendToBeVisual: true });
+  const { document } = dom.window;
+  let oldLoads = 0; let newLoads = 0;
+  const chat = { mountTerminalChat: () => ({ enter() {}, dispose() {} }) };
+  const oldStop = previous.installAboutConsole(document, { loadChat: async () => { oldLoads++; return chat; } });
+  const stop = next.installAboutConsole(document, { loadChat: async () => { newLoads++; return chat; } });
+  try {
+    oldStop(); // A retired module must not uninstall the active one.
+    document.dispatchEvent(new dom.window.Event('astro:page-load'));
+    document.querySelector('[data-command="chat"]').click();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(oldLoads, 0);
+    assert.equal(newLoads, 1);
+    document.dispatchEvent(new dom.window.Event('astro:before-swap'));
+    const parsed = new dom.window.DOMParser().parseFromString(html, 'text/html');
+    document.body.replaceWith(document.adoptNode(parsed.body));
+    document.dispatchEvent(new dom.window.Event('astro:page-load'));
+    document.querySelector('[data-command="chat"]').click();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(oldLoads, 0, 'retired page-load listener cannot remount');
+    assert.equal(newLoads, 2);
+  } finally { stop(); oldStop(); dom.window.close(); }
+});
+
+test('terminal owns clicks, submitted text and input even with pre-upgrade handlers', async () => {
+  for (const legacyFirst of [true, false]) {
+    const dom = new JSDOM(html, { url: 'https://longblog.test/about/', pretendToBeVisual: true });
+    const { document } = dom.window;
+    const root = document.querySelector('[data-about-console]');
+    const form = root.querySelector('form'); const input = root.querySelector('input');
+    let legacyCalls = 0; let entries = 0; const sent = [];
+    const attachLegacy = () => {
+      // Pre-chat bundles delegated shortcuts on the root and input on the form.
+      root.addEventListener('click', event => { if (event.target.closest('[data-command]')) legacyCalls++; });
+      form.addEventListener('submit', () => { legacyCalls++; input.value = ''; });
+      for (const type of ['keydown', 'input', 'compositionstart', 'compositionend']) {
+        input.addEventListener(type, () => { legacyCalls++; });
+      }
+    };
+    if (legacyFirst) attachLegacy();
+    const stop = installAboutConsole(document, { loadChat: async () => ({ mountTerminalChat: () => ({
+      enter() { entries++; }, send(text) { sent.push(text); return true; }, pause() {}, dispose() {},
+    }) }) });
+    if (!legacyFirst) attachLegacy();
+    try {
+      root.querySelector('[data-command="chat"]').click();
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(entries, 1);
+      assert.equal(root.dataset.chatMode, 'true');
+      input.value = '留言';
+      input.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+      input.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+      assert.equal(input.value, '留言');
+      input.dispatchEvent(new dom.window.CompositionEvent('compositionstart', { bubbles: true }));
+      form.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
+      assert.deepEqual(sent, []);
+      input.dispatchEvent(new dom.window.CompositionEvent('compositionend', { bubbles: true }));
+      form.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
+      assert.deepEqual(sent, ['留言']);
+      assert.equal(input.value, '');
+      root.querySelector('[data-chat-action="exit"]').click();
+      root.querySelector('[data-command="projects"]').click();
+      assert.equal(root.querySelectorAll('[data-terminal-block]').length, 1);
+      assert.equal(legacyCalls, 0);
+    } finally { stop(); dom.window.close(); }
+  }
+});
+
 test('local terminal dispatcher has no network calls or graph dependencies', async () => {
   const script = await readFile(new URL('../src/scripts/about-console.js', import.meta.url), 'utf8');
   assert.doesNotMatch(script, /fetch\s*\(|XMLHttpRequest|WebSocket|eval\s*\(|innerHTML/);
