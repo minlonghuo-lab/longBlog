@@ -54,14 +54,14 @@ function fixture({ saved, api = 'https://chat.test/terminal-chat', server = back
 test('local commands never load chat or contact backend; chat entry alone stays local', async () => {
   let loaded = 0; const f = fixture({ loadChat: async () => { loaded++; return chatModule; } });
   try {
-    for (const command of ['profile', 'projects', 'knowledge', 'history', 'clear', 'whoami', 'unknown']) f.submit(command);
+    for (const command of ['profile', 'help', 'clear', 'unknown']) f.submit(command);
     assert.equal(loaded, 0); assert.equal(f.calls.length, 0);
     f.submit('chat'); await flush();
     assert.equal(loaded, 1); assert.equal(f.calls.length, 0); assert.equal(f.saved(), null);
-    assert.equal(f.input.maxLength, 500); assert.equal(f.root.querySelector('[data-terminal-shortcuts]').hidden, true);
+    assert.equal(f.input.maxLength, 500); assert.equal(f.root.querySelector('[data-terminal-shortcuts]'), null);
     assert.match(f.root.querySelector('label').textContent, /author@chat/);
     f.submit('exit'); assert.equal(f.input.maxLength, 160);
-    assert.equal(f.root.querySelector('[data-terminal-shortcuts]').hidden, false);
+    assert.match(f.root.querySelector('[data-terminal-help]').textContent, /输入 help/);
     f.submit('profile'); assert.ok(f.root.querySelector('[data-profile-output]'));
   } finally { f.cleanup(); }
 });
@@ -69,7 +69,10 @@ test('local commands never load chat or contact backend; chat entry alone stays 
 test('visitor-to-author round trip renders plain text, separates shell history, and clears only display', async () => {
   const f = fixture();
   try {
-    f.submit('projects'); f.submit('chat'); await flush();
+    f.submit('help'); f.submit('chat'); await flush();
+    const profileButton = f.root.querySelector('[data-command="profile"]');
+    assert.equal(profileButton.disabled, true, 'old help output cannot send commands as messages');
+    profileButton.click(); await flush(); assert.equal(f.calls.length, 0);
     f.submit('<img src=x onerror=alert(1)>'); await flush();
     assert.equal(f.calls.length, 1); assert.match(f.root.querySelector('.terminal-chat-status').textContent, /已发送/);
     assert.equal(f.root.querySelector('.terminal-chat-text img'), null);
@@ -83,6 +86,7 @@ test('visitor-to-author round trip renders plain text, separates shell history, 
     assert.equal(f.root.querySelectorAll('.terminal-chat-row').length, 0);
     assert.equal(JSON.parse(f.saved()).messages.length, 2);
     f.submit('quit'); const count = f.calls.length;
+    assert.equal(profileButton.disabled, false);
     f.key('ArrowUp'); assert.equal(f.input.value, 'chat', 'private text never enters shell command recall');
     f.submit('profile'); await flush(); assert.equal(f.calls.length, count);
   } finally { f.cleanup(); }
@@ -136,7 +140,7 @@ test('exit aborts in-flight poll and ignores a late response; Astro teardown pre
     assert.equal(f.root.querySelector('.terminal-chat-author'), null);
     assert.equal(f.timers.size, 0);
     f.document.dispatchEvent(new f.window.Event('astro:before-swap'));
-    f.root.querySelector('[data-command="chat"]').click(); await flush(); assert.equal(f.calls.length, 2);
+    f.submit('chat'); await flush(); assert.equal(f.calls.length, 2);
   } finally { f.cleanup(); }
 });
 

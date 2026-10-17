@@ -1,5 +1,4 @@
-export const COMMANDS = ['profile', 'knowledge', 'projects', 'history', 'clear', 'chat'];
-const ALIASES = { fastfetch: 'profile', whoami: 'profile' };
+export const COMMANDS = ['profile', 'clear', 'chat'];
 const MAX_BLOCKS = 30;
 const MAX_HISTORY = 100;
 
@@ -35,8 +34,8 @@ export function mountAboutConsole(root, { loadChat = () => import('./terminal-ch
   const setChatMode = enabled => {
     mode = enabled ? 'chat' : 'terminal';
     root.dataset.chatMode = String(enabled);
+    transcript.querySelectorAll('button[data-command]').forEach(button => { button.disabled = enabled; });
     promptParts.forEach((node, i) => { node.textContent = enabled ? ['author', 'chat', '[msg] >'][i] : originalPrompt[i]; });
-    root.querySelector('[data-terminal-shortcuts]').hidden = enabled;
     root.querySelector('[data-chat-shortcuts]').hidden = !enabled;
     help.textContent = enabled ? '文字会发送给作者 · exit 退出 · 每条最多 500 字' : originalHelp;
     label.querySelector('.terminal-sr-only').textContent = enabled ? '发送给作者的消息' : '输入命令';
@@ -110,8 +109,7 @@ export function mountAboutConsole(root, { loadChat = () => import('./terminal-ch
     if (history.length > MAX_HISTORY) history.shift();
     historyIndex = history.length; draft = ''; input.value = '';
     sizeInput(); hideSuggestions();
-    const normalized = raw.toLowerCase();
-    const command = Object.hasOwn(ALIASES, normalized) ? ALIASES[normalized] : normalized;
+    const command = raw.toLowerCase();
     if (command === 'chat') {
       void enterChat();
     } else if (command === 'clear') {
@@ -126,20 +124,20 @@ export function mountAboutConsole(root, { loadChat = () => import('./terminal-ch
       block.append(prompt);
       if (command === 'profile') {
         block.append(profileTemplate.cloneNode(true));
-      } else if (COMMANDS.includes(command)) {
-        const template = root.querySelector(`template[data-output="${command}"]`);
+      } else if (command === 'help') {
+        const template = root.querySelector('template[data-output="help"]');
         block.append(template.content.cloneNode(true));
       } else {
         const message = document.createElement('p');
         message.className = 'terminal-error';
         // Treat arbitrary input as text, never HTML or executable code.
-        message.textContent = `command not found: ${raw}\n可用命令：${COMMANDS.join(' / ')}`;
+        message.textContent = `command not found: ${raw}\n输入 help 获取相关命令。`;
         block.append(message);
       }
       transcript.append(block);
       while (transcript.children.length > MAX_BLOCKS) transcript.firstElementChild.remove();
       updateTheme();
-      announcement.textContent = COMMANDS.includes(command) ? `${command} 已执行。输出在输入框上方。` : '未知命令，请使用下方命令入口。';
+      announcement.textContent = COMMANDS.includes(command) || command === 'help' ? `${command} 已执行。输出在输入框上方。` : '未知命令，输入 help 获取相关命令。';
     }
     scrollToPrompt();
     if (focusInput) input.focus({ preventScroll: true });
@@ -158,12 +156,13 @@ export function mountAboutConsole(root, { loadChat = () => import('./terminal-ch
       event.stopImmediatePropagation();
       if (action.dataset.chatAction === 'exit') exitChat();
       else chat?.clearScreen();
+      input.focus({ preventScroll: true });
       return;
     }
     const button = event.target.closest?.('button[data-command]');
     if (button && root.contains(button)) {
       event.stopImmediatePropagation();
-      execute(button.dataset.command);
+      if (mode === 'terminal') execute(button.dataset.command, true);
     }
   }, inputOptions);
   input.addEventListener('input', ownInput(() => { sizeInput(); hideSuggestions(); }), inputOptions);
@@ -179,7 +178,7 @@ export function mountAboutConsole(root, { loadChat = () => import('./terminal-ch
       sizeInput(); hideSuggestions();
     } else if (event.key === 'Tab' && !event.shiftKey && input.value.trim()) {
       const value = input.value.trim().toLowerCase();
-      const matches = [...COMMANDS, ...Object.keys(ALIASES)].filter(command => command.startsWith(value));
+      const matches = ['help', ...COMMANDS].filter(command => command.startsWith(value));
       if (matches.length === 1 && matches[0] !== value) {
         event.preventDefault(); input.value = matches[0]; sizeInput(); hideSuggestions();
       } else if (matches.length > 1) {
@@ -189,7 +188,7 @@ export function mountAboutConsole(root, { loadChat = () => import('./terminal-ch
     } else if (event.key === 'Escape') hideSuggestions();
   }), inputOptions);
 
-  root.querySelectorAll('[data-terminal-form], [data-terminal-shortcuts], [data-terminal-help]').forEach(node => { node.hidden = false; });
+  root.querySelectorAll('[data-terminal-form], [data-terminal-help]').forEach(node => { node.hidden = false; });
   updateTheme(); sizeInput();
   return () => { disposed = true; chat?.dispose(); controller.abort(); observer.disconnect(); };
 }
@@ -205,9 +204,11 @@ export function installAboutConsole(document = globalThis.document, options) {
   const cleanup = () => { dispose?.(); dispose = null; currentRoot = null; };
   const setup = () => {
     const root = document.querySelector('[data-about-console]');
-    if (root === currentRoot) return;
-    cleanup();
-    if (root) { currentRoot = root; dispose = mountAboutConsole(root, options); }
+    if (root !== currentRoot) {
+      cleanup();
+      if (root) { currentRoot = root; dispose = mountAboutConsole(root, options); }
+    }
+    currentRoot?.querySelector('[data-terminal-form] input')?.focus({ preventScroll: true });
   };
   const onPageHide = event => { if (!event.persisted) cleanup(); };
   document.addEventListener('astro:page-load', setup);

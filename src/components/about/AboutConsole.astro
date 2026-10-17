@@ -1,8 +1,12 @@
 ---
-import { aboutProfile as profile, knowledgeTopics, aboutProjects, aboutHistory } from '../../data/about';
+import { aboutProfile as profile } from '../../data/about';
 import '../../styles/about-console.css';
 import { PAGE_PATHS } from '../../lib/routes.js';
-const commands = ['profile', 'knowledge', 'projects', 'history', 'clear', 'chat'];
+const commands = [
+  { name: 'profile', description: '查看个人信息' },
+  { name: 'clear', description: '清空终端屏幕' },
+  { name: 'chat', description: '给作者留言，输入 exit 返回终端' },
+];
 // Public endpoint only. An explicitly empty build override disables messaging.
 const chatApi = import.meta.env.PUBLIC_TERMINAL_CHAT_API_URL ?? 'https://shuoshuo.huowenlong.com/terminal-chat';
 ---
@@ -25,14 +29,11 @@ const chatApi = import.meta.env.PUBLIC_TERMINAL_CHAT_API_URL ?? 'https://shuoshu
         <span class="terminal-input-shell"><input id="about-command" name="command" type="text" value="" maxlength="160" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-describedby="about-command-help"/><span class="terminal-block-cursor" aria-hidden="true"></span></span>
       </form>
       <div class="terminal-suggestions" data-command-suggestions aria-label="命令补全建议" hidden></div>
-      <nav class="terminal-shortcuts" data-terminal-shortcuts aria-label="可执行命令" hidden>
-        {commands.map(command => <button type="button" data-command={command}>{command}</button>)}
-      </nav>
       <nav class="terminal-shortcuts terminal-chat-shortcuts" data-chat-shortcuts aria-label="聊天操作" hidden>
         <button type="button" data-chat-action="exit">退出聊天 ↵ exit</button>
         <button type="button" data-chat-action="clear">清空屏幕</button>
       </nav>
-      <p id="about-command-help" class="terminal-help" data-terminal-help hidden>点击命令或回车执行<span> · ↑↓ 历史 · Tab 补全</span></p>
+      <p id="about-command-help" class="terminal-help" data-terminal-help hidden>输入 help 获取相关命令 · 回车执行 · ↑↓ 历史 · Tab 补全</p>
       <p class="terminal-sr-only" data-terminal-announcement role="status" aria-live="polite" aria-atomic="true"></p>
     </div>
     <noscript><p class="terminal-fallback">开启 JavaScript 后可使用交互命令。<a href={PAGE_PATHS.blog}>阅读文章 →</a> · <a href="https://github.com/minlonghuo-lab" target="_blank" rel="noopener noreferrer">GitHub ↗</a></p></noscript>
@@ -67,23 +68,10 @@ const chatApi = import.meta.env.PUBLIC_TERMINAL_CHAT_API_URL ?? 'https://shuoshu
         </div>
       </div>
     </template>
-    <template data-output="knowledge">
+    <template data-output="help">
       <div class="terminal-text-output">
-        <h3>knowledge /</h3>
-        <dl class="terminal-topic-list">{knowledgeTopics.map(topic => <div><dt>{topic.name}/</dt><dd>{topic.description}</dd></div>)}</dl>
-        <p class="terminal-copy">一些持续整理中的主题。</p><a href={PAGE_PATHS.blog} class="terminal-link">阅读全部文章 →</a>
-      </div>
-    </template>
-    <template data-output="projects">
-      <div class="terminal-text-output">
-        <h3>projects /</h3>
-        {aboutProjects.map(project => <article class="terminal-project"><h4>{project.name}</h4><p class="terminal-copy">{project.description}</p><p class="terminal-meta">{project.stack}</p><div class="terminal-links"><a href={project.href}>打开项目 →</a><a href={project.github} target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></article>)}
-      </div>
-    </template>
-    <template data-output="history">
-      <div class="terminal-text-output">
-        <h3>history /</h3>
-        {aboutHistory.length ? <ol class="terminal-history-list">{aboutHistory.map(item => <li><time datetime={item.date}>{item.date}</time><div>{item.title}{item.description && <p class="terminal-copy">{item.description}</p>}</div></li>)}</ol> : <p class="terminal-copy">一些值得记下的节点，稍后补上。</p>}
+        <h3>可用命令</h3>
+        <dl class="terminal-help-list">{commands.map(command => <div><dt><button type="button" data-command={command.name}>{command.name}</button></dt><dd>{command.description}</dd></div>)}</dl>
       </div>
     </template>
   </section>
