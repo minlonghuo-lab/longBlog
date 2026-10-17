@@ -21,6 +21,9 @@ pnpm-debug.log*
 .env
 !.env
 .env.production
+.env.local
+.env.*.local
+.cloudbase/
 
 # macOS-specific files
 .DS_Store

@@ -39,7 +39,7 @@ test('server-rendered terminal starts clear and ships no legacy graph', () => {
   dom.window.close();
 });
 
-test('five commands, aliases, clear, append and bounded output', () => {
+test('local commands, aliases, shortcuts, clear, append and bounded output', () => {
   const f = fixture();
   try {
     assert.equal(f.root.querySelector('form').hidden, false);
@@ -154,7 +154,7 @@ test('repeated ClientRouter entry mounts once and releases detached handlers', a
   } finally { f.cleanup(); }
 });
 
-test('terminal has no network calls or graph dependencies', async () => {
+test('local terminal dispatcher has no network calls or graph dependencies', async () => {
   const script = await readFile(new URL('../src/scripts/about-console.js', import.meta.url), 'utf8');
   assert.doesNotMatch(script, /fetch\s*\(|XMLHttpRequest|WebSocket|eval\s*\(|innerHTML/);
   const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));

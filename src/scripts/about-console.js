@@ -1,9 +1,9 @@
-export const COMMANDS = ['profile', 'knowledge', 'projects', 'history', 'clear'];
+export const COMMANDS = ['profile', 'knowledge', 'projects', 'history', 'clear', 'chat'];
 const ALIASES = { fastfetch: 'profile', whoami: 'profile' };
 const MAX_BLOCKS = 30;
 const MAX_HISTORY = 100;
 
-export function mountAboutConsole(root) {
+export function mountAboutConsole(root, { loadChat = () => import('./terminal-chat.js') } = {}) {
   const document = root.ownerDocument;
   const window = document.defaultView;
   const controller = new window.AbortController();
@@ -22,6 +22,51 @@ export function mountAboutConsole(root) {
   let historyIndex = 0;
   let draft = '';
   let disposed = false;
+  let mode = 'terminal';
+  let chat = null;
+  let chatLoading = null;
+  let composing = false;
+  const label = form.querySelector('label');
+  const promptParts = ['.terminal-user', '.terminal-host', '.terminal-path'].map(selector => label.querySelector(selector));
+  const originalPrompt = promptParts.map(node => node.textContent);
+  const help = root.querySelector('[data-terminal-help]');
+  const originalHelp = help.textContent;
+
+  const setChatMode = enabled => {
+    mode = enabled ? 'chat' : 'terminal';
+    root.dataset.chatMode = String(enabled);
+    promptParts.forEach((node, i) => { node.textContent = enabled ? ['author', 'chat', '[msg] >'][i] : originalPrompt[i]; });
+    root.querySelector('[data-terminal-shortcuts]').hidden = enabled;
+    root.querySelector('[data-chat-shortcuts]').hidden = !enabled;
+    help.textContent = enabled ? '文字会发送给作者 · exit 退出 · 每条最多 500 字' : originalHelp;
+    label.querySelector('.terminal-sr-only').textContent = enabled ? '发送给作者的消息' : '输入命令';
+    input.maxLength = enabled ? 500 : 160;
+    input.enterKeyHint = enabled ? 'send' : 'go';
+    input.value = ''; sizeInput(); hideSuggestions();
+  };
+  const exitChat = () => {
+    setChatMode(false); chat?.pause();
+    announcement.textContent = '已退出聊天。普通命令在本地执行。';
+  };
+  const enterChat = async () => {
+    setChatMode(true);
+    announcement.textContent = '正在进入作者留言通道。';
+    try {
+      chatLoading ??= loadChat().then(module => {
+        if (disposed) return null;
+        chat = module.mountTerminalChat(root, { announce: text => { announcement.textContent = text; }, scroll: scrollToPrompt });
+        return chat;
+      });
+      const loaded = await chatLoading;
+      if (!disposed && mode === 'chat') loaded?.enter();
+    } catch {
+      chatLoading = null;
+      if (!disposed && mode === 'chat') {
+        exitChat();
+        announcement.textContent = '聊天模块加载失败，请稍后重新输入 chat。';
+      }
+    }
+  };
 
   const updateTheme = () => {
     const dark = document.documentElement.dataset.theme === 'dark';
@@ -50,6 +95,15 @@ export function mountAboutConsole(root) {
 
   const execute = (value, focusInput = false) => {
     if (disposed) return;
+    if (mode === 'chat') {
+      const text = String(value).trim();
+      if (!text) return;
+      if (['exit', 'quit', ':q'].includes(text.toLowerCase())) exitChat();
+      else if (chat) { if (chat.send(text)) { input.value = ''; sizeInput(); } }
+      else announcement.textContent = '聊天正在加载，请稍后发送。';
+      if (focusInput) input.focus({ preventScroll: true });
+      return;
+    }
     const raw = String(value).trim().slice(0, 160);
     if (!raw) return;
     history.push(raw);
@@ -58,7 +112,9 @@ export function mountAboutConsole(root) {
     sizeInput(); hideSuggestions();
     const normalized = raw.toLowerCase();
     const command = Object.hasOwn(ALIASES, normalized) ? ALIASES[normalized] : normalized;
-    if (command === 'clear') {
+    if (command === 'chat') {
+      void enterChat();
+    } else if (command === 'clear') {
       transcript.replaceChildren();
       announcement.textContent = '终端已清空。输入 profile 可重新显示个人信息。';
     } else {
@@ -89,8 +145,16 @@ export function mountAboutConsole(root) {
     if (focusInput) input.focus({ preventScroll: true });
   };
 
-  form.addEventListener('submit', event => { event.preventDefault(); execute(input.value, true); }, { signal });
+  form.addEventListener('submit', event => { event.preventDefault(); if (!composing) execute(input.value, true); }, { signal });
+  input.addEventListener('compositionstart', () => { composing = true; }, { signal });
+  input.addEventListener('compositionend', () => { composing = false; }, { signal });
   root.addEventListener('click', event => {
+    const action = event.target.closest?.('button[data-chat-action]');
+    if (action && root.contains(action)) {
+      if (action.dataset.chatAction === 'exit') exitChat();
+      else chat?.clearScreen();
+      return;
+    }
     const button = event.target.closest?.('button[data-command]');
     if (button && root.contains(button)) execute(button.dataset.command);
   }, { signal });
@@ -98,6 +162,7 @@ export function mountAboutConsole(root) {
   inputShell?.addEventListener('click', () => input.focus({ preventScroll: true }), { signal });
   input.addEventListener('keydown', event => {
     if (event.isComposing || event.keyCode === 229) return;
+    if (mode === 'chat') return;
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       event.preventDefault();
       if (historyIndex === history.length) draft = input.value;
@@ -118,11 +183,11 @@ export function mountAboutConsole(root) {
 
   root.querySelectorAll('[data-terminal-form], [data-terminal-shortcuts], [data-terminal-help]').forEach(node => { node.hidden = false; });
   updateTheme(); sizeInput();
-  return () => { disposed = true; controller.abort(); observer.disconnect(); };
+  return () => { disposed = true; chat?.dispose(); controller.abort(); observer.disconnect(); };
 }
 
 const lifecycles = new WeakMap();
-export function installAboutConsole(document = globalThis.document) {
+export function installAboutConsole(document = globalThis.document, options) {
   if (lifecycles.has(document)) return lifecycles.get(document);
   let currentRoot = null;
   let dispose = null;
@@ -131,7 +196,7 @@ export function installAboutConsole(document = globalThis.document) {
     const root = document.querySelector('[data-about-console]');
     if (root === currentRoot) return;
     cleanup();
-    if (root) { currentRoot = root; dispose = mountAboutConsole(root); }
+    if (root) { currentRoot = root; dispose = mountAboutConsole(root, options); }
   };
   const onPageHide = event => { if (!event.persisted) cleanup(); };
   document.addEventListener('astro:page-load', setup);

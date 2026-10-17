@@ -1,0 +1,10 @@
+{
+  "name": "terminal-chat-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "index.js",
+  "dependencies": {
+    "tencentcloud-sdk-nodejs-tcb": "4.1.321"
+  }
+}

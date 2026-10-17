@@ -1,0 +1,16 @@
+{
+  "envId": "memos-d5gadal6x556878b4",
+  "region": "ap-shanghai",
+  "functionRoot": "cloudfunctions",
+  "functions": [{
+    "name": "terminal-chat-service",
+    "runtime": "Nodejs20.19",
+    "handler": "index.main",
+    "type": "Event",
+    "timeout": 20,
+    "memorySize": 256,
+    "installDependency": true,
+    "triggers": [{ "name": "terminal-chat-cleanup", "type": "timer", "config": "0 0 * * * * *" }],
+    "ignore": ["node_modules", ".env*", "*.test.*"]
+  }]
+}
